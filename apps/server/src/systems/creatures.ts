@@ -169,8 +169,43 @@ export function initCreatures(state: HomeState, random: Random): void {
     const c = new CreatureState();
     c.kind = kind;
     spawn(c, CREATURES[kind], random);
+    if (!isActive(state, CREATURES[kind])) {
+      c.present = false; // night creatures wait for dusk, then appear at once
+      c.timerMs = 0;
+    }
     state.creatures.set(id, c);
   }
+}
+
+/** Night creatures leave once nobody is this close (they don't pop out of sight in front of you). */
+const VANISH_DISTANCE = 25;
+
+function isActive(state: HomeState, def: CreatureDefinition): boolean {
+  return def.activeAt === 'always' || dayPhase(state.timeOfDay) === 'night';
+}
+
+/** Off-hours: run from the nearest player, then disappear into the woods when unseen. */
+function retreat(state: HomeState, c: CreatureState, def: CreatureDefinition, dt: number): void {
+  let nearest: PlayerState | undefined;
+  let distance = Infinity;
+  for (const p of state.players.values()) {
+    const d = Math.hypot(p.x - c.x, p.z - c.z);
+    if (d < distance) {
+      nearest = p;
+      distance = d;
+    }
+  }
+  if (!nearest || distance > VANISH_DISTANCE) {
+    c.present = false;
+    c.target = '';
+    setMode(c, CreatureMode.Idle);
+    return;
+  }
+  if (c.mode === CreatureMode.Dead) return; // a carcass stays until it's out of sight
+  c.target = '';
+  c.mode = CreatureMode.Chase; // reads as running
+  const away = { x: c.x + (c.x - nearest.x), z: c.z + (c.z - nearest.z) };
+  moveToward(c, def, away, def.runSpeed * dt);
 }
 
 /** A creature landed a blow on a player. */
@@ -190,8 +225,13 @@ export function tickCreatures(state: HomeState, dtMs: number, random: Random): C
     const expired = c.timerMs <= 0;
     const dt = dtMs / 1000;
 
+    const active = isActive(state, def);
     if (!c.present) {
-      if (expired) spawn(c, def, random);
+      if (expired && active) spawn(c, def, random);
+      continue;
+    }
+    if (!active) {
+      retreat(state, c, def, dtMs / 1000);
       continue;
     }
 

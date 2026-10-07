@@ -46,11 +46,11 @@ async function soloGame() {
 }
 
 describe('creatures', () => {
-  test('boars roam the meadow and every player starts at full health', async () => {
+  test('boars roam the meadow (wolves wait for night); players start at full health', async () => {
     const room = await soloGame();
-    expect(room.state.creatures.size).toBe(CREATURES.boar.count);
-    for (const c of room.state.creatures.values()) {
-      expect(c.kind).toBe('boar');
+    const boars = [...room.state.creatures.values()].filter((c) => c.kind === 'boar');
+    expect(boars).toHaveLength(CREATURES.boar.count);
+    for (const c of boars) {
       expect(c.health).toBe(CREATURES.boar.maxHealth);
       expect(c.present).toBe(true);
     }

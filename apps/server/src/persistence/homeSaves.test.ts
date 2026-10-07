@@ -44,6 +44,8 @@ function sample(code = 'ABC23'): HomeSave {
         inventory: [null, { itemId: 'cooked_meat', qty: 2 }],
       },
     },
+    goals: [{ kind: 'hunt', target: 2, progress: 1 }],
+    today: { hunted: 1, meals: 2, gathered: 9, crafted: 0, revives: 0 },
   };
 }
 
@@ -59,6 +61,8 @@ describe('home saves', () => {
     expect(loaded?.timeOfDay).toBe(0.8);
     expect(loaded?.resources).toEqual({ 'tree-0': 1 }); // unknown node ids dropped
     expect(loaded?.players[PLAYER]?.health).toBe(64);
+    expect(loaded?.goals).toEqual([{ kind: 'hunt', target: 2, progress: 1 }]);
+    expect(loaded?.today.meals).toBe(2);
   });
 
   test('unknown or invalid codes are simply missing', () => {
@@ -82,6 +86,11 @@ describe('home saves', () => {
         { itemId: 'diamond_sword', qty: 1 },
         { itemId: 'raw_meat', qty: 999 },
       ],
+      goals: [
+        { kind: 'hunt', target: 2, progress: 99 },
+        { kind: 'fly', target: 1, progress: 0 },
+      ],
+      today: { hunted: -4, meals: 'x' },
       players: {
         [PLAYER]: { name: 'An', hunger: 1e9, xp: -50, inventory: 'nope' },
         'bad id!': { name: 'X' },
@@ -95,6 +104,8 @@ describe('home saves', () => {
     expect(parsed?.players[PLAYER]?.xp).toBe(0);
     expect(parsed?.players[PLAYER]?.health).toBe(HEALTH_MAX); // pre-Phase 4 saves: full health
     expect(Object.keys(parsed?.players ?? {})).toEqual([PLAYER]);
+    expect(parsed?.goals).toEqual([{ kind: 'hunt', target: 2, progress: 2 }]);
+    expect(parsed?.today).toMatchObject({ hunted: 0, meals: 0 });
   });
 
   test('a save for a different code or version is rejected', () => {

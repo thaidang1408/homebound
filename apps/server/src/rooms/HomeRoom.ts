@@ -2,7 +2,9 @@ import { Room, ServerError, logger, type Client, type Delayed } from '@colyseus/
 import {
   AUTOSAVE_INTERVAL_MS,
   CREATURES,
+  GOAL_XP,
   HOTBAR_SLOTS,
+  RESOURCE_KINDS,
   CHEST_SLOTS,
   ClientMessage,
   GamePhase,
@@ -50,6 +52,7 @@ import {
   sanitizePlayerName,
   type Box,
   type Point,
+  type GoalKind,
   type HitConfirmPayload,
   type TeleportPayload,
 } from '@homebound/shared';
@@ -73,6 +76,7 @@ import { eatFromSlot, hurtPlayer, tickNeeds } from '../systems/needs.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
+import { closeDay, goalSeed, progressGoal, setGoals } from '../systems/goals.js';
 import { claimCode, claimNewCode, releaseCode } from './roomCode.js';
 
 /** Server-side collision is a hair more lenient than the client's so touching a wall is never "inside" it. */
@@ -113,6 +117,8 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private savedPlayers: Record<string, SavedPlayer> = {};
   private createdAt = new Date().toISOString();
   private newDayTimer: Delayed | undefined;
+  /** The day today's goals were picked for; a different state.day means a new day began. */
+  private goalDay = 0;
 
   override async onCreate(options: unknown) {
     const restore = option(options, 'restoreCode');
@@ -189,6 +195,8 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     initCreatures(this.state, this.random);
     this.state.chest = createSlots(CHEST_SLOTS);
     for (const { itemId, qty } of STARTER_CHEST) addItem(this.state.chest, itemId, qty);
+    setGoals(this.state, goalSeed(this.roomId));
+    this.goalDay = this.state.day;
   }
 
   /** Re-opens a saved home. Throws (refusing the create) if it's unknown or already running. */
@@ -205,6 +213,8 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     initCreatures(this.state, this.random);
     this.state.chest = createSlots(CHEST_SLOTS);
     applyHome(this.state, save);
+    if (this.state.goals.length === 0) setGoals(this.state, goalSeed(code)); // pre-Phase 6 save
+    this.goalDay = this.state.day;
     this.savedPlayers = save.players;
     this.createdAt = save.createdAt;
     // A saved home was already started: players walk straight in.
@@ -309,10 +319,15 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private tick(dtMs: number) {
     if (this.state.phase !== GamePhase.Playing) return;
     tickClock(this.state, dtMs);
+    if (this.state.day !== this.goalDay) this.beginDay(); // stayed up past midnight
     for (const id of tickNeeds(this.state, dtMs / 1000)) this.fall(id);
     tickResources(this.state, dtMs);
     const cook = tickStove(this.state, dtMs);
-    if (cook) this.rewardPlayer(cook, XP_REWARDS.cookMeal);
+    if (cook) {
+      this.rewardPlayer(cook, XP_REWARDS.cookMeal);
+      this.state.today.meals += 1;
+      this.advanceGoal('cook');
+    }
     for (const hit of tickCreatures(this.state, dtMs, this.random)) {
       const player = this.state.players.get(hit.sessionId);
       if (player && hurtPlayer(player, hit.damage)) this.fall(hit.sessionId);
@@ -325,6 +340,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       else {
         const reviver = this.state.players.get(event.reviverId);
         if (reviver) grantXp(reviver, XP_REWARDS.revive);
+        this.state.today.revives += 1;
         logger.info(`[room ${this.roomId}] ${event.reviverId} revived ${event.sessionId}`);
       }
     }
@@ -357,7 +373,26 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     client?.send(ServerMessage.HitConfirm, payload);
     const kind = this.state.creatures.get(creatureId)?.kind ?? '';
     const player = this.state.players.get(attackerId);
-    if (outcome === 'killed' && player && isCreatureKind(kind)) grantXp(player, CREATURES[kind].xp);
+    if (outcome === 'killed' && player && isCreatureKind(kind)) {
+      grantXp(player, CREATURES[kind].xp);
+      this.state.today.hunted += 1;
+      this.advanceGoal('hunt');
+    }
+  }
+
+  /** Progress on a shared goal; a completed goal rewards everyone in the home. */
+  private advanceGoal(kind: GoalKind, amount = 1) {
+    if (progressGoal(this.state, kind, amount) === 0) return;
+    for (const player of this.state.players.values()) grantXp(player, GOAL_XP);
+    logger.info(`[room ${this.roomId}] goal done: ${kind}`);
+  }
+
+  /** A new day number: tell everyone how yesterday went, then set today's goals. */
+  private beginDay() {
+    const summary = closeDay(this.state, this.goalDay);
+    this.broadcast(ServerMessage.DaySummary, summary);
+    setGoals(this.state, goalSeed(this.roomId));
+    this.goalDay = this.state.day;
   }
 
   /** XP for a playerId, whether they're in the room or offline (their save is updated). */
@@ -449,7 +484,10 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     const bench = findFurniture('workbench');
     if (!payload || !player || !bench || player.sleeping || player.downed) return;
     if (!isRecipeId(payload.recipeId) || !this.isNear(player, bench.box)) return;
-    if (craft(player.inventory, payload.recipeId) === 'crafted') grantXp(player, XP_REWARDS.craft);
+    if (craft(player.inventory, payload.recipeId) !== 'crafted') return;
+    grantXp(player, XP_REWARDS.craft);
+    this.state.today.crafted += 1;
+    this.advanceGoal('craft');
   }
 
   /** [E] on a carcass. Creatures are dynamic, so they aren't in the static interactable list. */
@@ -508,6 +546,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     if (harvest(this.state, player, node, now, last) !== 'harvested') return;
     this.lastHarvestAt.set(client.sessionId, now);
     grantXp(player, XP_REWARDS.gather);
+    const { drop, qty } = RESOURCE_KINDS[node.kind];
+    this.state.today.gathered += qty;
+    if (drop === 'wood' || drop === 'stone') this.advanceGoal('gather', qty);
   }
 
   private handleTransfer(client: Client, message: unknown) {
@@ -537,6 +578,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         const client = this.clients.find((c) => this.state.players.get(c.sessionId) === player);
         if (client) this.teleport(client, target);
       }
+      if (this.state.day !== this.goalDay) this.beginDay();
       this.save();
       logger.info(`[room ${this.roomId}] day ${this.state.day} begins`);
     }, NEW_DAY_DELAY_MS);

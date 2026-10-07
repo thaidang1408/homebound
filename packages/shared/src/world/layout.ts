@@ -18,6 +18,8 @@ export const ZONES = {
   grove: { center: { x: -30, z: 4 }, radius: 16 },
   meadow: { center: { x: 30, z: -2 }, radius: 15 },
   clearing: { center: { x: 0, z: 42 }, radius: 7 },
+  /** Deep woods behind the house, where wolves den (spawning only; trees are generated as usual). */
+  forest: { center: { x: 0, z: -38 }, radius: 12 },
 } as const satisfies Record<string, { center: Point; radius: number }>;
 
 /** The dirt road from the front door south to the clearing. */

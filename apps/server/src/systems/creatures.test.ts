@@ -61,8 +61,9 @@ describe('creatures', () => {
   test('spawn in their zone at full health, out of trees and the yard', () => {
     const state = new HomeState();
     initCreatures(state, createRandom(7));
-    expect(state.creatures.size).toBe(BOAR.count);
-    for (const c of state.creatures.values()) {
+    const boars = [...state.creatures.values()].filter((c) => c.kind === 'boar');
+    expect(boars).toHaveLength(BOAR.count);
+    for (const c of boars) {
       expect(c.health).toBe(BOAR.maxHealth);
       expect(Math.hypot(c.x - MEADOW.x, c.z - MEADOW.z)).toBeLessThanOrEqual(ZONES.meadow.radius);
       expect(Math.hypot(c.x, c.z)).toBeGreaterThan(ZONES.yard.radius);

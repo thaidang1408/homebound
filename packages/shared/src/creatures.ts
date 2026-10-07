@@ -59,6 +59,11 @@ export interface CreatureDefinition {
   knockback: number;
   loot: readonly LootEntry[];
   xp: number;
+  /**
+   * 'night' creatures come out after dusk and slink back into the woods at dawn (once nobody is
+   * close enough to see them go).
+   */
+  activeAt: 'always' | 'night';
   /** Time from looted to a fresh one appearing in its zone. */
   respawnMs: number;
   zone: keyof typeof ZONES;
@@ -87,9 +92,37 @@ export const CREATURES = {
     knockback: 0.6,
     loot: [{ itemId: 'raw_meat', min: 2, max: 3 }],
     xp: 15,
+    activeAt: 'always',
     respawnMs: 3 * 60_000,
     zone: 'meadow',
     count: 4,
+  },
+  /** Night hunter: comes out of the north woods in a pair; faster than walking, slower than sprinting. */
+  wolf: {
+    name: 'Wolf',
+    maxHealth: 30,
+    radius: 0.45,
+    walkSpeed: 1.8,
+    runSpeed: 6.2,
+    detectRange: 14,
+    nightDetectMultiplier: 1,
+    maxAttackers: [2, 2],
+    giveUpRange: 24,
+    leashRadius: 42,
+    idleMs: [800, 2500],
+    alertMs: 500,
+    attackRange: 0.8,
+    attackWindupMs: 450,
+    attackRecoverMs: 800,
+    attackDamage: 10,
+    hurtMs: 250,
+    knockback: 0.5,
+    loot: [{ itemId: 'raw_meat', min: 1, max: 2 }],
+    xp: 20,
+    activeAt: 'night',
+    respawnMs: 90_000,
+    zone: 'forest',
+    count: 3,
   },
 } as const satisfies Record<string, CreatureDefinition>;
 

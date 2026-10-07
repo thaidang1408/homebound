@@ -11,6 +11,7 @@ import {
   findResourceNode,
   StoveStatus,
   getItem,
+  isGoalKind,
   isItemId,
   isValidPlayerId,
   isValidRoomCode,
@@ -57,6 +58,23 @@ export interface HomeSave {
   resources: Record<string, number>;
   /** Keyed by playerId, including players who are offline right now. */
   players: Record<string, SavedPlayer>;
+  /** Today's goals and stats; missing in pre-Phase 6 saves (new goals are picked). */
+  goals: SavedGoal[];
+  today: SavedDayStats;
+}
+
+export interface SavedGoal {
+  kind: string;
+  target: number;
+  progress: number;
+}
+
+export interface SavedDayStats {
+  hunted: number;
+  meals: number;
+  gathered: number;
+  crafted: number;
+  revives: number;
 }
 
 let saveDir = resolve(process.env.HOMEBOUND_SAVE_DIR ?? 'data/homes');
@@ -162,6 +180,32 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
     },
     resources: parseResources(value.resources),
     players,
+    goals: parseGoals(value.goals),
+    today: parseToday(value.today),
+  };
+}
+
+const UINT8 = 255;
+const UINT16 = 65535;
+
+function parseGoals(value: unknown): SavedGoal[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((g: unknown) => {
+    if (!isObject(g) || typeof g.kind !== 'string' || !isGoalKind(g.kind)) return [];
+    const target = Math.floor(num(g.target, 1, 1, UINT8));
+    return [{ kind: g.kind, target, progress: Math.floor(num(g.progress, 0, 0, target)) }];
+  });
+}
+
+function parseToday(value: unknown): SavedDayStats {
+  const v = isObject(value) ? value : {};
+  const count = (x: unknown) => Math.floor(num(x, 0, 0, UINT16));
+  return {
+    hunted: count(v.hunted),
+    meals: count(v.meals),
+    gathered: count(v.gathered),
+    crafted: count(v.crafted),
+    revives: count(v.revives),
   };
 }
 

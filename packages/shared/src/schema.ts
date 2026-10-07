@@ -143,6 +143,30 @@ export const ProjectileState = schema(
 );
 export type ProjectileState = SchemaType<typeof ProjectileState>;
 
+/** One of today's shared goals (goals.ts). */
+export const GoalState = schema(
+  {
+    kind: t.string().default(''),
+    target: t.uint8().default(0),
+    progress: t.uint8().default(0),
+  },
+  'GoalState',
+);
+export type GoalState = SchemaType<typeof GoalState>;
+
+/** What the home did today; shown in the morning summary, then reset. */
+export const DayStats = schema(
+  {
+    hunted: t.uint16().default(0),
+    meals: t.uint16().default(0),
+    gathered: t.uint16().default(0),
+    crafted: t.uint16().default(0),
+    revives: t.uint16().default(0),
+  },
+  'DayStats',
+);
+export type DayStats = SchemaType<typeof DayStats>;
+
 export const HomeState = schema(
   {
     phase: t.string().default(GamePhase.Lobby),
@@ -160,6 +184,9 @@ export const HomeState = schema(
     creatures: t.map(CreatureState),
     /** Arrows in flight, keyed by a per-room counter. */
     projectiles: t.map(ProjectileState),
+    /** Today's shared goals (ADR-018). */
+    goals: t.array(GoalState),
+    today: DayStats,
   },
   'HomeState',
 );

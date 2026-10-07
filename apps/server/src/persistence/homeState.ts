@@ -1,4 +1,5 @@
 import {
+  GoalState,
   RESOURCE_KINDS,
   StoveStatus,
   findResourceNode,
@@ -85,6 +86,14 @@ export function buildSave(
         .map(([id, r]) => [id, r.charges]),
     ),
     players,
+    goals: [...state.goals].map((g) => ({ kind: g.kind, target: g.target, progress: g.progress })),
+    today: {
+      hunted: state.today.hunted,
+      meals: state.today.meals,
+      gathered: state.today.gathered,
+      crafted: state.today.crafted,
+      revives: state.today.revives,
+    },
   };
 }
 
@@ -107,4 +116,13 @@ export function applyHome(state: HomeState, save: HomeSave): void {
   stove.itemId = save.stove.itemId;
   stove.elapsedMs = hasFood ? save.stove.elapsedMs : 0;
   stove.cookedBy = save.stove.cookedBy;
+  state.goals.clear();
+  for (const saved of save.goals) {
+    const g = new GoalState();
+    g.kind = saved.kind;
+    g.target = saved.target;
+    g.progress = saved.progress;
+    state.goals.push(g);
+  }
+  Object.assign(state.today, save.today);
 }

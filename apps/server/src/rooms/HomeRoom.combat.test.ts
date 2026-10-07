@@ -10,6 +10,8 @@ import {
   ServerMessage,
   SPAWN_POINTS,
   XP_REWARDS,
+  GOALS_PER_DAY,
+  type DaySummaryPayload,
   type HomeState,
 } from '@homebound/shared';
 import {
@@ -17,6 +19,8 @@ import {
   newPlayerId,
   playerOf,
   self,
+  EVENING,
+  setTime,
   sleep,
   startGame,
   waitFor,
@@ -96,7 +100,8 @@ describe('crafting and weapons', () => {
     room.send(ClientMessage.Craft, { recipeId: 'spear' });
     await waitFor(() => countIn(self(room).inventory, 'spear') === 1);
     expect(countIn(self(room).inventory, 'wood')).toBe(0);
-    expect(self(room).xp).toBe(XP_REWARDS.craft);
+    // (+ the daily goal bonus if today's goal happens to be crafting)
+    expect(self(room).xp).toBeGreaterThanOrEqual(XP_REWARDS.craft);
   });
 
   test('a bow uses one arrow per shot, with a cooldown', async () => {
@@ -111,5 +116,27 @@ describe('crafting and weapons', () => {
     await waitFor(() => countIn(self(room).inventory, 'arrow') === 2);
     await sleep(200);
     expect(countIn(self(room).inventory, 'arrow')).toBe(2);
+  });
+});
+
+describe('the day loop', () => {
+  test('sleeping ends the day with a summary and brings new goals', async () => {
+    const room = await soloGame();
+    expect(room.state.goals.length).toBe(GOALS_PER_DAY);
+    let summary: DaySummaryPayload | undefined;
+    room.onMessage(ServerMessage.DaySummary, (p: DaySummaryPayload) => (summary = p));
+
+    await setTime(room, EVENING);
+    await walk(room, [
+      { x: 3.5, z: 1.8 },
+      { x: 3.5, z: -1.5 },
+      { x: 2.9, z: -3.2 },
+    ]);
+    room.send(ClientMessage.Interact, { targetId: 'bed' });
+    await waitFor(() => summary !== undefined, 6000);
+    expect(summary).toMatchObject({ day: 1, goalsTotal: GOALS_PER_DAY });
+    await waitFor(() => room.state.day === 2);
+    expect(room.state.goals.length).toBe(GOALS_PER_DAY);
+    expect([...room.state.goals].every((g) => g.progress === 0)).toBe(true);
   });
 });

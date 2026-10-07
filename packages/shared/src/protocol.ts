@@ -55,6 +55,8 @@ export const ServerMessage = {
   HitConfirm: 'hit-confirm',
   /** You bled out (or went down alone) and woke up at home. */
   Died: 'died',
+  /** Everyone slept: how the day went (sent before the new day's stats reset). */
+  DaySummary: 'day-summary',
 } as const;
 
 export interface ReadyPayload {
@@ -108,4 +110,16 @@ export interface CraftPayload {
 
 export interface HitConfirmPayload {
   killed: boolean;
+}
+
+export interface DaySummaryPayload {
+  /** The day that just ended. */
+  day: number;
+  hunted: number;
+  meals: number;
+  gathered: number;
+  crafted: number;
+  revives: number;
+  goalsDone: number;
+  goalsTotal: number;
 }
