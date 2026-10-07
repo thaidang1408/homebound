@@ -24,11 +24,13 @@ export function isValidRoomCode(code: string): boolean {
 /** Trims, removes control characters, caps length. Empty result means "use a default". */
 export function sanitizePlayerName(input: unknown): string {
   if (typeof input !== 'string') return '';
-  // eslint-disable-next-line no-control-regex
-  return input
-    .replace(/[\u0000-\u001f\u007f]/g, '')
-    .trim()
-    .slice(0, PLAYER_NAME_MAX_LENGTH);
+  return (
+    input
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .trim()
+      .slice(0, PLAYER_NAME_MAX_LENGTH)
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -58,7 +58,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
 
   override onJoin(client: Client, options: unknown) {
     const slot = this.freeSlot();
-    const spawn = SPAWN_POINTS[slot - 1] ?? SPAWN_POINTS[0]!;
+    const spawn = SPAWN_POINTS[slot - 1] ?? { x: 0, z: 0, yaw: 0 };
     const requestedName =
       typeof options === 'object' && options !== null && 'name' in options ? options.name : '';
 

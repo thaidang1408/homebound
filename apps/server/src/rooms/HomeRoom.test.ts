@@ -25,6 +25,13 @@ async function waitFor(check: () => boolean, timeoutMs = 2000): Promise<void> {
   }
 }
 
+/** Synced player state as seen by `room`; throws if absent. */
+function playerOf(room: Room<HomeState>, sessionId: string) {
+  const player = room.state.players.get(sessionId);
+  if (!player) throw new Error(`player ${sessionId} not in state`);
+  return player;
+}
+
 async function track(promise: Promise<Room<HomeState>>): Promise<Room<HomeState>> {
   const room = await promise;
   openRooms.push(room);
@@ -112,12 +119,12 @@ describe('movement sync', () => {
   test("a player's move is visible to the partner", async () => {
     const { host, partner } = await createPair();
     await startGame(host, partner);
-    const self = host.state.players.get(host.sessionId)!;
+    const self = playerOf(host, host.sessionId);
 
     host.send(ClientMessage.Move, { x: self.x + 0.3, z: self.z, yaw: 1, pitch: 0.2 });
-    await waitFor(() => partner.state.players.get(host.sessionId)!.yaw > 0.9);
+    await waitFor(() => playerOf(partner, host.sessionId).yaw > 0.9);
 
-    const seen = partner.state.players.get(host.sessionId)!;
+    const seen = playerOf(partner, host.sessionId);
     expect(seen.x).toBeCloseTo(self.x, 3);
     expect(seen.yaw).toBeCloseTo(1, 2);
     expect(seen.pitch).toBeCloseTo(0.2, 2);
@@ -125,16 +132,16 @@ describe('movement sync', () => {
 
   test('moves are ignored in the lobby', async () => {
     const { host, partner } = await createPair();
-    const before = partner.state.players.get(host.sessionId)!.x;
+    const before = playerOf(partner, host.sessionId).x;
     host.send(ClientMessage.Move, { x: before + 0.3, z: 7, yaw: 0, pitch: 0 });
     await new Promise((r) => setTimeout(r, 150));
-    expect(partner.state.players.get(host.sessionId)!.x).toBe(before);
+    expect(playerOf(partner, host.sessionId).x).toBe(before);
   });
 
   test('teleport-speed moves are rejected with a correction', async () => {
     const { host, partner } = await createPair();
     await startGame(host, partner);
-    const start = { ...host.state.players.get(host.sessionId)! };
+    const start = { ...playerOf(host, host.sessionId) };
 
     const correction = new Promise<TeleportPayload>((resolve) =>
       host.onMessage(ServerMessage.Teleport, resolve),
@@ -142,7 +149,7 @@ describe('movement sync', () => {
     host.send(ClientMessage.Move, { x: start.x + 20, z: start.z, yaw: 0, pitch: 0 });
 
     expect(await correction).toEqual({ x: start.x, z: start.z });
-    expect(partner.state.players.get(host.sessionId)!.x).toBe(start.x);
+    expect(playerOf(partner, host.sessionId).x).toBe(start.x);
   });
 
   test('malformed messages are ignored and the room stays alive', async () => {
@@ -152,9 +159,9 @@ describe('movement sync', () => {
     host.send(ClientMessage.Move, null);
     host.send(ClientMessage.Ready, { ready: 'yes' });
 
-    const self = host.state.players.get(host.sessionId)!;
+    const self = playerOf(host, host.sessionId);
     host.send(ClientMessage.Move, { x: self.x, z: self.z - 0.2, yaw: 0.5, pitch: 0 });
-    await waitFor(() => partner.state.players.get(host.sessionId)!.yaw > 0.4);
+    await waitFor(() => playerOf(partner, host.sessionId).yaw > 0.4);
   });
 });
 
