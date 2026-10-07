@@ -75,8 +75,10 @@ export function GameHud() {
   const prompt = focusId && locked ? promptFor(focusId, room.state, room.sessionId) : null;
   const hunger = me?.hunger ?? HUNGER_MAX;
   const health = me?.health ?? HEALTH_MAX;
-  const preyKind = preyId ? room.state.creatures.get(preyId)?.kind : undefined;
-  const preyName = preyKind && isCreatureKind(preyKind) ? CREATURES[preyKind].name : undefined;
+  const prey = preyId ? room.state.creatures.get(preyId) : undefined;
+  const preyDef = prey && isCreatureKind(prey.kind) ? CREATURES[prey.kind] : undefined;
+  const preyName = preyDef?.name;
+  const preyHealth = prey && preyDef ? prey.health / preyDef.maxHealth : 1;
   const bothAsleep = !!me?.sleeping && !!partner?.sleeping;
   const progress = levelForXp(me?.xp ?? 0);
   const xpShare = progress.needed ? progress.intoLevel / progress.needed : 1;
@@ -151,6 +153,9 @@ export function GameHud() {
         <div className={styles.prompt} data-actionable>
           <kbd className={styles.key}>Click</kbd>
           Punch {preyName.toLowerCase()}
+          <span className={styles.preyTrack} aria-label="Creature health">
+            <span className={styles.preyFill} style={{ width: `${preyHealth * 100}%` }} />
+          </span>
         </div>
       )}
       {prompt && (

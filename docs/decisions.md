@@ -133,7 +133,8 @@ butcher with [E]) → respawn after a delay. Only position, yaw, mode, health an
 timers, targets and patrol goals are `noSync`. The client animates from `mode`.
 
 - **The yard is a safe zone:** creatures never enter it and ignore players inside, so "run home"
-  always works. Detection range grows at night.
+  always works. Detection range grows at night, and so does the pack limit (`maxAttackers`: one
+  boar per player by day, two at night).
 - **No stun-lock:** hits during a wind-up don't interrupt it.
 - **Creatures are not saved:** a re-opened home gets fresh creatures (nothing a player owns is lost).
 - **Phase 4 stand-ins, replaced in Phase 5:** players strike with bare hands (`UNARMED_ATTACK`);

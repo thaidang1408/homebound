@@ -38,6 +38,11 @@ export interface CreatureDefinition {
   detectRange: number;
   /** …this much farther at night. */
   nightDetectMultiplier: number;
+  /**
+   * How many of this kind may hunt the same player at once, by day and at night. Keeps daytime
+   * fights a readable one-on-one; at night the herd gangs up.
+   */
+  maxAttackers: readonly [day: number, night: number];
   /** Gives up once the target is this far away (m). */
   giveUpRange: number;
   /** Never strays farther than this from its zone centre (m). */
@@ -69,6 +74,7 @@ export const CREATURES = {
     runSpeed: 5.4,
     detectRange: 8,
     nightDetectMultiplier: 1.6,
+    maxAttackers: [1, 2],
     giveUpRange: 18,
     leashRadius: 24,
     idleMs: [1500, 4000],

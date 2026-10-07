@@ -10,10 +10,12 @@ import { PALETTE } from '../world/palette';
 const DEF = CREATURES.boar;
 const FLASH_MS = 160;
 const LUNGE_MS = 180;
-const LUNGE_DISTANCE = 0.45;
+const LUNGE_DISTANCE = 0.25;
 /** Leg swing radians per metre walked. */
 const STRIDE = 7;
 const HEALTH_BAR_WIDTH = 0.8;
+/** Closer than this the world bar would cover the crosshair; the HUD prompt shows health instead. */
+const HEALTH_BAR_MIN_DISTANCE = 2.5;
 /** Hip positions (x, z); front legs at −Z. */
 const LEGS: readonly (readonly [number, number])[] = [
   [-0.22, -0.36],
@@ -117,7 +119,8 @@ export function Boar({ room, id }: { room: Room<HomeState>; id: string }) {
 
     // --- health bar: only once hurt, always facing the camera ---
     const share = c.health / DEF.maxHealth;
-    bar.current.visible = !dead && share < 1;
+    const near = camera.position.distanceTo(g.position) < HEALTH_BAR_MIN_DISTANCE;
+    bar.current.visible = !dead && share < 1 && !near;
     bar.current.quaternion.copy(camera.quaternion);
     barFill.current.scale.x = Math.max(0.001, share);
     barFill.current.position.x = (-(1 - share) * HEALTH_BAR_WIDTH) / 2;

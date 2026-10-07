@@ -179,8 +179,8 @@
 
 ## Phase 4 — Creature + hunting
 
-**Status:** Code done and unit/integration-tested; browser e2e pending (needs `npm run dev`);
-awaiting the user's test + approval (2026-10-07)
+**Status:** Done on one machine (tests + all 5 e2e scenarios pass), awaiting the user's test +
+approval (2026-10-07)
 
 **What was built**
 
@@ -189,33 +189,39 @@ awaiting the user's test + approval (2026-10-07)
   hurt (knockback) → dead → butcher → respawn (3 min). Night widens detection (×1.6).
 - First creature: **boar** ×4 in the east meadow. Charges faster than you walk, slower than you
   sprint; telegraphs (snout up, rearing back) before each strike; can be dodged by stepping away.
+- Pack limit (data, `maxAttackers`): by day one boar hunts you at a time, at night two. Found by the
+  e2e: without it the whole herd charged at noon and an unarmed player always blacked out.
 - Safe yard: creatures never enter it and drop the chase when you reach it; they also give up at
   18 m or outside their territory.
 - Player health (synced, saved, HUD meter, red hurt flash, slow regen while fed). At 0: black out
   and wake up at home with 50 health (stand-in for Phase 5 downed/revive).
 - Bare-hand strikes: left click on a boar in the crosshair (red crosshair + "Click Punch boar"),
-  server checks reach, cooldown, alive; view nods on each swing; boar flashes and shows a health bar.
+  server checks reach, cooldown, alive; view nods on each swing; boar flashes and shows a health bar
+  (in the world from afar; inside the "Punch boar" prompt up close, so it never covers the crosshair).
 - Loot: carcass → `[E] Butcher boar` → 2–3 raw meat, +15 XP; "Boar down!" toast.
 - Client boar model (primitive low-poly) with trot, alert hop, wind-up/lunge, flinch and keel-over.
 
 **Tests**
 
-- `npm test`: 113 passing. New: creature spawns (zone, out of trees and yard), detect → alert →
+- `npm test`: 114 passing. New: creature spawns (zone, out of trees and yard), detect → alert →
   chase → strike after wind-up, dodging the wind-up, night detection, safe yard, knockback, no
-  wind-up interrupt, out-of-reach strikes refused, kill → butcher → respawn, full backpack, health
+  wind-up interrupt, pack limit by day/night, out-of-reach strikes refused, kill → butcher → respawn, full backpack, health
   regen/blackout, health saved; networked: boars synced, no hitting from the house, a full hunt
   (walk to the meadow, a boar charges, punch it down, butcher it).
-- `npm run e2e`: new `hunting` scenario written; not run yet — the dev server wasn't running and I
-  don't start servers on my own.
+- `npm run e2e`: 5 scenarios passing (new `hunting`: walk to the meadow, a boar charges, "Click Punch
+  boar", punch it down, "Boar down!", `[E] Butcher boar`, +raw meat, still standing). Ran 5× in a
+  row green after the pack-limit fix.
 
 **Known issues**
 
 - Bare hands only; weapons, downed/revive and starvation damage are Phase 5.
-- At night the whole herd may charge at once; unarmed that usually means a blackout (intended
-  pressure: night is for being home). Tune `CREATURES.boar` if it feels unfair.
+- At night two boars can charge at once; unarmed that often means a blackout (intended pressure:
+  night is for being home). Tune `CREATURES.boar` if it feels unfair.
+- Aim uses look direction on the ground plane only (looking at the sky still punches a boar in front).
+- Boars can overlap each other (no creature-creature separation).
 - Creatures walk straight at their target and slide around trees (no pathfinding); fine in the open
   meadow, they can snag on a dense tree cluster.
 - Creatures aren't saved (fresh herd on re-open).
-- Bundle 1.35 MB (381 kB gzip); code-splitting in Phase 7.
+- Bundle ~1.35 MB (~381 kB gzip); code-splitting in Phase 7.
 
 **Next phase:** Phase 5 — combat + survival.

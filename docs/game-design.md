@@ -41,6 +41,7 @@ for rendering, client collision, server validation and interaction reach.
   come within 8 m (≈13 m at night) it raises its snout (alert, 0.7 s), then charges at 5.4 m/s —
   faster than walking, slower than sprinting, so you can always run. Before striking it rears back
   for 0.55 s: step away to dodge. Hits make it flinch and get knocked back, except mid wind-up.
+  By day only one boar hunts you at a time; at night up to two (plus any you provoke).
 - **Fighting:** look at a boar within reach → the crosshair turns red with "Click Punch boar".
   Bare hands deal 8 (5 punches, one every 0.45 s). Weapons arrive in Phase 5.
 - **Loot:** a downed boar becomes a carcass → `[E] Butcher boar` → 2–3 raw meat (+15 XP to the

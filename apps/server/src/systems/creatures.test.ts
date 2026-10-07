@@ -106,6 +106,21 @@ describe('creatures', () => {
     expect(boar.target).toBe('p1');
   });
 
+  test('by day one boar hunts you at a time; at night two do', () => {
+    const { state, player, boar, run } = setup();
+    const other = state.creatures.get('boar-1') as CreatureState;
+    Object.assign(other, { x: boar.x, z: boar.z + 1.5 });
+    stand(player, boar, 4);
+    run(SIMULATION_TICK_MS);
+    const hunting = [boar, other].filter((c) => c.target === 'p1');
+    expect(hunting).toHaveLength(BOAR.maxAttackers[0]);
+
+    for (const c of [boar, other]) Object.assign(c, { mode: CreatureMode.Idle, target: '' });
+    state.timeOfDay = NIGHT;
+    run(SIMULATION_TICK_MS);
+    expect([boar, other].filter((c) => c.target === 'p1')).toHaveLength(BOAR.maxAttackers[1]);
+  });
+
   test('never enters the yard and gives up on a player who reaches it', () => {
     const { player, boar, run } = setup();
     stand(player, boar, 7);

@@ -104,14 +104,32 @@ function reach(c: CreatureState, def: CreatureDefinition, p: Point): number {
   return Math.hypot(p.x - c.x, p.z - c.z) - def.radius;
 }
 
+const HUNTING: readonly string[] = [
+  CreatureMode.Alert,
+  CreatureMode.Chase,
+  CreatureMode.Attack,
+  CreatureMode.Hurt,
+];
+
+/** Creatures of `kind` currently going after player `sessionId`. */
+function huntersOf(state: HomeState, kind: string, sessionId: string): number {
+  let n = 0;
+  for (const other of state.creatures.values()) {
+    if (other.kind === kind && other.target === sessionId && HUNTING.includes(other.mode)) n++;
+  }
+  return n;
+}
+
 function spot(state: HomeState, c: CreatureState, def: CreatureDefinition): string {
   const night = dayPhase(state.timeOfDay) === 'night';
   const range = def.detectRange * (night ? def.nightDetectMultiplier : 1);
+  const maxHunters = def.maxAttackers[night ? 1 : 0];
   const zone = ZONES[def.zone].center;
   let best = '';
   let bestDistance = range;
   for (const [id, p] of state.players) {
     if (!isPrey(p) || Math.hypot(p.x - zone.x, p.z - zone.z) > def.leashRadius) continue;
+    if (huntersOf(state, c.kind, id) >= maxHunters) continue;
     const d = Math.hypot(p.x - c.x, p.z - c.z);
     if (d <= bestDistance) {
       best = id;
