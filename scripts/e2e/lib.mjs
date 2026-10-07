@@ -64,11 +64,11 @@ export const roomOf = (page) => hb(page, (h) => h.getSession().room.roomId);
 export async function startPair(a, b, names = ['An', 'Binh']) {
   await a.getByText('Server online').waitFor();
   await a.getByLabel('Your name').fill(names[0]);
-  await a.getByRole('button', { name: 'Create room' }).click();
+  await a.getByRole('button', { name: 'Build a new home' }).click();
   await a.getByText('Click to copy').waitFor();
   const code = await roomOf(a);
   await b.getByLabel('Your name').fill(names[1]);
-  await b.getByLabel('Room code').fill(code);
+  await b.getByLabel('Home code').fill(code);
   await b.getByRole('button', { name: 'Join' }).click();
   await a.getByText(names[1]).waitFor();
   await a.getByRole('button', { name: "I'm ready" }).click();

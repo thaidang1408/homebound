@@ -9,6 +9,8 @@ interface Snapshot {
   day: number;
   stoveStatus: string;
   myHunger: number;
+  myXp: number;
+  myLevel: number;
   sleeping: Map<string, boolean>;
 }
 
@@ -27,7 +29,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     slots(s.chest),
     ...players.map(
       ([id, p]) =>
-        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.sleeping}|${slots(p.inventory)}`,
+        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.sleeping}|${p.xp}|${p.level}|${slots(p.inventory)}`,
     ),
   ].join(';');
   return {
@@ -35,6 +37,8 @@ function snapshot(room: Room<HomeState>): Snapshot {
     day: s.day,
     stoveStatus: s.stove.status,
     myHunger: s.players.get(room.sessionId)?.hunger ?? 0,
+    myXp: s.players.get(room.sessionId)?.xp ?? 0,
+    myLevel: s.players.get(room.sessionId)?.level ?? 1,
     sleeping: new Map(players.map(([id, p]) => [id, p.sleeping])),
   };
 }
@@ -48,6 +52,14 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   }
   const ate = next.myHunger - prev.myHunger;
   if (ate > 0) showToast(`+${ate} hunger`);
+  const earned = next.myXp - prev.myXp;
+  if (earned > 0) showToast(`+${earned} XP`);
+  if (next.myLevel > prev.myLevel) showToast(`⭐ Level ${next.myLevel}!`);
+
+  for (const id of next.sleeping.keys()) {
+    if (id === room.sessionId || prev.sleeping.has(id)) continue;
+    showToast(`${room.state.players.get(id)?.name ?? 'Your partner'} came home`);
+  }
 
   for (const [id, sleeping] of next.sleeping) {
     if (id === room.sessionId || !sleeping || prev.sleeping.get(id)) continue;

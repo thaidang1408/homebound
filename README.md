@@ -22,12 +22,15 @@ npm run dev
 
 The landing screen shows "Server online" when the client can reach the server.
 
-### How to play (2 players)
+### How to play
 
-1. Player 1: enter a name → **Create room** → read the 5-letter room code to your partner.
-2. Player 2: enter the code → **Join**.
-3. Both press **I'm ready**, then either presses **Start game**.
-4. Click the world to capture the mouse. WASD move, Mouse look, Shift sprint, Esc pause.
+1. Enter a name → **Build a new home** → **Start game** (you can play alone).
+2. Your partner enters the 5-character home code shown in the HUD → **Join** — any time, even mid-game.
+3. Click the world to capture the mouse. WASD move, Mouse look, Shift sprint, **E** interact,
+   left click eat the held food, 1–5 / wheel hotbar, Tab backpack, Esc pause.
+4. Loop: take raw meat from the **chest** → cook it at the **stove** → eat → both lie in the **bed** → new day.
+5. Homes save automatically. Next time, **Continue home** (or enter the code) picks up where you left off.
+   Saves live in `apps/server/data/homes/` in dev.
 
 ### Playing on two machines (LAN)
 
@@ -39,15 +42,16 @@ The landing screen shows "Server online" when the client can reach the server.
 
 ## Scripts
 
-| Command          | What it does                                                     |
-| ---------------- | ---------------------------------------------------------------- |
-| `npm run dev`    | Shared (watch) + server (tsx watch) + client (Vite, LAN-exposed) |
-| `npm run build`  | Build shared, server, client                                     |
-| `npm start`      | Run the built server (`apps/server/dist`)                        |
-| `npm test`       | Vitest (unit + server integration)                               |
-| `npm run e2e`    | Two-browser smoke test (needs `npm run dev` running and Chrome)  |
-| `npm run lint`   | ESLint                                                           |
-| `npm run format` | Prettier write                                                   |
+| Command             | What it does                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------- |
+| `npm run dev`       | Shared (watch) + server (tsx watch) + client (Vite, LAN-exposed)                        |
+| `npm run build`     | Build shared, server, client                                                            |
+| `npm start`         | Run the built server (`apps/server/dist`)                                               |
+| `npm test`          | Vitest (unit + server integration)                                                      |
+| `npm run e2e`       | Browser playtests: two players, home loop, solo + save (needs `npm run dev` and Chrome) |
+| `npm run typecheck` | TypeScript across all packages, including tests                                         |
+| `npm run lint`      | ESLint                                                                                  |
+| `npm run format`    | Prettier write                                                                          |
 
 ## Layout
 

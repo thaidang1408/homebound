@@ -12,12 +12,14 @@ makes two people say "Chơi thêm ngày nữa đi." Phases and MVP scope: `docs/
 - Record important technical decisions as ADRs in `docs/decisions.md`; keep `docs/architecture.md` current.
 - Commits: conventional (`feat(multiplayer): …`, `fix(network): …`). Never overwrite user work.
 - Talk to the user in Vietnamese; code, comments and docs in English.
+- The user may be running `npm run dev` in their own terminal. Check ports 2567/5173 before starting
+  servers; never kill processes you did not start. Run `npm run e2e` against their dev server instead.
 
 ## Layout
 
 - `packages/shared` — constants, protocol/message types, schemas used by both sides. Built with `tsc` to `dist`.
 - `apps/server` — Node + Colyseus 0.18 (`@colyseus/core`), authoritative. `createGameServer()` in `src/app.ts`.
-- `apps/client` — Vite + React 19 + R3F 9 + drei 10 + three 0.186.
+- `apps/client` — Vite + React 19 + R3F 9 + three 0.186 (no drei; see ADR-013).
 - One `.env` at the repo root (see `.env.example`); only `VITE_*` vars reach the browser.
 
 ## Architecture rules
@@ -31,6 +33,9 @@ makes two people say "Chơi thêm ngày nữa đi." Phases and MVP scope: `docs/
 - UI uses tokens from `apps/client/src/ui/design-system/tokens.css` only. No ad-hoc colors/spacing.
 - No raw technical errors in UI ("Connection lost. Trying to reconnect…").
 - Simple over scalable: build for 2 players. No DB, Redis, auth or accounts until a phase needs them.
+- Persistence: homes are JSON saves (ADR-009). Anything new that should survive a session must be
+  added to `apps/server/src/persistence/` (save shape + validation + mapping) with a test.
+- Content is data: items in `items.ts`, XP rewards/levels in `progression.ts`, house layout in `world/house.ts`.
 - TypeScript strict, no `any`, no magic numbers (centralize constants), small modules.
 - TypeScript is pinned to 6.0.x (typescript-eslint does not support 7 yet; see ADR-002).
 

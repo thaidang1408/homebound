@@ -1,46 +1,58 @@
 # Networking
 
-_Last updated: Phase 1 (2026-10-07). Colyseus 0.18._
+_Last updated: Phase 2 (2026-10-07). Colyseus 0.18._
 
-## Room flow
+## Home flow (ADR-009/010/011)
 
 ```text
-A: Create room ──► server: HomeRoom.onCreate
-                     roomId = 5-char code (presence-reserved, no 0/O/1/I/L)
-                     setPrivate(true)  → never matchmade, joinable only by code
-A: lobby shows code ──(says it out loud)──► B: Join (code normalized: case/spaces/dashes)
-B: client.joinById(code) ──► onJoin: slot 2, spawn point 2
-Both: Ready ──► either: Start (server checks: 2 players, both ready + connected)
-state.phase = "playing" ──► clients switch to the game screen
+Build a new home ─► client.create("home", { name, playerId })
+                     onCreate: claim a fresh 5-char code (not running, not saved) = roomId
+                     setPrivate(true) → never matchmade, joinable only by code
+Lobby: alone → Start right away; two players → both Ready, then either Start
+Start ─► phase "playing", home saved to data/homes/<CODE>.json
+
+Join with code  ─► joinById(code)  ──522 "not found"──► create({ restoreCode: code })
+Continue home   ─► create({ restoreCode })  ──"home-already-open"──► joinById(code)
+                    restore: claim code (sync; refuses a 2nd open), load + validate save,
+                    phase "playing" (walk straight in)
+onAuth: playerId must be valid and not already in this home (two tabs)
+onJoin: returning playerId → their items, hunger, XP and position; new playerId → fresh
 ```
 
-`maxClients = 2`; Colyseus auto-locks the room when full, so a third join fails with
-`MATCHMAKE_INVALID_ROOM_ID (522) … is locked` → "This room is already full."
+`maxClients = 2`; a full room fails with `522 … is locked` → "This home already has two players."
+Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `already-in-home`,
+`invalid-player`) that the client maps to friendly text.
 
 ## State (schema, `packages/shared/src/schema.ts`)
 
-| Field                            | Type                              | Notes                                    |
-| -------------------------------- | --------------------------------- | ---------------------------------------- |
-| `HomeState.phase`                | string                            | `lobby` \| `playing`                     |
-| `HomeState.players`              | map&lt;sessionId, PlayerState&gt; |                                          |
-| `PlayerState.name`               | string                            | sanitized, ≤ 16 chars                    |
-| `PlayerState.slot`               | uint8                             | 1 or 2: display order, spawn, body color |
-| `PlayerState.ready`, `connected` | boolean                           |                                          |
-| `PlayerState.x`, `z`             | float32                           | 4 B each                                 |
-| `PlayerState.yaw`                | `t.angle()`                       | 2 B, wraps                               |
-| `PlayerState.pitch`              | `t.quantized(±π/2)`               | 2 B, clamps                              |
+| Field                                                        | Type                              | Notes                                     |
+| ------------------------------------------------------------ | --------------------------------- | ----------------------------------------- |
+| `HomeState.phase`                                            | string                            | `lobby`                                   | `playing` |
+| `HomeState.day`                                              | uint16                            | starts at 1                               |
+| `HomeState.players`                                          | map&lt;sessionId, PlayerState&gt; |                                           |
+| `HomeState.chest`                                            | array&lt;ItemStack&gt; (16)       | shared storage                            |
+| `HomeState.stove`                                            | StoveState                        | status, itemId, progress (8-bit)          |
+| `PlayerState.name`, `slot`, `ready`, `connected`, `sleeping` |                                   |                                           |
+| `PlayerState.x`, `z` / `yaw` / `pitch`                       | float32 / angle / quantized       |                                           |
+| `PlayerState.hunger`                                         | uint8                             | rounded up from server-only `hungerExact` |
+| `PlayerState.xp` / `level`                                   | uint32 / uint8                    | level derived from xp                     |
+| `PlayerState.inventory`                                      | array&lt;ItemStack&gt; (10)       | first 5 = hotbar                          |
 
+`.noSync()` fields (`hungerExact`, `stove.elapsedMs`, `stove.cookedBy`) stay on the server.
 Every primitive has an explicit `.default()`: schema-builder numbers otherwise start `undefined`
-on the client (found by the browser e2e test; regression test in `HomeRoom.test.ts`).
+on the client (regression test in `HomeRoom.test.ts`).
 
 ## Messages (`packages/shared/src/protocol.ts`)
 
-| Direction | Name       | Payload                | Server checks                                                  |
-| --------- | ---------- | ---------------------- | -------------------------------------------------------------- |
-| C→S       | `ready`    | `{ ready: boolean }`   | shape, lobby phase                                             |
-| C→S       | `start`    | —                      | lobby phase, 2 players, all ready + connected                  |
-| C→S       | `move`     | `{ x, z, yaw, pitch }` | shape (finite numbers), playing phase, world bounds, max speed |
-| S→C       | `teleport` | `{ x, z }`             | sent when a move is rejected; client snaps back                |
+| Direction | Name       | Payload                | Server checks                                                        |
+| --------- | ---------- | ---------------------- | -------------------------------------------------------------------- |
+| C→S       | `ready`    | `{ ready }`            | shape, lobby phase                                                   |
+| C→S       | `start`    | —                      | lobby phase; alone, or both ready + connected                        |
+| C→S       | `move`     | `{ x, z, yaw, pitch }` | shape, playing, not asleep, world bounds, walls/furniture, max speed |
+| C→S       | `interact` | `{ targetId }`         | known furniture, within reach, asleep → only the bed                 |
+| C→S       | `transfer` | `{ from: player        | chest, slot }`                                                       | next to the chest, not asleep; moves what fits |
+| C→S       | `use-item` | `{ slot }`             | slot holds food, not asleep                                          |
+| S→C       | `teleport` | `{ x, z }`             | rejected move, getting into / out of bed, new day                    |
 
 Invalid messages are dropped (and too-fast moves logged); they never crash the room or kick
 the client. `maxMessagesPerSecond = 60` disconnects floods.
@@ -51,8 +63,9 @@ Client-predicted, server-validated:
 
 1. The client integrates WASD locally every frame (instant response, no input lag).
 2. Every 50 ms, if the pose changed, it sends `move`.
-3. The server accepts it if the step fits `sprint speed × 1.5 × elapsed + 0.75 m` and clamps it to
-   the world circle; otherwise it replies `teleport` with the authoritative position.
+3. The server accepts it if the step fits `sprint speed × 1.5 × elapsed + 0.75 m`, is clamped to
+   the world circle and does not overlap a wall or furniture (`HOUSE_COLLIDERS`, the same data the
+   client collides with); otherwise it replies `teleport` with the authoritative position.
 4. The partner renders the synced state with exponential smoothing (`REMOTE_SMOOTHING`), yaw via
    the shortest arc.
 

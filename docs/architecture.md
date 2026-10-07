@@ -1,6 +1,6 @@
 # Architecture
 
-_Last updated: Phase 1 (2026-10-07)._
+_Last updated: Phase 2 (2026-10-07)._
 
 ## Overview
 
@@ -17,15 +17,15 @@ React UI + R3F/Three.js game loop           React UI + R3F/Three.js game loop
 - **Server authoritative.** Clients send intent; the server validates and owns all game state.
 - **Transport:** WebSocket (`@colyseus/ws-transport`). State sync via `@colyseus/schema` binary patches
   for high-frequency data; Colyseus messages for discrete events.
-- **No database** in the MVP. Room state lives in memory for the life of the room.
+- **No database.** Live state is in memory; homes are saved as JSON files on the server (ADR-009).
 
 ## Packages
 
-| Path              | Role                                                                                              | Build                                |
-| ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `packages/shared` | Constants, message names/payloads, schema state (`HomeState`), validation (used by both sides)    | `tsc -b` → `dist/` (ESM)             |
-| `apps/server`     | Colyseus server: `src/app.ts` (`createGameServer`), `src/rooms/`, `src/config/env.ts`             | `tsc -b` → `dist/`; dev: `tsx watch` |
-| `apps/client`     | Vite + React 19 + R3F 9. `src/game/` (3D), `src/ui/` (screens, HUD, design system), `src/config/` | `vite build` → `dist/`               |
+| Path              | Role                                                                                                                      | Build                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `packages/shared` | Constants, message names/payloads, schema state (`HomeState`), validation (used by both sides)                            | `tsc -b` → `dist/` (ESM)             |
+| `apps/server`     | Colyseus server: `app.ts`, `rooms/` (HomeRoom, codes), `systems/` (needs, stove, sleep, XP), `inventory/`, `persistence/` | `tsc -b` → `dist/`; dev: `tsx watch` |
+| `apps/client`     | Vite + React 19 + R3F 9. `src/game/` (3D), `src/ui/` (screens, HUD, design system), `src/config/`                         | `vite build` → `dist/`               |
 
 Client and server both import `@homebound/shared` from its compiled `dist/`. `npm run dev` builds shared once,
 then runs `tsc -w` for shared alongside the server and client (`scripts/dev.mjs`).
@@ -36,23 +36,44 @@ One `.env` at the repo root (`.env.example`):
 
 - `PORT` — server port (default 2567). Server binds `0.0.0.0` for LAN testing.
 - `VITE_SERVER_URL` — game server base URL for the client. Empty ⇒ same host as the page, port 2567.
+- `HOMEBOUND_SAVE_DIR` — where homes are saved (default `data/homes` relative to the server cwd,
+  i.e. `apps/server/data/homes` in dev). Git-ignored.
+
+## Server
+
+```text
+src/
+  rooms/HomeRoom.ts       lifecycle, message handlers (validate → system → state), autosave
+  rooms/roomCode.ts       home codes; synchronous claim so a home can't run twice
+  systems/                pure game rules on state: needs, stove, sleep, progression (unit-tested)
+  inventory/inventory.ts  slot inventories, atomic add/remove/move (unit-tested)
+  persistence/            homeSaves.ts (file I/O + validation), homeState.ts (state ↔ save mapping)
+  test/harness.ts         real server + SDK clients for integration tests (temp save dir)
+```
 
 ## Client
 
 ```text
 src/
-  networking/connection.ts  Colyseus client: create/join/reconnect, friendly errors, binds a room to the store
-  state/session.ts          tiny external store (screen, room, connection, error) via useSyncExternalStore
-  game/GameCanvas.tsx       R3F canvas: world + LocalPlayer + RemotePlayer(s)
-  game/player/              first-person controller, partner body (smoothed), keyboard
+  networking/connection.ts  create/join/continue home, reconnect, friendly errors
+  networking/identity.ts    anonymous playerId + last home code (localStorage)
+  networking/roomWatcher.ts re-renders UI only when the low-frequency state slice changes; toasts
+  state/                    tiny external stores: session (room, screen), ui (panel, focus, hotbar, toasts)
+  game/GameCanvas.tsx       R3F canvas: World + LocalPlayer + RemotePlayer(s)
+  game/world/               House (walls, roof, lamps), Furniture, Stove (state-driven visuals), palette
+  game/player/              controller (collision, sleep camera, dev autopilot), partner body, NameTag
+  game/interaction/         focus (near + facing), prompt text, floor focus marker
   ui/screens/               Landing, Lobby
-  ui/hud/                   in-game HUD (room, partner status, reconnect banner, pause)
-  ui/components/            Button, TextInput, Panel styles (tokens only)
+  ui/hud/                   HUD (hunger, level/XP, day, partner, prompt, hotbar, toasts, sleep, pause), keys
+  ui/panels/                backpack and shared storage
+  ui/components/            Button, TextInput, ItemSlot, Panel styles (tokens only)
+  devtools.ts               dev-only window.__homebound hook for e2e
 ```
 
 - React owns menus/HUD/lobby. The game loop (`useFrame`, refs) owns per-frame state: player poses are
   read from `room.state` inside `useFrame`, never pushed through React.
-- The store is bumped only on low-frequency changes (players join/leave, ready, connected, phase).
+- The store is bumped only when the UI slice changes (players, ready, hunger, inventory, chest, stove
+  status, day, XP); positions never go through React.
 - All UI styling via tokens in `src/ui/design-system/tokens.css`.
 
 Networking details (messages, movement model, disconnects): `docs/networking.md`.

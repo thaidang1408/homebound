@@ -32,7 +32,7 @@
 
 ## Phase 1 — Real 2-player multiplayer
 
-**Status:** Done on one machine, awaiting the two-machine test + approval (2026-10-07)
+**Status:** Approved by the user (2026-10-07). Two-machine LAN test: not confirmed by the user yet.
 
 **What was built**
 
@@ -78,3 +78,56 @@
 - Production CORS restriction still pending (Phase 8).
 
 **Next phase:** Phase 2 — house + interaction.
+
+## Phase 2 — House + interaction (+ saves, solo start, XP)
+
+**Status:** Done on one machine, awaiting the user's test + approval (2026-10-07)
+
+**What was built**
+
+- House from shared layout data: living room (sofa, rug, shared chest, workbench), kitchen (stove,
+  table), bedroom (double bed); walls with doorways, lintels, roof, warm room lamps.
+- Collision (circle vs boxes) shared by client (wall sliding) and server (rejects moves into walls).
+- Interaction: focus = within reach and facing; floor marker; `[E]` prompts that say what will happen.
+- Inventory: 10-slot backpack (5 hotbar), 16-slot shared chest, atomic stack moves; backpack (Tab)
+  and storage panels; click food to eat; hotbar 1–5 / wheel, left click eats.
+- Cooking: raw → cooked meat in 6 s, visible browning, smoke, progress bar; partner can collect.
+- Hunger: server tick drain, eating restores, HUD meter with warning.
+- Sleep: both (or a lone player) in bed → fade → new day; getting up cancels; partner sees you lying in bed.
+- **Requested mid-phase by the user:**
+  - Solo start; partner drops in any time with the code (ADR-011).
+  - Saves: homes persist as JSON (ADR-009), players recognised by an anonymous browser id (ADR-010);
+    "Continue home" on the landing screen.
+  - XP and levels (ADR-012): cooking and sleeping grant XP; HUD level bar, level-up toasts, partner tag shows level.
+- Name tags are canvas sprites; drei removed (ADR-013).
+- E2E: dev-only autopilot drives the real controller; scenarios `two-players`, `home-loop`,
+  `solo-save`; failure screenshots for every player.
+
+**Tests**
+
+- `npm test`: 77 passing — shared (validation, collision + house layout, progression), server units
+  (inventory, needs/stove/sleep), save files (round-trip, corrupt file kept aside, tampered values
+  clamped), networked integration (lobby/sync/disconnect, chest reach, cooking, walls, sleep/new day,
+  solo start, drop-in, identity rules, save + re-open, XP kept across sessions).
+- `npm run e2e`: 3 scenarios, all checks passing through the real UI.
+- `npm run typecheck` now includes test files.
+
+**Bugs found and fixed during the phase**
+
+- Vite dev server cached a CSS module read mid-write as empty (HUD lost its styles) → transient; touching the file fixed it.
+- drei `<Html>` labels triggered a React "synchronous unmount" error → replaced by sprite name tags.
+- Several e2e race conditions (pointer re-lock after closing panels, brief toasts) fixed in the scripts.
+
+**Known issues**
+
+- Workbench has no recipes yet (shows "Nothing to craft yet") — crafting arrives with resources (Phase 3–6).
+- Levels unlock nothing yet.
+- Hunger at 0 has no consequence yet (Phase 5).
+- Saves are files on the server disk: fine locally; some free hosts wipe disk on redeploy (ADR-009 → Phase 8).
+- Anonymous identity: clearing browser data = new player in the same home.
+- Name tags show through walls on purpose (find your partner); they can look odd at the screen edge.
+- Headless e2e runs at a low FPS (software rendering); walks take longer there than in real browsers.
+- Client bundle 1.33 MB (373 kB gzip). Code-splitting in Phase 7.
+- E2E runs create test homes in the dev save folder (git-ignored).
+
+**Next phase:** Phase 3 — outdoor world.

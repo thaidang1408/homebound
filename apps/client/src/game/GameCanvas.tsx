@@ -33,6 +33,7 @@ function Players() {
           slot={p.slot}
           connected={p.connected}
           sleeping={p.sleeping}
+          level={p.level}
         />
       ))}
     </>

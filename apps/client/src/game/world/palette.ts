@@ -31,4 +31,7 @@ export const PALETTE = {
   smoke: '#f2f2f2',
   progress: '#e8a54b',
   focus: '#ffe08a',
+  // Name tags (canvas-drawn, so they need literal colors; match --color-surface / --color-text).
+  labelBg: 'rgba(29, 36, 33, 0.82)',
+  labelText: '#f6efe2',
 } as const;

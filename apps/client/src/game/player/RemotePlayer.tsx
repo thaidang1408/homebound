@@ -1,12 +1,11 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { MathUtils, type Group } from 'three';
 import type { Room } from '@colyseus/sdk';
 import type { HomeState } from '@homebound/shared';
 import { MAX_FRAME_DT, REMOTE_SMOOTHING } from '../../config/controls';
 import { playerColor } from './playerColors';
-import styles from './RemotePlayer.module.css';
+import { NameTag } from './NameTag';
 
 const TWO_PI = Math.PI * 2;
 
@@ -27,10 +26,11 @@ interface Props {
   slot: number;
   connected: boolean;
   sleeping: boolean;
+  level: number;
 }
 
 /** The partner's body. Reads synced state every frame and smooths toward it. */
-export function RemotePlayer({ room, sessionId, name, slot, connected, sleeping }: Props) {
+export function RemotePlayer({ room, sessionId, name, slot, connected, sleeping, level }: Props) {
   const body = useRef<Group>(null);
   const head = useRef<Group>(null);
   const placed = useRef(false);
@@ -81,9 +81,12 @@ export function RemotePlayer({ room, sessionId, name, slot, connected, sleeping 
           <meshStandardMaterial color="#2a3430" />
         </mesh>
       </group>
-      <Html position={[0, 2.15, 0]} center distanceFactor={10} className={styles.label}>
-        {!connected ? `${name} (reconnecting…)` : sleeping ? `${name} 💤` : name}
-      </Html>
+      <NameTag
+        y={2.15}
+        text={
+          !connected ? `${name} (reconnecting…)` : sleeping ? `${name} 💤` : `${name} · Lv ${level}`
+        }
+      />
     </group>
   );
 }

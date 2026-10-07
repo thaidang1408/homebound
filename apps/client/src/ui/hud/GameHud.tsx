@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { HOTBAR_SLOTS, HUNGER_MAX, NEW_DAY_DELAY_MS } from '@homebound/shared';
+import { HOTBAR_SLOTS, HUNGER_MAX, NEW_DAY_DELAY_MS, levelForXp } from '@homebound/shared';
 import { promptFor } from '../../game/interaction/prompt';
 import { leaveRoom } from '../../networking/connection';
 import { useSession } from '../../state/session';
@@ -46,7 +46,7 @@ export function GameHud() {
   const me = room.state.players.get(room.sessionId);
   const partner = [...room.state.players.entries()].find(([id]) => id !== room.sessionId)?.[1];
   const partnerStatus = !partner
-    ? 'Partner left the house'
+    ? `Home alone — share code ${room.roomId}`
     : !partner.connected
       ? `${partner.name} disconnected — waiting…`
       : partner.sleeping
@@ -55,6 +55,8 @@ export function GameHud() {
   const prompt = focusId && locked ? promptFor(focusId, room.state, room.sessionId) : null;
   const hunger = me?.hunger ?? HUNGER_MAX;
   const bothAsleep = !!me?.sleeping && !!partner?.sleeping;
+  const progress = levelForXp(me?.xp ?? 0);
+  const xpShare = progress.needed ? progress.intoLevel / progress.needed : 1;
 
   return (
     <div className={styles.hud}>
@@ -68,6 +70,13 @@ export function GameHud() {
             />
           </span>
           <span className={styles.meterValue}>{hunger}</span>
+        </div>
+        <div className={styles.meter} title={`${progress.intoLevel} / ${progress.needed} XP`}>
+          <span className={styles.meterLabel}>⭐ Level {progress.level}</span>
+          <span className={styles.meterTrack}>
+            <span className={styles.xpFill} style={{ width: `${xpShare * 100}%` }} />
+          </span>
+          <span className={styles.meterValue}>{progress.intoLevel}</span>
         </div>
         <span className={styles.pill} data-tone={partner?.connected ? 'ok' : 'warn'}>
           {partnerStatus}

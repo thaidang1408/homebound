@@ -18,24 +18,27 @@ export default async function twoPlayers(t) {
 
   await a.getByText('Server online').waitFor();
   await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Create room' }).click();
+  await a.getByRole('button', { name: 'Build a new home' }).click();
   await a.getByText('Click to copy').waitFor();
   const code = await roomOf(a);
   t.check('create room returns a code', /^[A-Z0-9]{5}$/.test(code), code);
 
   await b.getByLabel('Your name').fill('Binh');
-  await b.getByLabel('Room code').fill(code.toLowerCase());
+  await b.getByLabel('Home code').fill(code.toLowerCase());
   await b.getByRole('button', { name: 'Join' }).click();
   await a.getByText('Binh').waitFor();
   t.check('partner joins by (lower-case) code', true);
 
-  await c.getByLabel('Room code').fill(code);
+  await c.getByLabel('Home code').fill(code);
   await c.getByRole('button', { name: 'Join' }).click();
   await c.getByRole('alert').waitFor();
-  t.check('third player is turned away', /full/.test(await c.getByRole('alert').textContent()));
-  await c.getByLabel('Room code').fill('QQQQQ');
+  t.check(
+    'third player is turned away',
+    /two players/.test(await c.getByRole('alert').textContent()),
+  );
+  await c.getByLabel('Home code').fill('QQQQQ');
   await c.getByRole('button', { name: 'Join' }).click();
-  await c.getByText(/check the room code/).waitFor();
+  await c.getByText(/check the code/).waitFor();
   t.check('wrong code shows a friendly error', true);
   await c.context().close();
 

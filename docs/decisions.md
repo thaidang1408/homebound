@@ -58,3 +58,50 @@ first patch; `undefined` schema numbers). Only a browser run caught it.
 (`npm run e2e`). `playwright-core` only (~9 MB), no bundled browser download. The client exposes a
 dev-only `window.__homebound` hook for reading state.
 **Revisit when:** CI is added (needs a Chrome install step there).
+
+## ADR-009: Homes are saved as JSON files on the server (2026-10-07)
+
+**Context:** The user wants items and progress to survive between play sessions. No database yet.
+**Decision:** One file per home, `data/homes/<CODE>.json` (`HOMEBOUND_SAVE_DIR` overrides the folder),
+written on game start, every 30 s, when a player leaves, on each new day and on room dispose.
+Writes are atomic (temp file + rename). Everything read back is validated and clamped; a corrupt
+file is moved aside (`.corrupt-<time>`) and never overwritten. Homes that never left the lobby are
+not saved. Format is versioned (`version: 1`).
+**Why:** Zero cost, zero setup, enough for two players. Persistence is isolated in
+`apps/server/src/persistence/` (I/O in `homeSaves.ts`, state mapping in `homeState.ts`).
+**Revisit when:** deploying to a host whose disk is wiped on redeploy/sleep (Phase 8) → swap
+`homeSaves.ts` for PostgreSQL (free tier) with the same save shape.
+
+## ADR-010: Anonymous browser identity (2026-10-07)
+
+**Context:** Saves must know whose backpack is whose, but accounts are out of scope.
+**Decision:** The client generates a random 32-hex `playerId` once and keeps it in `localStorage`
+(`crypto.getRandomValues`, which also works on plain-http LAN pages). It is sent on join; the
+server keys saved players by it and refuses the same id twice in one home.
+**Trade-off:** Clearing site data or switching browser = a new player (the shared chest is still
+there). Anyone who copies the id could act as that player — acceptable for a private co-op game.
+**Revisit when:** accounts or cross-device play are wanted.
+
+## ADR-011: Solo start and drop-in partner (2026-10-07)
+
+**Context:** The user wants to start alone and have the partner join later with the code.
+Supersedes the Phase 1 rule "both players must be ready".
+**Decision:** Alone, "Start game" works immediately; with two in the lobby, both must be ready. A
+running or saved home is joined straight into the game. A lone sleeper advances the day.
+"Join by code" first joins a running room and falls back to re-opening the save; "Continue home"
+does the reverse. Two players re-opening at once: the server's synchronous code claim refuses the
+second, which then joins.
+
+## ADR-012: XP and levels now, data-driven (2026-10-07)
+
+**Decision:** `XP_REWARDS` and the level curve (`xpToNextLevel = 50 + 25 × (level − 1)`, max 50)
+live in `packages/shared/src/progression.ts`. Current sources: finishing a meal on the stove (the
+cook), sleeping through to a new day. XP is saved per player. Levels unlock nothing yet; Phase 4–6
+add hunting/combat XP and unlocks.
+
+## ADR-013: Name tags as canvas sprites, drei removed (2026-10-07)
+
+**Context:** drei's `<Html>` created a React root per label and triggered "synchronously unmount a
+root while React was already rendering" when a partner left. It was the only drei usage.
+**Decision:** `NameTag` draws the label into a `CanvasTexture` on a sprite (no DOM, no network
+font). `@react-three/drei` removed from dependencies.

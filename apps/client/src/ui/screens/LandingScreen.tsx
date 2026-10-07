@@ -5,7 +5,8 @@ import {
   isValidRoomCode,
   normalizeRoomCode,
 } from '@homebound/shared';
-import { createRoom, joinRoom } from '../../networking/connection';
+import { continueHome, createHome, joinHome } from '../../networking/connection';
+import { getLastHome } from '../../networking/identity';
 import { useSession } from '../../state/session';
 import { Button } from '../components/Button';
 import { ServerStatus } from '../components/ServerStatus';
@@ -38,14 +39,17 @@ export function LandingScreen() {
   const normalized = normalizeRoomCode(code);
   const canJoin = isValidRoomCode(normalized) && !busy;
 
-  const options = () => {
+  const lastHome = getLastHome();
+
+  /** Remembers the name and returns it for the request. */
+  const playerName = () => {
     saveName(name);
-    return { name };
+    return name;
   };
 
   const onJoin = (e: FormEvent) => {
     e.preventDefault();
-    if (canJoin) void joinRoom(normalized, options());
+    if (canJoin) void joinHome(normalized, playerName());
   };
 
   return (
@@ -65,15 +69,24 @@ export function LandingScreen() {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <Button disabled={!!busy} onClick={() => void createRoom(options())}>
-          Create room
+        {lastHome && isValidRoomCode(lastHome) && (
+          <Button disabled={!!busy} onClick={() => void continueHome(lastHome, playerName())}>
+            Continue home {lastHome}
+          </Button>
+        )}
+        <Button
+          variant={lastHome ? 'secondary' : 'primary'}
+          disabled={!!busy}
+          onClick={() => void createHome(playerName())}
+        >
+          Build a new home
         </Button>
 
-        <div className={styles.divider}>or join your partner</div>
+        <div className={styles.divider}>or enter a home code</div>
 
         <form className={panel.row} onSubmit={onJoin}>
           <TextInput
-            label="Room code"
+            label="Home code"
             value={code}
             maxLength={ROOM_CODE_LENGTH + 2}
             placeholder="ABC23"

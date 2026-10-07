@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ClientMessage, MAX_PLAYERS, type PlayerState } from '@homebound/shared';
+import { ClientMessage, type PlayerState } from '@homebound/shared';
 import { playerColor } from '../../game/player/playerColors';
 import { leaveRoom } from '../../networking/connection';
 import { useSession } from '../../state/session';
@@ -39,8 +39,15 @@ export function LobbyScreen() {
   const players = [...room.state.players.entries()];
   const me = room.state.players.get(room.sessionId);
   const bySlot = (slot: number) => players.find(([, p]) => p.slot === slot);
-  const everyoneReady =
-    players.length === MAX_PLAYERS && players.every(([, p]) => p.ready && p.connected);
+  // Mirrors the server rule: alone you can start right away; together, both must be ready.
+  const alone = players.length === 1;
+  const canStart =
+    players.every(([, p]) => p.connected) && (alone || players.every(([, p]) => p.ready));
+  const hint = alone
+    ? 'Start now — your partner can join any time with the code.'
+    : canStart
+      ? 'Both ready — start when you are!'
+      : 'Both players must be ready.';
 
   const copyCode = async () => {
     try {
@@ -73,25 +80,25 @@ export function LobbyScreen() {
         </ul>
 
         <div className={panel.row}>
+          {!alone && (
+            <Button
+              variant="secondary"
+              className={styles.grow}
+              onClick={() => room.send(ClientMessage.Ready, { ready: !me?.ready })}
+            >
+              {me?.ready ? 'Not ready' : "I'm ready"}
+            </Button>
+          )}
           <Button
-            variant="secondary"
             className={styles.grow}
-            onClick={() => room.send(ClientMessage.Ready, { ready: !me?.ready })}
-          >
-            {me?.ready ? 'Not ready' : "I'm ready"}
-          </Button>
-          <Button
-            className={styles.grow}
-            disabled={!everyoneReady}
+            disabled={!canStart}
             onClick={() => room.send(ClientMessage.Start)}
           >
             Start game
           </Button>
         </div>
 
-        <p className={panel.muted}>
-          {everyoneReady ? 'Both ready — start when you are!' : 'Both players must be ready.'}
-        </p>
+        <p className={panel.muted}>{hint}</p>
         <Button variant="ghost" onClick={() => void leaveRoom()}>
           Leave room
         </Button>
