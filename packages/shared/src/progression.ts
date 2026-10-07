@@ -4,6 +4,8 @@ export const XP_REWARDS = {
   cookMeal: 10,
   /** Each player who sleeps through to a new day. */
   sleepNight: 20,
+  /** Each harvest of a tree, rock or bush. */
+  gather: 2,
 } as const;
 
 export const MAX_LEVEL = 50;

@@ -4,7 +4,10 @@ import { logger } from '@colyseus/core';
 import {
   CHEST_SLOTS,
   HUNGER_MAX,
+  NEW_HOME_TIME,
   PLAYER_INVENTORY_SLOTS,
+  RESOURCE_KINDS,
+  findResourceNode,
   StoveStatus,
   getItem,
   isItemId,
@@ -43,8 +46,12 @@ export interface HomeSave {
   createdAt: string;
   updatedAt: string;
   day: number;
+  /** 0–1, see world/time.ts. */
+  timeOfDay: number;
   chest: SavedSlots;
   stove: { status: string; itemId: string; elapsedMs: number; cookedBy: string };
+  /** Remaining charges per resource node id; nodes not listed are full. */
+  resources: Record<string, number>;
   /** Keyed by playerId, including players who are offline right now. */
   players: Record<string, SavedPlayer>;
 }
@@ -140,6 +147,7 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
     createdAt: str(value.createdAt, new Date().toISOString()),
     updatedAt: str(value.updatedAt, new Date().toISOString()),
     day: Math.floor(num(value.day, 1, 1, 65535)),
+    timeOfDay: num(value.timeOfDay, NEW_HOME_TIME, 0, 0.9999),
     chest: parseSlots(value.chest, CHEST_SLOTS),
     stove: {
       status,
@@ -147,6 +155,17 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
       elapsedMs: num(stove.elapsedMs, 0, 0),
       cookedBy: str(stove.cookedBy),
     },
+    resources: parseResources(value.resources),
     players,
   };
+}
+
+function parseResources(value: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!isObject(value)) return out;
+  for (const [id, charges] of Object.entries(value)) {
+    const node = findResourceNode(id);
+    if (node) out[id] = Math.floor(num(charges, 0, 0, RESOURCE_KINDS[node.kind].charges));
+  }
+  return out;
 }

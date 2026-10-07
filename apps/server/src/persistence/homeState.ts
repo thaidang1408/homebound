@@ -1,5 +1,7 @@
 import {
+  RESOURCE_KINDS,
   StoveStatus,
+  findResourceNode,
   isItemId,
   levelForXp,
   type HomeState,
@@ -9,6 +11,11 @@ import type { Slots } from '../inventory/inventory.js';
 import { SAVE_VERSION, type HomeSave, type SavedPlayer, type SavedSlots } from './homeSaves.js';
 
 /** Converts between live room state and save files. Pure: no I/O. */
+
+function fullCharges(id: string): number {
+  const node = findResourceNode(id);
+  return node ? RESOURCE_KINDS[node.kind].charges : 0;
+}
 
 export function toSavedSlots(slots: Slots): SavedSlots {
   return [...slots].map((s) =>
@@ -61,6 +68,7 @@ export function buildSave(
     createdAt,
     updatedAt: new Date().toISOString(),
     day: state.day,
+    timeOfDay: state.timeOfDay,
     chest: toSavedSlots(state.chest),
     stove: {
       status: stove.status,
@@ -68,13 +76,27 @@ export function buildSave(
       elapsedMs: stove.elapsedMs,
       cookedBy: stove.cookedBy,
     },
+    resources: Object.fromEntries(
+      [...state.resources.entries()]
+        .filter(([id, r]) => r.charges < fullCharges(id))
+        .map(([id, r]) => [id, r.charges]),
+    ),
     players,
   };
 }
 
 /** Loads the shared (non-player) parts of a save into a fresh room state. */
+/** Call after initResources(): depleted nodes come back depleted (their regrow timer restarts). */
 export function applyHome(state: HomeState, save: HomeSave): void {
   state.day = save.day;
+  state.timeOfDay = save.timeOfDay;
+  for (const [id, charges] of Object.entries(save.resources)) {
+    const live = state.resources.get(id);
+    const node = findResourceNode(id);
+    if (!live || !node) continue;
+    live.charges = charges;
+    live.respawnMs = charges === 0 ? RESOURCE_KINDS[node.kind].respawnMs : 0;
+  }
   applySlots(state.chest, save.chest);
   const { stove } = state;
   const hasFood = save.stove.itemId !== '';

@@ -4,7 +4,7 @@ import {
   CHEST_SLOTS,
   ClientMessage,
   GamePhase,
-  HOUSE_COLLIDERS,
+  WORLD_COLLIDERS,
   HomeState,
   INTERACT_RANGE,
   INTERACT_TOLERANCE,
@@ -26,6 +26,8 @@ import {
   collides,
   distanceToBox,
   findFurniture,
+  findInteractable,
+  findResourceNode,
   isMoveWithinSpeed,
   isValidPlayerId,
   isValidRoomCode,
@@ -36,16 +38,19 @@ import {
   parseTransferPayload,
   parseUseItemPayload,
   sanitizePlayerName,
-  type FurnitureDefinition,
+  type Box,
   type Point,
   type TeleportPayload,
 } from '@homebound/shared';
 import { addItem, createSlots, moveStack } from '../inventory/inventory.js';
 import { homeExists, loadHome, saveHome, type SavedPlayer } from '../persistence/homeSaves.js';
 import { applyHome, applyPlayer, buildSave, snapshotPlayer } from '../persistence/homeState.js';
+import { env } from '../config/env.js';
+import { tickClock } from '../systems/clock.js';
+import { harvest, initResources, tickResources } from '../systems/harvest.js';
 import { eatFromSlot, tickNeeds } from '../systems/needs.js';
 import { grantXp } from '../systems/progression.js';
-import { everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
+import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
 import { claimCode, claimNewCode, releaseCode } from './roomCode.js';
 
@@ -75,6 +80,8 @@ export class HomeRoom extends Room<{ state: HomeState }> {
 
   /** Server time of the last accepted move per session, for speed validation. */
   private readonly lastMoveAt = new Map<string, number>();
+  /** Server time of each player's last harvest (cooldown). */
+  private readonly lastHarvestAt = new Map<string, number>();
   /** sessionId → stable playerId (what saves are keyed by). */
   private readonly playerIds = new Map<string, string>();
   /** Saved data for every player of this home, including those offline right now. */
@@ -117,6 +124,13 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       if (payload && player && !player.sleeping) eatFromSlot(player, payload.slot);
     });
 
+    if (env.devCommands) {
+      this.onMessage(ClientMessage.DevSetTime, (_client, message: unknown) => {
+        const t = option(message, 'timeOfDay');
+        if (typeof t === 'number' && t >= 0 && t < 1) this.state.timeOfDay = t;
+      });
+    }
+
     this.setSimulationInterval((dtMs) => this.tick(dtMs), SIMULATION_TICK_MS);
     this.clock.setInterval(() => this.save(), AUTOSAVE_INTERVAL_MS);
 
@@ -125,6 +139,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
 
   private startNewHome() {
     this.roomId = claimNewCode(homeExists);
+    initResources(this.state);
     this.state.chest = createSlots(CHEST_SLOTS);
     for (const { itemId, qty } of STARTER_CHEST) addItem(this.state.chest, itemId, qty);
   }
@@ -139,6 +154,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       throw new ServerError(NOT_FOUND, JoinError.HomeNotFound);
     }
     this.roomId = code;
+    initResources(this.state);
     this.state.chest = createSlots(CHEST_SLOTS);
     applyHome(this.state, save);
     this.savedPlayers = save.players;
@@ -214,6 +230,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.state.players.delete(client.sessionId);
     this.playerIds.delete(client.sessionId);
     this.lastMoveAt.delete(client.sessionId);
+    this.lastHarvestAt.delete(client.sessionId);
     this.save();
     this.scheduleNewDay(); // the one still in bed may now be the only player
     logger.info(`[room ${this.roomId}] leave ${client.sessionId}`);
@@ -242,7 +259,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
 
   private tick(dtMs: number) {
     if (this.state.phase !== GamePhase.Playing) return;
+    tickClock(this.state, dtMs);
     tickNeeds(this.state, dtMs / 1000);
+    tickResources(this.state, dtMs);
     const cook = tickStove(this.state, dtMs);
     if (cook) this.rewardPlayer(cook, XP_REWARDS.cookMeal);
   }
@@ -263,12 +282,12 @@ export class HomeRoom extends Room<{ state: HomeState }> {
 
   private isStandable(p: Point): boolean {
     return (
-      Math.hypot(p.x, p.z) <= WORLD_RADIUS && !collides(p, SERVER_COLLISION_RADIUS, HOUSE_COLLIDERS)
+      Math.hypot(p.x, p.z) <= WORLD_RADIUS && !collides(p, SERVER_COLLISION_RADIUS, WORLD_COLLIDERS)
     );
   }
 
-  private isNear(player: PlayerState, furniture: FurnitureDefinition): boolean {
-    return distanceToBox(player, furniture.box) <= INTERACT_RANGE + INTERACT_TOLERANCE;
+  private isNear(player: PlayerState, box: Box): boolean {
+    return distanceToBox(player, box) <= INTERACT_RANGE + INTERACT_TOLERANCE;
   }
 
   private teleport(client: Client, target: Point) {
@@ -286,7 +305,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     const elapsed = now - (this.lastMoveAt.get(client.sessionId) ?? now);
     const target = clampToWorld(move.x, move.z);
 
-    const blocked = collides(target, SERVER_COLLISION_RADIUS, HOUSE_COLLIDERS);
+    const blocked = collides(target, SERVER_COLLISION_RADIUS, WORLD_COLLIDERS);
     if (blocked || !isMoveWithinSpeed(player, target, elapsed)) {
       // Impossible move: keep the authoritative position and pull the client back.
       this.teleport(client, player);
@@ -306,9 +325,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private handleInteract(client: Client, message: unknown) {
     const payload = parseInteractPayload(message);
     const player = this.activePlayer(client);
-    const target = payload ? findFurniture(payload.targetId) : undefined;
+    const target = payload ? findInteractable(payload.targetId) : undefined;
     const playerId = this.playerIds.get(client.sessionId);
-    if (!player || !playerId || !target || !this.isNear(player, target)) return;
+    if (!player || !playerId || !target || !this.isNear(player, target.box)) return;
     // In bed, the only thing you can do is get up.
     if (player.sleeping && target.kind !== 'bed') return;
 
@@ -317,22 +336,37 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         logger.debug(`[room ${this.roomId}] stove: ${useStove(this.state, player, playerId)}`);
         break;
       case 'bed':
+        if (!canToggleSleep(this.state, player)) break; // daytime: the prompt says why
         this.teleport(client, toggleSleep(player));
         this.scheduleNewDay();
         break;
       // Chest and workbench are opened client-side; chest moves go through Transfer.
       case 'chest':
       case 'workbench':
-      case 'decor':
+        break;
+      case 'tree':
+      case 'rock':
+      case 'bush':
+        this.handleHarvest(client, player, target.id);
         break;
     }
+  }
+
+  private handleHarvest(client: Client, player: PlayerState, nodeId: string) {
+    const node = findResourceNode(nodeId);
+    if (!node) return;
+    const now = this.clock.currentTime;
+    const last = this.lastHarvestAt.get(client.sessionId) ?? -Infinity;
+    if (harvest(this.state, player, node, now, last) !== 'harvested') return;
+    this.lastHarvestAt.set(client.sessionId, now);
+    grantXp(player, XP_REWARDS.gather);
   }
 
   private handleTransfer(client: Client, message: unknown) {
     const payload = parseTransferPayload(message);
     const player = this.activePlayer(client);
     const chest = findFurniture('chest');
-    if (!payload || !player || !chest || player.sleeping || !this.isNear(player, chest)) return;
+    if (!payload || !player || !chest || player.sleeping || !this.isNear(player, chest.box)) return;
 
     const [from, to] =
       payload.from === 'player'

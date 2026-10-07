@@ -1,5 +1,6 @@
 import { schema, t, type SchemaType } from '@colyseus/schema';
 import { HUNGER_START, MAX_PITCH } from './constants.js';
+import { NEW_HOME_TIME } from './world/time.js';
 
 // Every primitive needs an explicit default: schema-builder numbers otherwise start as
 // `undefined` on the client (regression test in HomeRoom.test.ts).
@@ -71,15 +72,30 @@ export const StoveState = schema(
 );
 export type StoveState = SchemaType<typeof StoveState>;
 
+/** A harvestable node's live state; its position and kind are static world data (layout.ts). */
+export const ResourceState = schema(
+  {
+    charges: t.uint8().default(0),
+    /** Server-side countdown while depleted; never sent. */
+    respawnMs: t.float64().noSync().default(0),
+  },
+  'ResourceState',
+);
+export type ResourceState = SchemaType<typeof ResourceState>;
+
 export const HomeState = schema(
   {
     phase: t.string().default(GamePhase.Lobby),
     day: t.uint16().default(1),
+    /** 0 = midnight … 0.5 = noon (world/time.ts). Server-owned. */
+    timeOfDay: t.quantized({ min: 0, max: 1, mode: 'wrap', bits: 16 }).default(NEW_HOME_TIME),
     /** Keyed by Colyseus sessionId. */
     players: t.map(PlayerState),
     /** Shared storage chest, fixed-length slot array. */
     chest: t.array(ItemStack),
     stove: StoveState,
+    /** Keyed by resource node id. */
+    resources: t.map(ResourceState),
   },
   'HomeState',
 );

@@ -9,7 +9,17 @@ import {
   type Point,
   type TeleportPayload,
 } from '@homebound/shared';
-import { createHarness, playerOf, self, sleep, startGame, waitFor, walk } from '../test/harness.js';
+import {
+  EVENING,
+  createHarness,
+  setTime,
+  playerOf,
+  self,
+  sleep,
+  startGame,
+  waitFor,
+  walk,
+} from '../test/harness.js';
 
 const h = createHarness(2596);
 
@@ -128,25 +138,42 @@ describe('sleep', () => {
     const toBedRight = TO_BED_LEFT.map((p) => ({ x: p.x, z: p.z + 1.2 }));
     await Promise.all([walk(host, TO_BED_LEFT), walk(partner, toBedRight)]);
 
+    await setTime(host, EVENING);
+
     host.send(ClientMessage.Interact, { targetId: 'bed' });
     await waitFor(() => playerOf(partner, host.sessionId).sleeping);
     expect(self(host).x).toBeCloseTo(BED_SPOTS[0]?.sleep.x ?? NaN, 4);
 
+    await setTime(partner, EVENING);
+
     partner.send(ClientMessage.Interact, { targetId: 'bed' });
     await waitFor(() => self(partner).sleeping);
+    await setTime(partner, EVENING);
     partner.send(ClientMessage.Interact, { targetId: 'bed' }); // changes their mind
     await waitFor(() => !self(partner).sleeping);
     await sleep(NEW_DAY_DELAY_MS + 300);
     expect(host.state.day).toBe(1);
+
+    await setTime(partner, EVENING);
 
     partner.send(ClientMessage.Interact, { targetId: 'bed' });
     await waitFor(() => host.state.day === 2, NEW_DAY_DELAY_MS + 2000);
     expect(self(host).sleeping || self(partner).sleeping).toBe(false);
   }, 15000);
 
+  test('beds cannot be used during the day', async () => {
+    const { host } = await playingPair();
+    await walk(host, TO_BED_LEFT);
+    await setTime(host, 0.5);
+    host.send(ClientMessage.Interact, { targetId: 'bed' });
+    await sleep(200);
+    expect(self(host).sleeping).toBe(false);
+  });
+
   test('moves are ignored while asleep', async () => {
     const { host } = await playingPair();
     await walk(host, TO_BED_LEFT);
+    await setTime(host, EVENING);
     host.send(ClientMessage.Interact, { targetId: 'bed' });
     await waitFor(() => self(host).sleeping);
     const { x, z } = self(host);

@@ -1,9 +1,22 @@
-import { BED_SPOTS, type HomeState, type PlayerState, type Point } from '@homebound/shared';
+import {
+  BED_SPOTS,
+  BEDTIME_START,
+  WAKE_UP_TIME,
+  canSleepAt,
+  type HomeState,
+  type PlayerState,
+  type Point,
+} from '@homebound/shared';
 
 function bedSpot(player: PlayerState) {
   return (
     BED_SPOTS[player.slot - 1] ?? BED_SPOTS[0] ?? { sleep: { x: 0, z: 0 }, wake: { x: 0, z: 0 } }
   );
+}
+
+/** Lying down only from evening to dawn; getting up is always allowed. */
+export function canToggleSleep(state: HomeState, player: PlayerState): boolean {
+  return player.sleeping || canSleepAt(state.timeOfDay);
 }
 
 /** Lies down or gets up. Returns the position the server moved the player to. */
@@ -22,8 +35,12 @@ export function everyoneAsleep(state: HomeState): boolean {
   return players.length > 0 && players.every((p) => p.sleeping && p.connected);
 }
 
-/** Advances the day and wakes everyone. Returns the players that were moved, with targets. */
+/**
+ * Sleeps until dawn and wakes everyone. Going to bed before midnight moves to the next day;
+ * after midnight the clock already did. Returns the players that were moved, with targets.
+ */
 export function startNewDay(state: HomeState): { player: PlayerState; target: Point }[] {
-  state.day += 1;
+  if (state.timeOfDay >= BEDTIME_START) state.day += 1;
+  state.timeOfDay = WAKE_UP_TIME;
   return [...state.players.values()].map((player) => ({ player, target: toggleSleep(player) }));
 }

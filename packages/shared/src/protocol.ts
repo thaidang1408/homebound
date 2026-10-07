@@ -35,6 +35,8 @@ export const ClientMessage = {
   Transfer: 'transfer',
   /** Use the item in an inventory slot (eat food). */
   UseItem: 'use-item',
+  /** Development servers only: jump the clock (playtests). Ignored in production. */
+  DevSetTime: 'dev:set-time',
 } as const;
 
 /** Server → client message names. */
@@ -68,6 +70,10 @@ export type Container = 'player' | 'chest';
 export interface TransferPayload {
   from: Container;
   slot: number;
+}
+
+export interface DevSetTimePayload {
+  timeOfDay: number;
 }
 
 export interface UseItemPayload {

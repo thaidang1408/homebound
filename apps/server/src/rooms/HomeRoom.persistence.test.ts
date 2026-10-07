@@ -13,7 +13,16 @@ import {
   type Point,
 } from '@homebound/shared';
 import type { Room } from '@colyseus/sdk';
-import { createHarness, newPlayerId, self, sleep, waitFor, walk } from '../test/harness.js';
+import {
+  EVENING,
+  createHarness,
+  setTime,
+  newPlayerId,
+  self,
+  sleep,
+  waitFor,
+  walk,
+} from '../test/harness.js';
 
 const h = createHarness(2595);
 beforeAll(() => h.start());
@@ -74,6 +83,7 @@ describe('solo and drop-in', () => {
   test('a lone sleeper starts the next day', async () => {
     const room = await soloGame();
     await walk(room, TO_BED);
+    await setTime(room, EVENING);
     room.send(ClientMessage.Interact, { targetId: 'bed' });
     await waitFor(() => room.state.day === 2, NEW_DAY_DELAY_MS + 2000);
   });
@@ -172,6 +182,7 @@ describe('XP and levels', () => {
   test('sleeping through the night grants XP', async () => {
     const room = await soloGame();
     await walk(room, TO_BED);
+    await setTime(room, EVENING);
     room.send(ClientMessage.Interact, { targetId: 'bed' });
     await waitFor(() => self(room).xp === XP_REWARDS.sleepNight, NEW_DAY_DELAY_MS + 2000);
     expect(self(room).level).toBe(1);

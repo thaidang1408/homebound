@@ -13,6 +13,9 @@ export interface ItemDefinition {
 export const ITEMS = {
   raw_meat: { name: 'Raw meat', icon: '🥩', maxStack: 10, hunger: 8, cooksInto: 'cooked_meat' },
   cooked_meat: { name: 'Cooked meat', icon: '🍖', maxStack: 10, hunger: 35 },
+  berries: { name: 'Berries', icon: '🫐', maxStack: 20, hunger: 6 },
+  wood: { name: 'Wood', icon: '🪵', maxStack: 20 },
+  stone: { name: 'Stone', icon: '🪨', maxStack: 20 },
 } as const satisfies Record<string, ItemDefinition>;
 
 export type ItemId = keyof typeof ITEMS;

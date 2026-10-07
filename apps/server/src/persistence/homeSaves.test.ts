@@ -28,8 +28,10 @@ function sample(code = 'ABC23'): HomeSave {
     createdAt: '2026-10-07T00:00:00.000Z',
     updatedAt: '2026-10-07T00:00:00.000Z',
     day: 4,
+    timeOfDay: 0.8,
     chest: [{ itemId: 'raw_meat', qty: 3 }, null],
     stove: { status: 'cooking', itemId: 'raw_meat', elapsedMs: 1200, cookedBy: PLAYER },
+    resources: { 'tree-0': 1, 'not-a-node': 3 },
     players: {
       [PLAYER]: {
         name: 'An',
@@ -53,6 +55,8 @@ describe('home saves', () => {
     expect(loaded?.chest[0]).toEqual({ itemId: 'raw_meat', qty: 3 });
     expect(loaded?.players[PLAYER]?.inventory[1]).toEqual({ itemId: 'cooked_meat', qty: 2 });
     expect(loaded?.stove.status).toBe('cooking');
+    expect(loaded?.timeOfDay).toBe(0.8);
+    expect(loaded?.resources).toEqual({ 'tree-0': 1 }); // unknown node ids dropped
   });
 
   test('unknown or invalid codes are simply missing', () => {

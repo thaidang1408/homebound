@@ -44,8 +44,8 @@ export const PLAYER_RADIUS = 0.3; // m, collision circle
 export const MOVE_SPEED_TOLERANCE = 1.5;
 export const MOVE_DISTANCE_SLACK = 0.75; // m
 
-/** Players are kept inside this circle around the house (Phase 3 replaces it with terrain bounds). */
-export const WORLD_RADIUS = 28; // m
+/** The playable world is a circle around the house; the terrain rim rises at its edge. */
+export const WORLD_RADIUS = 58; // m
 
 export const MAX_PITCH = Math.PI / 2 - 0.01;
 

@@ -5,12 +5,18 @@ import {
   HUNGER_DECAY_PER_SECOND,
   HUNGER_START,
   HomeState,
+  HARVEST_COOLDOWN_MS,
   PlayerState,
+  RESOURCE_KINDS,
+  RESOURCE_NODES,
   StoveStatus,
+  WAKE_UP_TIME,
 } from '@homebound/shared';
 import { addItem, countItem, createSlots } from '../inventory/inventory.js';
 import { eatFromSlot, tickNeeds } from './needs.js';
-import { everyoneAsleep, startNewDay, toggleSleep } from './sleep.js';
+import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from './sleep.js';
+import { harvest, initResources, tickResources } from './harvest.js';
+import { tickClock } from './clock.js';
 import { tickStove, useStove } from './stove.js';
 
 function setup() {
@@ -105,8 +111,31 @@ describe('sleep', () => {
     expect(toggleSleep(a)).toEqual(BED_SPOTS[0]?.wake);
   });
 
+  test('you can only go to bed in the evening or at night', () => {
+    const { state, a } = setup();
+    state.timeOfDay = 0.5;
+    expect(canToggleSleep(state, a)).toBe(false);
+    state.timeOfDay = 0.8;
+    expect(canToggleSleep(state, a)).toBe(true);
+    toggleSleep(a);
+    state.timeOfDay = 0.5;
+    expect(canToggleSleep(state, a)).toBe(true); // getting up is always fine
+  });
+
+  test('sleeping after midnight wakes at dawn without skipping a day', () => {
+    const { state, a, b } = setup();
+    state.day = 3;
+    state.timeOfDay = 0.1;
+    toggleSleep(a);
+    toggleSleep(b);
+    startNewDay(state);
+    expect(state.day).toBe(3);
+    expect(state.timeOfDay).toBeCloseTo(WAKE_UP_TIME, 3);
+  });
+
   test('a new day needs both players asleep and connected', () => {
     const { state, a, b } = setup();
+    state.timeOfDay = 0.8;
     toggleSleep(a);
     expect(everyoneAsleep(state)).toBe(false);
     toggleSleep(b);
@@ -118,5 +147,53 @@ describe('sleep', () => {
     startNewDay(state);
     expect(state.day).toBe(2);
     expect(a.sleeping || b.sleeping).toBe(false);
+  });
+});
+
+describe('harvesting', () => {
+  const tree = RESOURCE_NODES.find((n) => n.kind === 'tree');
+  if (!tree) throw new Error('no tree in layout');
+  const def = RESOURCE_KINDS.tree;
+
+  test('gives wood, uses charges, respects the cooldown', () => {
+    const { state, a } = setup();
+    initResources(state);
+    expect(harvest(state, a, tree, 1000, 0)).toBe('harvested');
+    expect(countItem(a.inventory, 'wood')).toBe(def.qty);
+    expect(harvest(state, a, tree, 1000 + HARVEST_COOLDOWN_MS - 1, 1000)).toBe('cooldown');
+    expect(state.resources.get(tree.id)?.charges).toBe(def.charges - 1);
+  });
+
+  test('a depleted node grows back after its respawn time', () => {
+    const { state, a } = setup();
+    initResources(state);
+    let t = 0;
+    for (let i = 0; i < def.charges; i++) {
+      t += HARVEST_COOLDOWN_MS;
+      harvest(state, a, tree, t, t - HARVEST_COOLDOWN_MS);
+    }
+    expect(harvest(state, a, tree, t + 10_000, 0)).toBe('depleted');
+    tickResources(state, def.respawnMs - 1);
+    expect(state.resources.get(tree.id)?.charges).toBe(0);
+    tickResources(state, 1);
+    expect(state.resources.get(tree.id)?.charges).toBe(def.charges);
+  });
+
+  test('a full backpack harvests nothing', () => {
+    const { state, a } = setup();
+    initResources(state);
+    for (let i = 0; i < 5; i++) addItem(a.inventory, 'stone', 20);
+    expect(harvest(state, a, tree, 1000, 0)).toBe('inventory-full');
+    expect(state.resources.get(tree.id)?.charges).toBe(def.charges);
+  });
+});
+
+describe('world clock', () => {
+  test('passing midnight starts the next day', () => {
+    const { state } = setup();
+    state.timeOfDay = 0.999;
+    expect(tickClock(state, 60_000)).toBe(true);
+    expect(state.day).toBe(2);
+    expect(tickClock(state, 1000)).toBe(false);
   });
 });

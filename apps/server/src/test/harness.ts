@@ -16,9 +16,11 @@ export function createHarness(port: number) {
   const sdk = new Client(`http://127.0.0.1:${port}`);
   const openRooms: Room<HomeState>[] = [];
 
+  /** Joined rooms are tracked for cleanup and returned only once their first state has arrived. */
   async function track(promise: Promise<Room<HomeState>>): Promise<Room<HomeState>> {
     const room = await promise;
     openRooms.push(room);
+    await waitFor(() => room.state?.players !== undefined);
     return room;
   }
 
@@ -90,3 +92,12 @@ export async function walk(room: Room<HomeState>, waypoints: readonly Point[]) {
   }
   await waitFor(() => Math.hypot(self(room).x - pos.x, self(room).z - pos.z) < 0.01);
 }
+
+/** Dev command: jump the world clock (e.g. to evening so beds can be used). */
+export async function setTime(room: Room<HomeState>, timeOfDay: number) {
+  room.send(ClientMessage.DevSetTime, { timeOfDay });
+  await waitFor(() => Math.abs(room.state.timeOfDay - timeOfDay) < 0.01);
+}
+
+/** Early evening: bedtime is allowed and midnight is far away. */
+export const EVENING = 0.8;
