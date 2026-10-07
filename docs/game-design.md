@@ -1,6 +1,6 @@
 # Game design
 
-_Last updated: Phase 3 (2026-10-07). What exists in the build, not the full vision (see the master
+_Last updated: Phase 4 (2026-10-07). What exists in the build, not the full vision (see the master
 prompt summary in `development-phases.md`)._
 
 ## The home (Phase 2)
@@ -20,7 +20,7 @@ for rendering, client collision, server validation and interaction reach.
 
 ```text
                   north: dense forest behind the house
-  west: GROVE (rocks, berry bushes)   HOUSE   east: MEADOW (open; hunting ground in Phase 4)
+  west: GROVE (rocks, berry bushes)   HOUSE   east: MEADOW (open; boar hunting ground)
                   south: dirt ROAD from the front door to a forest CLEARING (z ≈ 42)
 ```
 
@@ -35,10 +35,25 @@ for rendering, client collision, server validation and interaction reach.
   "head home before dark"; night is moonlit and foggy with stars — tense but readable. Beds only work
   from early evening until dawn; sleeping together skips to dawn.
 
+## Creatures and hunting (Phase 4, ADR-016)
+
+- **Boar** ×4 in the east meadow (40 HP, 12 damage per tusk strike). It grazes and wanders; when you
+  come within 8 m (≈13 m at night) it raises its snout (alert, 0.7 s), then charges at 5.4 m/s —
+  faster than walking, slower than sprinting, so you can always run. Before striking it rears back
+  for 0.55 s: step away to dodge. Hits make it flinch and get knocked back, except mid wind-up.
+- **Fighting:** look at a boar within reach → the crosshair turns red with "Click Punch boar".
+  Bare hands deal 8 (5 punches, one every 0.45 s). Weapons arrive in Phase 5.
+- **Loot:** a downed boar becomes a carcass → `[E] Butcher boar` → 2–3 raw meat (+15 XP to the
+  killer). A new boar appears in the meadow 3 minutes later.
+- **Safe yard:** boars never enter the yard around the house and lose interest once you reach it.
+  They also give up when you get 18 m away or leave their territory.
+- **Health** 0–100 (HUD), heals 0.25/s while not starving. At 0 you black out and wake up at home
+  with 50 health and all your items (Phase 5 replaces this with downed + revive by your partner).
+
 ## Core loop available now
 
 ```text
-chest (raw meat) → stove (cook) → eat → go out: chop / mine / pick → dusk → home → bed → dawn
+go out: hunt boar / chop / mine / pick → butcher → home → stove (cook) → eat → dusk → bed → dawn
 ```
 
 - **Hunger** 0–100, starts at 80, drains over 20 min of play, paused while asleep. No penalty at 0
@@ -48,7 +63,7 @@ chest (raw meat) → stove (cook) → eat → go out: chop / mine / pick → dus
   cancels. Your partner gets a toast when you go to bed.
 - **XP / levels** (ADR-012): cooking a meal +10 XP (to the cook, even if the partner collects it),
   each new day +20 XP to each sleeper. Curve 50, 75, 100, … per level, max 50. Unlocks come later.
-- **Starter supplies:** the chest holds 6 raw meat on day 1 (until hunting exists, Phase 4).
+- **Starter supplies:** the chest holds 6 raw meat on day 1, a first meal before the first hunt.
 
 ## Two players, or one
 
@@ -60,10 +75,11 @@ chest (raw meat) → stove (cook) → eat → go out: chop / mine / pick → dus
 ## Saving
 
 Homes save automatically (ADR-009). Closing the browser and coming back with **Continue home** (or
-the code) restores the chest, stove, day and each returning player's items, hunger, XP and
-position. A player is recognised by an anonymous id stored in their browser (ADR-010).
+the code) restores the chest, stove, day and each returning player's items, hunger, health, XP and
+position. Creatures are not saved: a re-opened home has a fresh herd. A player is recognised by an anonymous id stored in their browser (ADR-010).
 
 ## Controls
 
-WASD move · Mouse look · Shift sprint · E interact (hold to keep harvesting) · Left click eat held food · 1–5 / wheel hotbar ·
+WASD move · Mouse look · Shift sprint · E interact (hold to keep harvesting) · Left click punch the
+creature in the crosshair, otherwise eat held food · 1–5 / wheel hotbar ·
 Tab backpack · Esc pause.

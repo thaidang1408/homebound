@@ -1,16 +1,19 @@
 import type { Room } from '@colyseus/sdk';
 import {
+  CREATURES,
   GamePhase,
+  ServerMessage,
   StoveStatus,
   clockLabel,
   dayPhase,
   getItem,
+  isCreatureKind,
   isItemId,
   type DayPhase,
   type HomeState,
 } from '@homebound/shared';
 import { getSession, updateSession } from '../state/session';
-import { showToast } from '../state/ui';
+import { getUi, showToast, updateUi } from '../state/ui';
 
 /** The low-frequency slice of room state the React UI cares about. */
 interface Snapshot {
@@ -18,6 +21,9 @@ interface Snapshot {
   day: number;
   stoveStatus: string;
   myHunger: number;
+  myHealth: number;
+  /** Creature ids currently lying dead. */
+  carcasses: Set<string>;
   myXp: number;
   myLevel: number;
   sleeping: Map<string, boolean>;
@@ -49,14 +55,20 @@ function snapshot(room: Room<HomeState>): Snapshot {
     slots(s.chest),
     ...players.map(
       ([id, p]) =>
-        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.sleeping}|${p.xp}|${p.level}|${slots(p.inventory)}`,
+        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.xp}|${p.level}|${slots(p.inventory)}`,
     ),
+    // Health and presence change only in fights; patrol movement doesn't re-render the UI.
+    ...[...s.creatures.entries()].map(([id, c]) => `${id}:${c.health}:${c.present}`),
   ].join(';');
   return {
     key,
     day: s.day,
     stoveStatus: s.stove.status,
     myHunger: s.players.get(room.sessionId)?.hunger ?? 0,
+    myHealth: s.players.get(room.sessionId)?.health ?? 0,
+    carcasses: new Set(
+      [...s.creatures.entries()].filter(([, c]) => c.present && c.health === 0).map(([id]) => id),
+    ),
     myXp: s.players.get(room.sessionId)?.xp ?? 0,
     myLevel: s.players.get(room.sessionId)?.level ?? 1,
     sleeping: new Map(players.map(([id, p]) => [id, p.sleeping])),
@@ -71,6 +83,12 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   if (next.day > prev.day) showToast(`Day ${next.day} — good morning!`);
   if (next.stoveStatus === StoveStatus.Done && prev.stoveStatus !== StoveStatus.Done) {
     showToast('The food is ready!');
+  }
+  if (next.myHealth < prev.myHealth) updateUi({ hurtCount: getUi().hurtCount + 1 });
+  for (const id of next.carcasses) {
+    const kind = room.state.creatures.get(id)?.kind ?? '';
+    if (prev.carcasses.has(id) || !isCreatureKind(kind)) continue;
+    showToast(`${CREATURES[kind].name} down! Butcher it with E`);
   }
   const ate = next.myHunger - prev.myHunger;
   if (ate > 0) showToast(`+${ate} hunger`);
@@ -115,5 +133,8 @@ export function watchRoom(room: Room<HomeState>): void {
     });
   };
   room.onStateChange(apply);
+  room.onMessage(ServerMessage.BlackedOut, () =>
+    showToast('You blacked out… and woke up at home.'),
+  );
   apply();
 }

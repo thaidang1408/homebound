@@ -1,10 +1,12 @@
 import {
+  CREATURES,
   RESOURCE_KINDS,
   StoveStatus,
   canSleepAt,
   cookResult,
   findInteractable,
   getItem,
+  isCreatureKind,
   isItemId,
   type HomeState,
   type ItemId,
@@ -29,8 +31,16 @@ function hasSpaceFor(me: PlayerState, id: ItemId): boolean {
 
 /** What pressing [E] on `focusId` would do right now, in player words. */
 export function promptFor(focusId: string, state: HomeState, sessionId: string): Prompt | null {
-  const target = findInteractable(focusId);
   const me = state.players.get(sessionId);
+  const creature = state.creatures.get(focusId);
+  if (creature && me && isCreatureKind(creature.kind)) {
+    const def = CREATURES[creature.kind];
+    const fits = def.loot.every((l) => hasSpaceFor(me, l.itemId));
+    return fits
+      ? { text: `Butcher ${def.name.toLowerCase()}`, actionable: true }
+      : { text: 'Backpack full', actionable: false };
+  }
+  const target = findInteractable(focusId);
   if (!target || !me) return null;
 
   switch (target.kind) {

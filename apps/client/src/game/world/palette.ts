@@ -42,6 +42,15 @@ export const PALETTE = {
   mattress: '#f1e9dc',
   pillow: '#ffffff',
 
+  boar: '#6a4a36',
+  boarDark: '#3d2b20',
+  snout: '#b8806e',
+  tusk: '#f3ead8',
+  eye: '#151515',
+  hurtFlash: '#ff5040',
+  healthBack: '#1d2421',
+  health: '#e0625a',
+
   rawMeat: '#d4566a',
   cookedMeat: '#7a4426',
   smoke: '#f2f2f2',

@@ -13,10 +13,21 @@ interface UiState {
   panel: Panel;
   /** Furniture id the player is looking at and close enough to use. */
   focusId: string | null;
+  /** Live creature under the crosshair and within striking reach (left click attacks). */
+  preyId: string | null;
+  /** Bumped whenever the local player takes damage (drives the red flash). */
+  hurtCount: number;
   toasts: Toast[];
 }
 
-const store = createStore<UiState>({ selectedSlot: 0, panel: 'none', focusId: null, toasts: [] });
+const store = createStore<UiState>({
+  selectedSlot: 0,
+  panel: 'none',
+  focusId: null,
+  preyId: null,
+  hurtCount: 0,
+  toasts: [],
+});
 
 export const getUi = store.get;
 export const updateUi = store.update;

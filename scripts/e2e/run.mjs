@@ -2,6 +2,7 @@
 // Usage: npm run e2e [-- http://host:5173] [scenario...]. Screenshots: scripts/e2e/out/.
 import { createRun } from './lib.mjs';
 import homeLoop from './home-loop.mjs';
+import hunting from './hunting.mjs';
 import outdoors from './outdoors.mjs';
 import soloSave from './solo-save.mjs';
 import twoPlayers from './two-players.mjs';
@@ -11,6 +12,7 @@ const SCENARIOS = {
   'home-loop': homeLoop,
   'solo-save': soloSave,
   outdoors,
+  hunting,
 };
 
 const args = process.argv.slice(2);

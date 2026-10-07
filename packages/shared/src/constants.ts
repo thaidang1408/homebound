@@ -73,7 +73,7 @@ export const PLAYER_INVENTORY_SLOTS = 10;
 /** The first HOTBAR_SLOTS of the player inventory are the hotbar (keys 1–5). */
 export const HOTBAR_SLOTS = 5;
 export const CHEST_SLOTS = 16;
-/** What the shared chest holds on day 1, until hunting exists (Phase 4). */
+/** What the shared chest holds on day 1: a first meal before the first hunt. */
 export const STARTER_CHEST: readonly { itemId: ItemId; qty: number }[] = [
   { itemId: 'raw_meat', qty: 6 },
 ];

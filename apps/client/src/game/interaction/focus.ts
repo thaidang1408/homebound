@@ -1,10 +1,13 @@
 import type { Room } from '@colyseus/sdk';
 import {
+  CREATURES,
+  CreatureMode,
   INTERACT_RANGE,
   INTERACTABLES,
   boxCenter,
   distanceToBox,
   findResourceNode,
+  isCreatureKind,
   type HomeState,
 } from '@homebound/shared';
 
@@ -47,5 +50,40 @@ export function findFocus(
     best = target.id;
     bestDistance = distance;
   }
+  return best;
+}
+
+/** Striking needs real aim (≈ 30° half-angle), unlike using furniture. */
+const AIM_COS = 0.87;
+
+/**
+ * The nearest creature in front of the player whose body is within `range`: a live one to strike
+ * (`dead` false) or a carcass to butcher (`dead` true). Positions are the synced server ones.
+ */
+export function findCreature(
+  room: Room<HomeState>,
+  x: number,
+  z: number,
+  yaw: number,
+  range: number,
+  dead: boolean,
+): string | null {
+  const lookX = -Math.sin(yaw);
+  const lookZ = -Math.cos(yaw);
+  let best: string | null = null;
+  let bestDistance = Infinity;
+  room.state.creatures.forEach((c, id) => {
+    if (!c.present || (c.mode === CreatureMode.Dead) !== dead || !isCreatureKind(c.kind)) return;
+    const toX = c.x - x;
+    const toZ = c.z - z;
+    const centre = Math.hypot(toX, toZ) || 1;
+    const edge = centre - CREATURES[c.kind].radius;
+    if (edge > range || edge >= bestDistance) return;
+    // Carcasses and bodies right in front of you fill the view: a rough look is enough.
+    const facing = (toX * lookX + toZ * lookZ) / centre;
+    if (facing < (dead || edge < ALWAYS_FOCUS_DISTANCE ? FACING_COS : AIM_COS)) return;
+    best = id;
+    bestDistance = edge;
+  });
   return best;
 }

@@ -6,18 +6,12 @@ import { terrainHeight, type HomeState } from '@homebound/shared';
 import { MAX_FRAME_DT, REMOTE_SMOOTHING } from '../../config/controls';
 import { playerColor } from './playerColors';
 import { NameTag } from './NameTag';
-
-const TWO_PI = Math.PI * 2;
+import { angleDelta } from '../angles';
 
 /** Lying in bed: body tipped back onto the mattress, head toward the headboard (−Z). */
 const SLEEP_TILT = -Math.PI / 2;
 const SLEEP_HEIGHT = 0.62;
 const SLEEP_FEET_OFFSET = 0.85;
-
-/** Shortest signed angle from `from` to `to`, so yaw never unwinds the long way round. */
-function angleDelta(from: number, to: number): number {
-  return MathUtils.euclideanModulo(to - from + Math.PI, TWO_PI) - Math.PI;
-}
 
 interface Props {
   room: Room<HomeState>;

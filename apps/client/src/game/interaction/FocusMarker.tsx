@@ -1,24 +1,46 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Mesh } from 'three';
-import { boxCenter, findInteractable, terrainHeight } from '@homebound/shared';
+import {
+  CREATURES,
+  boxCenter,
+  findInteractable,
+  isCreatureKind,
+  terrainHeight,
+  type Box,
+} from '@homebound/shared';
+import { useSession } from '../../state/session';
 import { useUi } from '../../state/ui';
 import { PALETTE } from '../world/palette';
+
+/** Footprint of the focused thing: furniture/resource box, or a square around a carcass. */
+function focusBox(id: string, creature?: { kind: string; x: number; z: number }): Box | undefined {
+  if (creature && isCreatureKind(creature.kind)) {
+    const r = CREATURES[creature.kind].radius;
+    return {
+      minX: creature.x - r,
+      maxX: creature.x + r,
+      minZ: creature.z - r,
+      maxZ: creature.z + r,
+    };
+  }
+  return findInteractable(id)?.box;
+}
 
 /** Soft pulsing ring on the floor under whatever [E] would use. */
 export function FocusMarker() {
   const { focusId } = useUi();
   const ring = useRef<Mesh>(null);
-  const target = focusId ? findInteractable(focusId) : undefined;
+  const { room } = useSession();
+  const box = focusId ? focusBox(focusId, room?.state.creatures.get(focusId)) : undefined;
 
   useFrame(({ clock }) => {
     if (ring.current) ring.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 4) * 0.06);
   });
 
-  if (!target) return null;
-  const c = boxCenter(target.box);
-  const radius =
-    Math.hypot(target.box.maxX - target.box.minX, target.box.maxZ - target.box.minZ) / 2 + 0.15;
+  if (!box) return null;
+  const c = boxCenter(box);
+  const radius = Math.hypot(box.maxX - box.minX, box.maxZ - box.minZ) / 2 + 0.15;
 
   return (
     <mesh

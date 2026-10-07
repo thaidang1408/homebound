@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
+  CREATURES,
+  HEALTH_MAX,
   HOTBAR_SLOTS,
   HUNGER_MAX,
   NEW_DAY_DELAY_MS,
   clockLabel,
   dayPhase,
+  isCreatureKind,
   levelForXp,
   type DayPhase,
 } from '@homebound/shared';
@@ -27,8 +30,9 @@ const PHASE_ICON: Record<DayPhase, string> = {
   night: '🌙',
 };
 
-/** Below this, hunger shows a warning. */
+/** Below these, the meters show a warning. */
 const HUNGRY_AT = 25;
+const WOUNDED_AT = 30;
 
 /** Tracks whether the mouse is captured by the game canvas (low-frequency React state). */
 function usePointerLocked(): boolean {
@@ -46,7 +50,7 @@ const CONTROLS: readonly [string, string][] = [
   ['Mouse', 'Look'],
   ['Shift', 'Sprint'],
   ['E', 'Interact'],
-  ['Click', 'Eat held food'],
+  ['Click', 'Attack / eat held food'],
   ['1–5', 'Hotbar'],
   ['Tab', 'Backpack'],
   ['Esc', 'Pause'],
@@ -54,7 +58,7 @@ const CONTROLS: readonly [string, string][] = [
 
 export function GameHud() {
   const { room, connection } = useSession();
-  const { focusId, panel: openPanel, selectedSlot, toasts } = useUi();
+  const { focusId, preyId, hurtCount, panel: openPanel, selectedSlot, toasts } = useUi();
   const locked = usePointerLocked();
   useGameKeys();
   if (!room) return null;
@@ -70,6 +74,9 @@ export function GameHud() {
         : `${partner.name} is here`;
   const prompt = focusId && locked ? promptFor(focusId, room.state, room.sessionId) : null;
   const hunger = me?.hunger ?? HUNGER_MAX;
+  const health = me?.health ?? HEALTH_MAX;
+  const preyKind = preyId ? room.state.creatures.get(preyId)?.kind : undefined;
+  const preyName = preyKind && isCreatureKind(preyKind) ? CREATURES[preyKind].name : undefined;
   const bothAsleep = !!me?.sleeping && !!partner?.sleeping;
   const progress = levelForXp(me?.xp ?? 0);
   const xpShare = progress.needed ? progress.intoLevel / progress.needed : 1;
@@ -77,6 +84,17 @@ export function GameHud() {
   return (
     <div className={styles.hud}>
       <div className={styles.topLeft}>
+        <div className={styles.meter} data-warn={health < WOUNDED_AT}>
+          <span className={styles.meterLabel}>❤️ Health</span>
+          <span className={styles.meterTrack}>
+            <span
+              className={styles.meterFill}
+              data-kind="health"
+              style={{ width: `${(health / HEALTH_MAX) * 100}%` }}
+            />
+          </span>
+          <span className={styles.meterValue}>{health}</span>
+        </div>
         <div className={styles.meter} data-warn={hunger < HUNGRY_AT}>
           <span className={styles.meterLabel}>🍖 Hunger</span>
           <span className={styles.meterTrack}>
@@ -123,7 +141,18 @@ export function GameHud() {
         ))}
       </div>
 
-      {locked && !me?.sleeping && <div className={styles.crosshair} aria-hidden />}
+      {/* Re-keyed on every hit so the flash animation restarts. */}
+      {hurtCount > 0 && <div key={hurtCount} className={styles.hurt} aria-hidden />}
+
+      {locked && !me?.sleeping && (
+        <div className={styles.crosshair} data-prey={preyName !== undefined} aria-hidden />
+      )}
+      {locked && preyName && !prompt && (
+        <div className={styles.prompt} data-actionable>
+          <kbd className={styles.key}>Click</kbd>
+          Punch {preyName.toLowerCase()}
+        </div>
+      )}
       {prompt && (
         <div className={styles.prompt} data-actionable={prompt.actionable}>
           {prompt.actionable && <kbd className={styles.key}>E</kbd>}

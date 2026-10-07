@@ -45,7 +45,8 @@ One `.env` at the repo root (`.env.example`):
 src/
   rooms/HomeRoom.ts       lifecycle, message handlers (validate → system → state), autosave
   rooms/roomCode.ts       home codes; synchronous claim so a home can't run twice
-  systems/                pure game rules on state: needs, stove, sleep, clock, harvest, progression
+  systems/                pure game rules on state: needs/health, stove, sleep, clock, harvest,
+                          creatures (AI state machine, strikes, butchering), progression
   inventory/inventory.ts  slot inventories, atomic add/remove/move (unit-tested)
   persistence/            homeSaves.ts (file I/O + validation), homeState.ts (state ↔ save mapping)
   test/harness.ts         real server + SDK clients for integration tests (temp save dir)
@@ -59,13 +60,14 @@ src/
   networking/identity.ts    anonymous playerId + last home code (localStorage)
   networking/roomWatcher.ts re-renders UI only when the low-frequency state slice changes; toasts
   state/                    tiny external stores: session (room, screen), ui (panel, focus, hotbar, toasts)
-  game/GameCanvas.tsx       R3F canvas: World + LocalPlayer + RemotePlayer(s)
+  game/GameCanvas.tsx       R3F canvas: World + LocalPlayer + RemotePlayer(s) + Creatures
+  game/creatures/           Boar model + mode animations (trot, alert, wind-up/lunge, flinch, dead), health bar
   game/world/               Terrain, DayNight (sky/sun/moon/fog/stars), Resources (instanced), Decorations,
                             House, Furniture, Stove (state-driven visuals), palette
   game/player/              controller (collision, sleep camera, dev autopilot), partner body, NameTag
-  game/interaction/         focus (near + facing), prompt text, floor focus marker
+  game/interaction/         focus (near + facing; creatures to strike/butcher), prompt text, floor focus marker
   ui/screens/               Landing, Lobby
-  ui/hud/                   HUD (hunger, level/XP, day, partner, prompt, hotbar, toasts, sleep, pause), keys
+  ui/hud/                   HUD (health, hunger, level/XP, hurt flash, day, partner, prompt, hotbar, toasts, sleep, pause), keys
   ui/panels/                backpack and shared storage
   ui/components/            Button, TextInput, ItemSlot, Panel styles (tokens only)
   devtools.ts               dev-only window.__homebound hook for e2e
@@ -79,7 +81,8 @@ src/
 
 Shared world data (`packages/shared/src/world/`): `house.ts` (layout), `layout.ts` (seeded outdoor
 nodes + zones), `terrain.ts` (height), `time.ts` (day phases), `resources.ts` (node kinds),
-`interactables.ts` (furniture + nodes, `WORLD_COLLIDERS`), `collision.ts`.
+`interactables.ts` (furniture + nodes, `WORLD_COLLIDERS`), `collision.ts`. Creature kinds:
+`packages/shared/src/creatures.ts` (data, ADR-016).
 
 Networking details (messages, movement model, disconnects): `docs/networking.md`.
 

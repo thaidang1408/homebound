@@ -3,6 +3,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { Room } from '@colyseus/sdk';
 import {
   ClientMessage,
+  INTERACT_RANGE,
+  UNARMED_ATTACK,
   WORLD_COLLIDERS,
   MAX_PITCH,
   MOVE_SEND_INTERVAL_MS,
@@ -22,7 +24,7 @@ import {
 } from '@homebound/shared';
 import { MAX_FRAME_DT, MOUSE_SENSITIVITY, MOVE_EPSILON } from '../../config/controls';
 import { getUi, updateUi } from '../../state/ui';
-import { findFocus, isAvailable } from '../interaction/focus';
+import { findCreature, findFocus, isAvailable } from '../interaction/focus';
 import { autopilot, yawToward } from './autopilot';
 import { useHeldKeys } from './keyboard';
 import { localPose } from './localPose';
@@ -53,6 +55,10 @@ const SLEEP_EYE_HEIGHT = 0.9;
 const SLEEP_HEAD_OFFSET = 0.55; // toward the headboard (−Z)
 const SLEEP_PITCH = 1.25;
 
+/** A strike nods the view down a touch: you feel the swing even when it misses. */
+const SWING_MS = 160;
+const SWING_PITCH = 0.05;
+
 /**
  * First-person controller. Movement is predicted locally (instant response) and sent to the
  * server, which validates it and may answer with a Teleport correction (ADR-007).
@@ -66,6 +72,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
   const pose = useRef<MovePayload>({ x: 0, z: 0, yaw: 0, pitch: 0 });
   const lastSent = useRef<MovePayload>({ x: 0, z: 0, yaw: 0, pitch: 0 });
   const sinceSend = useRef(0);
+  const swingAt = useRef(-1e9);
 
   useEffect(() => {
     const self = room.state.players.get(room.sessionId);
@@ -91,9 +98,17 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
         Math.min(MAX_PITCH, p.pitch - e.movementY * MOUSE_SENSITIVITY),
       );
     };
-    /** Left click uses the selected hotbar item (eat food). The server checks it. */
+    /** Left click strikes the creature in the crosshair, otherwise eats the held food. The server checks both. */
     const use = (e: MouseEvent) => {
       if (e.button !== 0 || document.pointerLockElement !== canvas) return;
+      const prey = getUi().preyId;
+      if (prey) {
+        const now = performance.now();
+        if (now - swingAt.current < UNARMED_ATTACK.cooldownMs) return;
+        swingAt.current = now;
+        room.send(ClientMessage.Attack, { targetId: prey });
+        return;
+      }
       const slot = getUi().selectedSlot;
       const stack = room.state.players.get(room.sessionId)?.inventory.at(slot);
       if (!stack || !isItemId(stack.itemId) || getItem(stack.itemId).hunger === undefined) return;
@@ -119,7 +134,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     if (sleeping) {
       camera.position.set(p.x, SLEEP_EYE_HEIGHT, p.z - SLEEP_HEAD_OFFSET);
       camera.rotation.set(SLEEP_PITCH, 0, 0, 'YXZ');
-      if (getUi().focusId !== 'bed') updateUi({ focusId: 'bed' });
+      if (getUi().focusId !== 'bed' || getUi().preyId) updateUi({ focusId: 'bed', preyId: null });
       return; // no movement or move messages while in bed
     }
 
@@ -149,14 +164,19 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     }
 
     camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT, p.z);
-    camera.rotation.set(p.pitch, p.yaw, 0, 'YXZ');
+    const swing = (performance.now() - swingAt.current) / SWING_MS;
+    const nod = swing < 1 ? -Math.sin(swing * Math.PI) * SWING_PITCH : 0;
+    camera.rotation.set(p.pitch + nod, p.yaw, 0, 'YXZ');
 
     localPose.x = p.x;
     localPose.z = p.z;
     localPose.yaw = p.yaw;
 
-    const focus = findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
+    const carcass = findCreature(room, p.x, p.z, p.yaw, INTERACT_RANGE, true);
+    const focus = carcass ?? findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
     if (focus !== getUi().focusId) updateUi({ focusId: focus });
+    const prey = findCreature(room, p.x, p.z, p.yaw, UNARMED_ATTACK.range, false);
+    if (prey !== getUi().preyId) updateUi({ preyId: prey });
 
     sinceSend.current += dt * 1000;
     if (sinceSend.current < MOVE_SEND_INTERVAL_MS) return;

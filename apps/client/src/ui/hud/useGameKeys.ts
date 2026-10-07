@@ -33,6 +33,10 @@ function interact(): boolean {
   if (!room || !me) return false;
   // In bed, [E] always means "get up".
   const focusId = me.sleeping ? 'bed' : getUi().focusId;
+  if (focusId && room.state.creatures.has(focusId)) {
+    room.send(ClientMessage.Interact, { targetId: focusId }); // butcher a carcass
+    return false;
+  }
   const target = focusId ? findInteractable(focusId) : undefined;
   if (!target) return false;
 

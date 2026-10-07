@@ -109,6 +109,10 @@
   text-align: right;
 }
 
+.meterFill[data-kind='health'] {
+  background: var(--color-health);
+}
+
 .meter[data-warn='true'] {
   border-color: var(--color-danger);
 }
@@ -129,6 +133,29 @@
   border: 2px solid var(--color-text);
   border-radius: var(--radius-pill);
   opacity: 0.85;
+}
+
+.crosshair[data-prey='true'] {
+  border-color: var(--color-danger);
+  transform: translate(-50%, -50%) scale(1.5);
+}
+
+/* Red edge flash when you take a hit. */
+.hurt {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 120px 40px var(--color-danger);
+  animation: hurt-flash 450ms var(--ease-out) forwards;
+}
+
+@keyframes hurt-flash {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .prompt {

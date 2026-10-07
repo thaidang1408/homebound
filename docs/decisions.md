@@ -122,3 +122,23 @@ Beds work only from evening (0.7) to dawn, so "it gets dark → run home → sle
 Sleeping wakes everyone at dawn (the day number only increments if you slept before midnight).
 A `dev:set-time` message exists for playtests and is registered only when `NODE_ENV !== 'production'`.
 **Action for Phase 8:** set `NODE_ENV=production` on the public server.
+
+## ADR-016: Data-driven creatures with one server-side FSM; Phase 4 combat stand-ins (2026-10-07)
+
+**Decision:** Creature kinds are definitions in `packages/shared/src/creatures.ts` (health, speeds,
+detection, leash, attack timings, loot table, XP, respawn, zone, count). One finite state machine in
+`apps/server/src/systems/creatures.ts` runs every kind: idle ⇄ patrol → alert (telegraph) → chase →
+attack (wind-up, strike, recover) → chase; hit → hurt (knockback) → chase; 0 health → dead (carcass,
+butcher with [E]) → respawn after a delay. Only position, yaw, mode, health and presence are synced;
+timers, targets and patrol goals are `noSync`. The client animates from `mode`.
+
+- **The yard is a safe zone:** creatures never enter it and ignore players inside, so "run home"
+  always works. Detection range grows at night.
+- **No stun-lock:** hits during a wind-up don't interrupt it.
+- **Creatures are not saved:** a re-opened home gets fresh creatures (nothing a player owns is lost).
+- **Phase 4 stand-ins, replaced in Phase 5:** players strike with bare hands (`UNARMED_ATTACK`);
+  at 0 health a player blacks out and wakes up at home with `BLACKOUT_HEALTH` (instead of
+  downed/revive). Player health is saved.
+
+**Why:** content as data (CLAUDE.md), smallest AI that reads well; behaviour trees/navmesh are
+unnecessary for open meadows with a few trees (collision sliding is enough).
