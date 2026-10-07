@@ -1,6 +1,6 @@
 # Game design
 
-_Last updated: Phase 5 (2026-10-07). What exists in the build, not the full vision (see the master
+_Last updated: Phase 6 (2026-10-07). What exists in the build, not the full vision (see the master
 prompt summary in `development-phases.md`)._
 
 ## The home (Phase 2)
@@ -68,10 +68,27 @@ for rendering, client collision, server validation and interaction reach.
 - **Death:** bleeding out (30 s), going down alone, or both going down → you wake up at home with
   50 health, at least 30 hunger, and all your items.
 
+## Night: wolves (Phase 6, ADR-018)
+
+- **Wolf** ×3, pale grey with glowing eyes. They come out of the north woods at nightfall and
+  prowl the whole north side up to the yard's edge; they hunt in pairs (30 HP, 10 damage, 6.2 m/s:
+  faster than walking, slower than sprinting, so you can still run home). At dawn they slink back
+  into the woods. Loot: 1–2 raw meat, +20 XP. The yard is safe from them too.
+- Nightfall toast: "Night has fallen — wolves are out. Stay close to home."
+
+## A day in Homebound (Phase 6, ADR-018)
+
+- **Two shared goals per day** under the clock (e.g. "Hunt 2 animals 0/2", "Cook 3 meals 1/3").
+  Both of you count; finishing one gives each of you +25 XP ("✅ Goal done: …").
+- **Morning summary:** after sleeping, a card shows how the day went ("Day 3 survived · 🐗 2
+  hunted · 🍖 3 meals cooked · 🪵 14 gathered · Goals 2/2 — great teamwork!").
+- **Pressure that makes the loop:** hunger needs about two cooked meals per person per day, so
+  two players need roughly two boars a day; nights are dangerous; beds only work from evening.
+
 ## Core loop available now
 
 ```text
-chop / mine → workbench (spear, bow, arrows) → hunt boar → butcher → home → cook → eat → dusk → bed
+morning goals → chop / mine → workbench → hunt boar → butcher → home before the wolves → cook → eat → bed → summary
 ```
 
 - **Hunger** 0–100, starts at 80, drains over 20 min of play, paused while asleep or downed. At 0

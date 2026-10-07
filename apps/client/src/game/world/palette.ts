@@ -47,6 +47,10 @@ export const PALETTE = {
   snout: '#b8806e',
   tusk: '#f3ead8',
   eye: '#151515',
+  // Pale fur so wolves read against the night (moonlight is blue and dim).
+  wolf: '#b9bec4',
+  wolfDark: '#6f747b',
+  wolfEye: '#ffd75a',
   hurtFlash: '#ff5040',
   healthBack: '#1d2421',
   health: '#e0625a',

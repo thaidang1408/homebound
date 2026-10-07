@@ -165,3 +165,25 @@ targetId, yaw, pitch }`; the server reads the weapon from its own copy of that h
 
 **Why:** content as data; the server stays authoritative over damage, ammo and hits; the downed
 state is the core co-op moment ("go help!") of the MVP.
+
+## ADR-018: The day loop: night wolves, shared daily goals, morning summary (2026-10-07)
+
+**Decision:**
+
+- **Wolves** (second creature, same FSM and data as ADR-016): `activeAt: 'night'`. They appear
+  at nightfall in the north woods (`ZONES.forest`), prowl up to 34 m around it (`roamRadius`, right
+  up to the yard's edge), hunt in pairs, and at dawn run from the nearest player and vanish once
+  nobody is within 25 m. The yard stays safe.
+- **Feelers:** creatures that bump into a tree try headings fanned out to either side and take
+  the first that makes real progress (no pathfinding). Found by a flaky e2e: a charging boar could
+  grind against a trunk forever.
+- **Daily goals:** each day the home gets 2 shared goals from `packages/shared/src/goals.ts`
+  (hunt, cook, gather wood/stone, craft), deterministic per home code and day. Both players
+  contribute; finishing one gives **everyone** +25 XP.
+- **Day stats and summary:** the server counts what the home did today; when the day number
+  changes (sleeping, or staying up past midnight) it broadcasts `day-summary`, resets the stats
+  and picks new goals. Goals and stats are saved (older saves get fresh goals).
+
+**Why:** the MVP's success test is "chơi thêm ngày nữa đi": each day needs a direction (goals),
+a reason to be home by dark (wolves), and a moment of closure that invites the next day (summary).
+Levels still unlock nothing; they stay a score for now.

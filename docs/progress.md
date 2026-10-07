@@ -227,8 +227,7 @@
 
 ## Phase 5 — Combat + survival
 
-**Status:** Done on one machine (tests + all 6 e2e scenarios pass), awaiting the user's test +
-approval (2026-10-07)
+**Status:** Approved by the user (2026-10-07)
 
 **What was built** (ADR-017)
 
@@ -266,3 +265,43 @@ approval (2026-10-07)
 - Bundle 1.36 MB (384 kB gzip); code-splitting in Phase 7.
 
 **Next phase:** Phase 6 — game loop.
+
+## Phase 6 — Game loop
+
+**Status:** Done on one machine (tests + all 7 e2e scenarios pass), awaiting the user's test +
+approval (2026-10-07)
+
+**What was built** (ADR-018)
+
+- Wolves: second creature on the same data-driven FSM; night-only (`activeAt`), den in the north
+  woods, wide prowl (`roamRadius`), pairs, retreat and vanish at dawn. Pale fur and glowing eyes
+  so they read at night. The creature model is now one data-driven `Beast` (boar + wolf looks).
+- Obstacle feelers for all creatures (go around trees instead of grinding into them).
+- Daily shared goals (hunt / cook / gather / craft), deterministic per home and day, +25 XP to
+  both players per goal; HUD list under the clock; "Goal done" toasts.
+- Day stats and a morning summary card ("Day N survived" with hunted / meals / gathered /
+  crafted / revives, goals x/y). Goals and stats are saved.
+- Nightfall toast names the danger ("wolves are out").
+
+**Tests**
+
+- `npm test`: 136 passing. New: goal picking (distinct, in range, deterministic, varies by day),
+  goal completion once and capped, day close + reset; wolves absent by day, out at night in their
+  den, flee and vanish at dawn; a creature goes around a tree (verified to fail without feelers);
+  saves keep goals/stats (tampered values clamped); networked: sleeping sends the summary and
+  brings day 2 with fresh goals.
+- `npm run e2e`: 7 scenarios passing (new `game-loop`: goals on the HUD, nightfall wolf warning, a
+  wolf comes for you in the north woods, spear fight, home to bed, "Day 1 survived" card, fresh
+  goals). The `hunting` flake (boar stuck behind a tree) is fixed: 5/5 runs green.
+- Screenshot review fixed: wolves nearly invisible at night (paler fur), the summary card covering
+  toasts and the bed prompt.
+
+**Known issues**
+
+- Levels still unlock nothing (score only).
+- Staying awake past midnight shows the summary at midnight; sleeping after midnight shows none
+  that morning (the day had already changed).
+- Feelers are local only: a creature can still get stuck in a dense tree cluster.
+- Two-machine test still pending (on the user's side).
+
+**Next phase:** Phase 7 — polish.

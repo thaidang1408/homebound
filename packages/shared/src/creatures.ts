@@ -45,6 +45,8 @@ export interface CreatureDefinition {
   maxAttackers: readonly [day: number, night: number];
   /** Gives up once the target is this far away (m). */
   giveUpRange: number;
+  /** Wanders to points this far from its zone centre (m). */
+  roamRadius: number;
   /** Never strays farther than this from its zone centre (m). */
   leashRadius: number;
   idleMs: [number, number];
@@ -81,6 +83,7 @@ export const CREATURES = {
     nightDetectMultiplier: 1.6,
     maxAttackers: [1, 2],
     giveUpRange: 18,
+    roamRadius: 15,
     leashRadius: 24,
     idleMs: [1500, 4000],
     alertMs: 700,
@@ -108,6 +111,8 @@ export const CREATURES = {
     nightDetectMultiplier: 1,
     maxAttackers: [2, 2],
     giveUpRange: 24,
+    /** Prowls the whole north side, right up to the edge of the yard. */
+    roamRadius: 34,
     leashRadius: 42,
     idleMs: [800, 2500],
     alertMs: 500,

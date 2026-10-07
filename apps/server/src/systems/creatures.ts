@@ -43,11 +43,16 @@ function defOf(c: CreatureState): CreatureDefinition | undefined {
 const between = (random: Random, [min, max]: readonly [number, number]) =>
   min + random() * (max - min);
 
-function randomPointInZone(def: CreatureDefinition, random: Random): Point {
+/** A free spot within `radius` of the creature's zone centre (its spawn area by default). */
+function randomPointInZone(
+  def: CreatureDefinition,
+  random: Random,
+  radius: number = ZONES[def.zone].radius,
+): Point {
   const zone = ZONES[def.zone];
   for (let attempt = 0; ; attempt++) {
     const angle = random() * Math.PI * 2;
-    const r = Math.sqrt(random()) * zone.radius;
+    const r = Math.sqrt(random()) * radius;
     const p = { x: zone.center.x + Math.cos(angle) * r, z: zone.center.z + Math.sin(angle) * r };
     const free = resolveCircle(p, def.radius, WORLD_COLLIDERS);
     if ((free.x === p.x && free.z === p.z) || attempt > 10) return free;
@@ -83,16 +88,42 @@ function face(c: CreatureState, to: Point): void {
   c.yaw = Math.atan2(-(to.x - c.x), -(to.z - c.z));
 }
 
+/** Headings tried, in order, when the straight line is blocked (radians off the goal direction). */
+const FEELERS = [0, 0.6, -0.6, 1.2, -1.2, 1.75, -1.75];
+/** A heading is good enough once it makes this share of the step. */
+const GOOD_PROGRESS = 0.6;
+
+/**
+ * Steps toward `to`. If a tree or rock blocks the straight line, it tries headings fanning out to
+ * either side and takes the first that really moves (simple feelers, no pathfinding), so a
+ * charging creature goes around an obstacle instead of grinding into it.
+ */
 function moveToward(c: CreatureState, def: CreatureDefinition, to: Point, step: number): void {
   const dx = to.x - c.x;
   const dz = to.z - c.z;
   const dist = Math.hypot(dx, dz);
   if (dist < 1e-6) return;
-  face(c, to);
-  const k = Math.min(step, dist) / dist;
-  const next = constrain(def, { x: c.x + dx * k, z: c.z + dz * k });
-  c.x = next.x;
-  c.z = next.z;
+  const length = Math.min(step, dist);
+  const base = Math.atan2(dz, dx);
+  let best = { x: c.x, z: c.z };
+  let bestProgress = -1;
+  for (const offset of FEELERS) {
+    const a = base + offset;
+    const next = constrain(def, {
+      x: c.x + Math.cos(a) * length,
+      z: c.z + Math.sin(a) * length,
+    });
+    const progress = Math.hypot(next.x - c.x, next.z - c.z);
+    if (progress > bestProgress) {
+      best = next;
+      bestProgress = progress;
+    }
+    if (progress >= length * GOOD_PROGRESS) break;
+  }
+  if (bestProgress > 1e-6) face(c, { x: c.x + (best.x - c.x) * 10, z: c.z + (best.z - c.z) * 10 });
+  else face(c, to);
+  c.x = best.x;
+  c.z = best.z;
 }
 
 /** A player a creature may notice and chase: awake, conscious, outside the safe yard. */
@@ -146,7 +177,8 @@ function setMode(c: CreatureState, mode: CreatureMode, timerMs = 0): void {
 }
 
 function startPatrol(c: CreatureState, def: CreatureDefinition, random: Random): void {
-  const goal = randomPointInZone(def, random);
+  // constrain() keeps far goals out of the yard and the world's edge.
+  const goal = constrain(def, randomPointInZone(def, random, def.roamRadius));
   c.goalX = goal.x;
   c.goalZ = goal.z;
   c.target = '';

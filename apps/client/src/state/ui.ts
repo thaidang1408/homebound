@@ -1,3 +1,4 @@
+import type { DaySummaryPayload } from '@homebound/shared';
 import { createStore } from './createStore';
 
 export type Panel = 'none' | 'inventory' | 'storage' | 'workbench';
@@ -20,6 +21,8 @@ interface UiState {
   /** Bumped when the server confirms one of my attacks landed (hitmarker). */
   hitCount: number;
   lastHitKilled: boolean;
+  /** The morning card about the day that just ended (null = hidden). */
+  summary: DaySummaryPayload | null;
   toasts: Toast[];
 }
 
@@ -31,6 +34,7 @@ const store = createStore<UiState>({
   hurtCount: 0,
   hitCount: 0,
   lastHitKilled: false,
+  summary: null,
   toasts: [],
 });
 

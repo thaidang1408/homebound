@@ -21,6 +21,7 @@ import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
 import { InventoryPanel, StoragePanel, WorkbenchPanel } from '../panels/InventoryPanels';
 import { Compass } from './Compass';
+import { DaySummaryCard, GoalList } from './DayPanels';
 import styles from './GameHud.module.css';
 import { resumePlay, useGameKeys } from './useGameKeys';
 
@@ -65,6 +66,7 @@ export function GameHud() {
     hurtCount,
     hitCount,
     lastHitKilled,
+    summary,
     panel: openPanel,
     selectedSlot,
     toasts,
@@ -139,6 +141,7 @@ export function GameHud() {
           {PHASE_ICON[dayPhase(room.state.timeOfDay)]} Day {room.state.day}
           <span className={styles.clock}>{clockLabel(room.state.timeOfDay)}</span>
         </span>
+        <GoalList goals={[...room.state.goals]} />
         <span className={styles.pill}>Room {room.roomId}</span>
       </div>
 
@@ -182,7 +185,7 @@ export function GameHud() {
           </span>
         </div>
       )}
-      {prompt && (
+      {prompt && !summary && (
         <div className={styles.prompt} data-actionable={prompt.actionable}>
           {prompt.actionable && <kbd className={styles.key}>E</kbd>}
           {prompt.text}
@@ -202,6 +205,8 @@ export function GameHud() {
           ))}
         </div>
       )}
+
+      {summary && !me?.sleeping && <DaySummaryCard summary={summary} />}
 
       {me?.downed && (
         <div className={styles.downed} role="alert">

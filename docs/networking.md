@@ -34,6 +34,7 @@ Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `al
 | `HomeState.players`                                          | map&lt;sessionId, PlayerState&gt; |                                                     |
 | `HomeState.projectiles`                                      | map&lt;id, ProjectileState&gt;    | arrows in flight: x/y/z only (velocity server-only) |
 | `HomeState.creatures`                                        | map&lt;id, CreatureState&gt;      | kind, mode, x/z/yaw, health, present (ADR-016)      |
+| `HomeState.goals` / `today`                                  | array&lt;GoalState&gt; / DayStats | today's shared goals and counters (ADR-018)         |
 | `HomeState.chest`                                            | array&lt;ItemStack&gt; (16)       | shared storage                                      |
 | `HomeState.stove`                                            | StoveState                        | status, itemId, progress (8-bit)                    |
 | `PlayerState.name`, `slot`, `ready`, `connected`, `sleeping` |                                   |                                                     |
@@ -69,6 +70,7 @@ on the client (regression test in `HomeRoom.test.ts`).
 | S→C       | `teleport`              | `{ x, z }`                       | rejected move, getting into / out of bed, new day, death                                                                                    |
 | S→C       | `hit-confirm`           | `{ killed }`                     | your strike or arrow landed (hitmarker)                                                                                                     |
 | S→C       | `died`                  | —                                | you bled out / went down alone and woke up at home                                                                                          |
+| S→C       | `day-summary`           | `{ day, hunted, meals, … }`      | the day number changed (sleep or midnight): yesterday's stats and goals done                                                                |
 
 Invalid messages are dropped (and too-fast moves logged); they never crash the room or kick
 the client. `maxMessagesPerSecond = 60` disconnects floods.

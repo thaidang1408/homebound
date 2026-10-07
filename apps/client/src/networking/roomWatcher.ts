@@ -1,6 +1,8 @@
 import type { Room } from '@colyseus/sdk';
 import {
   CREATURES,
+  GOALS,
+  GOAL_XP,
   GamePhase,
   ServerMessage,
   StoveStatus,
@@ -8,8 +10,10 @@ import {
   dayPhase,
   getItem,
   isCreatureKind,
+  isGoalKind,
   isItemId,
   type DayPhase,
+  type DaySummaryPayload,
   type HitConfirmPayload,
   type HomeState,
 } from '@homebound/shared';
@@ -27,6 +31,8 @@ interface Snapshot {
   carcasses: Set<string>;
   myXp: number;
   myLevel: number;
+  /** Goals finished so far today, by "kind:target" (a new day resets them). */
+  goalsDone: Set<string>;
   sleeping: Map<string, boolean>;
   downed: Map<string, boolean>;
   phase: DayPhase;
@@ -54,6 +60,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     clockLabel(s.timeOfDay),
     s.stove.status,
     s.stove.itemId,
+    [...s.goals].map((g) => `${g.kind}:${g.progress}/${g.target}`).join(','),
     slots(s.chest),
     ...players.map(
       ([id, p]) =>
@@ -73,6 +80,9 @@ function snapshot(room: Room<HomeState>): Snapshot {
     ),
     myXp: s.players.get(room.sessionId)?.xp ?? 0,
     myLevel: s.players.get(room.sessionId)?.level ?? 1,
+    goalsDone: new Set(
+      [...s.goals].filter((g) => g.progress >= g.target).map((g) => `${g.kind}:${g.target}`),
+    ),
     sleeping: new Map(players.map(([id, p]) => [id, p.sleeping])),
     downed: new Map(players.map(([id, p]) => [id, p.downed])),
     phase: dayPhase(s.timeOfDay),
@@ -101,11 +111,18 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   }
   if (next.phase !== prev.phase) {
     if (next.phase === 'evening') showToast('The sun is setting — head home before dark.');
-    if (next.phase === 'night') showToast('Night has fallen. Stay close to home.');
+    if (next.phase === 'night') showToast('Night has fallen — wolves are out. Stay close to home.');
   }
   const earned = next.myXp - prev.myXp;
   if (earned > 0) showToast(`+${earned} XP`);
   if (next.myLevel > prev.myLevel) showToast(`⭐ Level ${next.myLevel}!`);
+  if (next.day === prev.day) {
+    for (const g of room.state.goals) {
+      const key = `${g.kind}:${g.target}`;
+      if (!next.goalsDone.has(key) || prev.goalsDone.has(key) || !isGoalKind(g.kind)) continue;
+      showToast(`✅ Goal done: ${GOALS[g.kind].label(g.target)} (+${GOAL_XP} XP each)`);
+    }
+  }
 
   for (const id of next.sleeping.keys()) {
     if (id === room.sessionId || prev.sleeping.has(id)) continue;
@@ -150,6 +167,7 @@ export function watchRoom(room: Room<HomeState>): void {
   room.onMessage(ServerMessage.Died, () =>
     showToast('You didn’t make it… and woke up at home. Your items are safe.'),
   );
+  room.onMessage(ServerMessage.DaySummary, (summary: DaySummaryPayload) => updateUi({ summary }));
   room.onMessage(ServerMessage.HitConfirm, (p: HitConfirmPayload) =>
     updateUi({ hitCount: getUi().hitCount + 1, lastHitKilled: p.killed }),
   );

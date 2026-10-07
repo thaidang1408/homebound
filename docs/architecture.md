@@ -47,7 +47,7 @@ src/
   rooms/roomCode.ts       home codes; synchronous claim so a home can't run twice
   systems/                pure game rules on state: needs/health, stove, sleep, clock, harvest,
                           creatures (AI state machine, damage, butchering), projectiles (arrows),
-                          downed (bleed-out, revive, respawn), crafting, progression
+                          downed (bleed-out, revive, respawn), crafting, goals (daily goals, day stats), progression
   inventory/inventory.ts  slot inventories, atomic add/remove/move (unit-tested)
   persistence/            homeSaves.ts (file I/O + validation), homeState.ts (state ↔ save mapping)
   test/harness.ts         real server + SDK clients for integration tests (temp save dir)
@@ -63,13 +63,13 @@ src/
   state/                    tiny external stores: session (room, screen), ui (panel, focus, hotbar, toasts)
   game/GameCanvas.tsx       R3F canvas: World + LocalPlayer + RemotePlayer(s) + Creatures + Arrows + HeldItem
   game/combat/              Arrows (pooled, extrapolated), HeldItem (first-person spear/bow/fist + swing)
-  game/creatures/           Boar model + mode animations (trot, alert, wind-up/lunge, flinch, dead), health bar
+  game/creatures/           Beast: one model for every kind from LOOKS data (boar, wolf) + mode animations, health bar
   game/world/               Terrain, DayNight (sky/sun/moon/fog/stars), Resources (instanced), Decorations,
                             House, Furniture, Stove (state-driven visuals), palette
   game/player/              controller (collision, sleep camera, dev autopilot), partner body, NameTag
   game/interaction/         focus (near + facing; creatures to strike/butcher), prompt text, floor focus marker
   ui/screens/               Landing, Lobby
-  ui/hud/                   HUD (health, hunger, level/XP, hurt flash, hitmarker, downed overlay, day, partner, prompt, hotbar, toasts, sleep, pause), keys
+  ui/hud/                   HUD (health, hunger, level/XP, hurt flash, hitmarker, downed overlay, daily goals, morning summary, day, partner, prompt, hotbar, toasts, sleep, pause), keys
   ui/panels/                backpack, shared storage, workbench (crafting)
   ui/components/            Button, TextInput, ItemSlot, Panel styles (tokens only)
   devtools.ts               dev-only window.__homebound hook for e2e
@@ -84,7 +84,7 @@ src/
 Shared world data (`packages/shared/src/world/`): `house.ts` (layout), `layout.ts` (seeded outdoor
 nodes + zones), `terrain.ts` (height), `time.ts` (day phases), `resources.ts` (node kinds),
 `interactables.ts` (furniture + nodes, `WORLD_COLLIDERS`), `collision.ts`. Creature kinds:
-`packages/shared/src/creatures.ts` (ADR-016); weapons `weapons.ts`, recipes `recipes.ts` (ADR-017).
+`packages/shared/src/creatures.ts` (ADR-016); weapons `weapons.ts`, recipes `recipes.ts` (ADR-017), daily goals `goals.ts` (ADR-018).
 
 Networking details (messages, movement model, disconnects): `docs/networking.md`.
 

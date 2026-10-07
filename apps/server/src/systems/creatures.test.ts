@@ -4,6 +4,7 @@ import {
   CreatureMode,
   HomeState,
   PlayerState,
+  RESOURCE_NODES,
   SIMULATION_TICK_MS,
   WEAPONS,
   WORLD_COLLIDERS,
@@ -118,6 +119,24 @@ describe('creatures', () => {
     state.timeOfDay = NIGHT;
     run(SIMULATION_TICK_MS);
     expect([boar, other].filter((c) => c.target === 'p1')).toHaveLength(BOAR.maxAttackers[1]);
+  });
+
+  test('goes around a tree in its way instead of grinding into it', () => {
+    const { player, boar, run } = setup();
+    const tree = RESOURCE_NODES.filter((n) => n.kind === 'tree' && n.collider).sort(
+      (a, b) =>
+        Math.hypot(a.x - MEADOW.x, a.z - MEADOW.z) - Math.hypot(b.x - MEADOW.x, b.z - MEADOW.z),
+    )[0];
+    if (!tree) throw new Error('no tree near the meadow');
+    // Boar on one side of the trunk, the player straight behind it on the other.
+    Object.assign(boar, { x: tree.x - 2, z: tree.z, mode: CreatureMode.Chase, target: 'p1' });
+    Object.assign(player, { x: tree.x + 2.5, z: tree.z });
+    let reached = false;
+    for (let t = 0; t < 4000 && !reached; t += SIMULATION_TICK_MS) {
+      run(SIMULATION_TICK_MS);
+      reached = boar.mode === CreatureMode.Attack;
+    }
+    expect(reached).toBe(true);
   });
 
   test('never enters the yard and gives up on a player who reaches it', () => {
