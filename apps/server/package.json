@@ -15,6 +15,7 @@
     "@homebound/shared": "*"
   },
   "devDependencies": {
+    "@colyseus/sdk": "0.18.5",
     "tsx": "4.23.15"
   }
 }

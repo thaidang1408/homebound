@@ -12,5 +12,8 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsc -b -w --preserveWatchOutput"
+  },
+  "dependencies": {
+    "@colyseus/schema": "5.0.36"
   }
 }
