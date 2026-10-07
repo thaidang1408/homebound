@@ -1,0 +1,64 @@
+.slot {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font: inherit;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+button.slot {
+  cursor: pointer;
+}
+
+button.slot:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+button.slot:disabled {
+  cursor: default;
+}
+
+button.slot:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.selected {
+  border-color: var(--color-primary);
+  transform: translateY(-3px);
+}
+
+.empty {
+  opacity: 0.55;
+}
+
+.icon {
+  font-size: var(--font-size-xl);
+  line-height: 1;
+}
+
+.qty {
+  position: absolute;
+  right: var(--space-1);
+  bottom: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.hint {
+  position: absolute;
+  left: var(--space-1);
+  top: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}

@@ -19,7 +19,7 @@ export const HOUSE_HALF_WIDTH = 6; // x
 export const HOUSE_HALF_DEPTH = 5; // z
 export const WALL_HEIGHT = 2.6;
 export const WALL_THICKNESS = 0.2;
-const DOOR_HALF = 0.7;
+export const DOOR_HALF = 0.7;
 
 /** Wall running along X at depth z. */
 function wallX(z: number, x1: number, x2: number): Box {
@@ -36,6 +36,13 @@ function wallZ(x: number, z1: number, z2: number): Box {
 const W = HOUSE_HALF_WIDTH;
 const D = HOUSE_HALF_DEPTH;
 const ROOM_DOOR_X = 3.5;
+
+/** Doorway centres (gaps in the walls below). The client draws lintels above them. */
+export const DOORWAYS: readonly Point[] = [
+  { x: 0, z: D },
+  { x: -ROOM_DOOR_X, z: 0 },
+  { x: ROOM_DOOR_X, z: 0 },
+];
 
 export const HOUSE_WALLS: readonly Box[] = [
   wallX(-D, -W, W), // north

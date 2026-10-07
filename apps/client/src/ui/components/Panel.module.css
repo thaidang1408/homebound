@@ -6,6 +6,7 @@
   place-items: center;
   padding: var(--space-4);
   background: var(--color-scrim);
+  pointer-events: auto; /* panels stay clickable inside the click-through HUD */
 }
 
 .panel {

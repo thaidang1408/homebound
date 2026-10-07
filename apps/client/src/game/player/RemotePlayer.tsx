@@ -10,6 +10,11 @@ import styles from './RemotePlayer.module.css';
 
 const TWO_PI = Math.PI * 2;
 
+/** Lying in bed: body tipped back onto the mattress, head toward the headboard (−Z). */
+const SLEEP_TILT = -Math.PI / 2;
+const SLEEP_HEIGHT = 0.62;
+const SLEEP_FEET_OFFSET = 0.85;
+
 /** Shortest signed angle from `from` to `to`, so yaw never unwinds the long way round. */
 function angleDelta(from: number, to: number): number {
   return MathUtils.euclideanModulo(to - from + Math.PI, TWO_PI) - Math.PI;
@@ -21,10 +26,11 @@ interface Props {
   name: string;
   slot: number;
   connected: boolean;
+  sleeping: boolean;
 }
 
 /** The partner's body. Reads synced state every frame and smooths toward it. */
-export function RemotePlayer({ room, sessionId, name, slot, connected }: Props) {
+export function RemotePlayer({ room, sessionId, name, slot, connected, sleeping }: Props) {
   const body = useRef<Group>(null);
   const head = useRef<Group>(null);
   const placed = useRef(false);
@@ -42,10 +48,14 @@ export function RemotePlayer({ room, sessionId, name, slot, connected }: Props) 
     }
 
     const dt = Math.min(rawDt, MAX_FRAME_DT);
+    const asleep = state.sleeping;
+    const targetZ = asleep ? state.z + SLEEP_FEET_OFFSET : state.z;
     g.position.x = MathUtils.damp(g.position.x, state.x, REMOTE_SMOOTHING, dt);
-    g.position.z = MathUtils.damp(g.position.z, state.z, REMOTE_SMOOTHING, dt);
+    g.position.z = MathUtils.damp(g.position.z, targetZ, REMOTE_SMOOTHING, dt);
+    g.position.y = MathUtils.damp(g.position.y, asleep ? SLEEP_HEIGHT : 0, REMOTE_SMOOTHING, dt);
+    g.rotation.x = MathUtils.damp(g.rotation.x, asleep ? SLEEP_TILT : 0, REMOTE_SMOOTHING, dt);
     const t = 1 - Math.exp(-REMOTE_SMOOTHING * dt);
-    g.rotation.y += angleDelta(g.rotation.y, state.yaw) * t;
+    g.rotation.y += angleDelta(g.rotation.y, asleep ? 0 : state.yaw) * t;
     head.current.rotation.x = MathUtils.lerp(head.current.rotation.x, state.pitch, t);
   });
 
@@ -72,7 +82,7 @@ export function RemotePlayer({ room, sessionId, name, slot, connected }: Props) 
         </mesh>
       </group>
       <Html position={[0, 2.15, 0]} center distanceFactor={10} className={styles.label}>
-        {connected ? name : `${name} (reconnecting…)`}
+        {!connected ? `${name} (reconnecting…)` : sleeping ? `${name} 💤` : name}
       </Html>
     </group>
   );

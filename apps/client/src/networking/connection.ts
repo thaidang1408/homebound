@@ -1,7 +1,8 @@
-import { Callbacks, Client, CloseCode, ErrorCode, type Room } from '@colyseus/sdk';
+import { Client, CloseCode, ErrorCode, type Room } from '@colyseus/sdk';
 import { GamePhase, ROOM_NAME, type HomeState, type JoinOptions } from '@homebound/shared';
 import { serverUrl } from '../config/env';
 import { getSession, updateSession } from '../state/session';
+import { watchRoom } from './roomWatcher';
 
 const client = new Client(serverUrl);
 
@@ -40,14 +41,6 @@ function friendlyError(error: unknown): string {
   return 'Something went wrong. Please try again.';
 }
 
-function screenFor(room: Room<HomeState>) {
-  return room.state.phase === GamePhase.Playing ? 'game' : 'lobby';
-}
-
-function bump(room: Room<HomeState>) {
-  updateSession({ screen: screenFor(room), version: getSession().version + 1 });
-}
-
 /** Join resolves before the first state patch; screens need `room.state.players` to exist. */
 function firstState(room: Room<HomeState>): Promise<Room<HomeState>> {
   if (room.state?.players) return Promise.resolve(room);
@@ -57,17 +50,14 @@ function firstState(room: Room<HomeState>): Promise<Room<HomeState>> {
 /** Wires a joined room into the session store. */
 function bindRoom(room: Room<HomeState>): void {
   writeToken(room.reconnectionToken);
-  updateSession({ room, screen: 'lobby', connection: 'connected', error: null, busy: null });
-
-  const callbacks = Callbacks.get(room);
-  callbacks.listen('phase', () => bump(room));
-  callbacks.onAdd('players', (player) => {
-    bump(room);
-    callbacks.listen(player, 'name', () => bump(room));
-    callbacks.listen(player, 'ready', () => bump(room));
-    callbacks.listen(player, 'connected', () => bump(room));
+  updateSession({
+    room,
+    screen: room.state.phase === GamePhase.Playing ? 'game' : 'lobby',
+    connection: 'connected',
+    error: null,
+    busy: null,
   });
-  callbacks.onRemove('players', () => bump(room));
+  watchRoom(room);
 
   room.onDrop(() => updateSession({ connection: 'reconnecting' }));
   room.onReconnect(() => {

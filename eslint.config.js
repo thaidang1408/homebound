@@ -15,7 +15,13 @@ export default tseslint.config(
     files: ['scripts/**/*.mjs'],
     // Node scripts; e2e callbacks passed to page.evaluate() also run in the browser.
     languageOptions: {
-      globals: { process: 'readonly', console: 'readonly', URL: 'readonly', window: 'readonly' },
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+      },
     },
   },
 );

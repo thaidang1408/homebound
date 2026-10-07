@@ -1,23 +1,32 @@
-/* The HUD never blocks clicks to the canvas, except for its own interactive panels. */
+/* The HUD never blocks clicks to the canvas, except for its own panels (Panel.module.css). */
 .hud {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  user-select: none;
 }
 
 .interactive {
-  pointer-events: auto;
   cursor: pointer;
 }
 
-.topLeft {
+.topLeft,
+.topRight {
   position: absolute;
   top: var(--space-4);
-  left: var(--space-4);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: var(--space-2);
+}
+
+.topLeft {
+  left: var(--space-4);
+  align-items: flex-start;
+}
+
+.topRight {
+  right: var(--space-4);
+  align-items: flex-end;
 }
 
 .pill {
@@ -37,18 +46,59 @@
   color: var(--color-warning);
 }
 
-.banner {
-  position: absolute;
-  top: var(--space-4);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: var(--space-2) var(--space-6);
+.day {
+  padding: var(--space-2) var(--space-4);
   background: var(--color-surface);
-  border: 1px solid var(--color-warning);
+  border: var(--border-panel);
   border-radius: var(--radius-pill);
-  color: var(--color-warning);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+}
+
+/* --- Needs meter --- */
+
+.meter {
+  display: grid;
+  grid-template-columns: auto 140px 2.5em;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-bold);
 }
+
+.meterTrack {
+  height: var(--space-2);
+  background: var(--color-bg);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.meterFill {
+  display: block;
+  height: 100%;
+  background: var(--color-hunger);
+  border-radius: var(--radius-pill);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+.meterValue {
+  text-align: right;
+}
+
+.meter[data-warn='true'] {
+  border-color: var(--color-danger);
+}
+
+.meter[data-warn='true'] .meterFill {
+  background: var(--color-danger);
+}
+
+/* --- Center --- */
 
 .crosshair {
   position: absolute;
@@ -62,6 +112,111 @@
   opacity: 0.85;
 }
 
+.prompt {
+  position: absolute;
+  top: calc(50% + var(--space-8));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.prompt[data-actionable='false'] {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.banner {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-2) var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-pill);
+  color: var(--color-warning);
+  font-weight: var(--font-weight-bold);
+}
+
+.toasts {
+  position: absolute;
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toast {
+  padding: var(--space-2) var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-weight-bold);
+  animation: toast-in var(--duration-base) var(--ease-out);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* --- Hotbar --- */
+
+.hotbar {
+  position: absolute;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* --- Sleep --- */
+
+.sleep {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--color-night);
+  opacity: 0.55;
+  transition-property: opacity;
+  transition-timing-function: ease-in;
+}
+
+.sleep[data-deep='true'] {
+  opacity: 0.97;
+}
+
+.sleepText {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.sleepHint {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* --- Pause menu --- */
+
 .controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -74,7 +229,7 @@
 
 .key {
   display: inline-block;
-  min-width: 3.5em;
+  min-width: 2.2em;
   padding: var(--space-1) var(--space-2);
   background: var(--color-surface-raised);
   border: var(--border-panel);
