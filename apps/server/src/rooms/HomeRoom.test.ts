@@ -86,6 +86,14 @@ describe('room lifecycle', () => {
     expect(players.map((p) => p.name).sort()).toEqual(['Host', 'Partner']);
   });
 
+  test('new players start with fully defined numeric state', async () => {
+    const { host, partner } = await createPair();
+    const seen = playerOf(partner, host.sessionId);
+    expect(seen.pitch).toBe(0);
+    expect(seen.yaw).toBe(0);
+    expect(Number.isFinite(seen.x) && Number.isFinite(seen.z)).toBe(true);
+  });
+
   test('a third player is rejected', async () => {
     const { host } = await createPair();
     await expect(sdk.joinById(host.roomId, { name: 'Third' })).rejects.toThrow();

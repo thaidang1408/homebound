@@ -17,13 +17,15 @@
     "test": "npm run build -w @homebound/shared && vitest run",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "e2e": "node scripts/e2e/two-players.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.19.1",
     "eslint": "10.12.0",
     "eslint-plugin-react-hooks": "7.1.1",
+    "playwright-core": "1.63.0",
     "prettier": "3.9.9",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.1",

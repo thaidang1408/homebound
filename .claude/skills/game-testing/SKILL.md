@@ -11,6 +11,13 @@ description: Homebound test checklist. Use before declaring any phase or multipl
 - Integration: boot the real server via `createGameServer()` on a test port (see `apps/server/src/app.test.ts`), connect real SDK clients, assert state. Cover: create room, join by code, 3rd player rejected, disconnect + reconnect within grace, reconnect after grace fails cleanly.
 - Invalid-action tests for every client message: wrong types, out-of-range values, unknown IDs, spam beyond the rate limit. Expect: ignored, room still alive.
 
+## Browser e2e (`npm run e2e`)
+
+With `npm run dev` running, `scripts/e2e/two-players.mjs` drives two headless Chrome players through
+the real UI and reads state via the dev-only `window.__homebound` hook. Extend it whenever a phase adds
+a player-visible flow. It catches what server tests miss (render-before-state, undefined schema fields).
+After killing dev servers on Windows, also kill `tsx watch` / `tsc -w`: they respawn children.
+
 ## Manual two-machine test (required for multiplayer Definition of Done)
 
 Two browser tabs on one machine are NOT enough.
