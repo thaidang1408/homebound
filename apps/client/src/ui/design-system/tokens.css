@@ -1,0 +1,61 @@
+/*
+ * Homebound design tokens. Every UI style references these; no ad-hoc colors in components.
+ * Palette: warm wood + forest greens, cozy-survival not neon.
+ */
+:root {
+  /* Colors */
+  --color-bg: #1d2421;
+  --color-surface: rgba(29, 36, 33, 0.82);
+  --color-surface-raised: #2a3430;
+  --color-border: rgba(255, 244, 224, 0.14);
+  --color-text: #f6efe2;
+  --color-text-muted: #b9b2a5;
+  --color-primary: #e8a54b; /* lantern amber */
+  --color-primary-hover: #f2b862;
+  --color-success: #7fc47a;
+  --color-danger: #e0625a;
+  --color-warning: #e8c64b;
+  --color-health: #e0625a;
+  --color-hunger: #d99a4e;
+  --color-stamina: #7fb6d9;
+
+  /* Typography */
+  --font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.75rem;
+  --font-size-display: 2.75rem;
+  --font-weight-regular: 500;
+  --font-weight-bold: 800;
+
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-panel: 0 6px 24px rgba(0, 0, 0, 0.35);
+
+  /* Borders */
+  --border-panel: 1px solid var(--color-border);
+
+  /* Icons */
+  --icon-sm: 16px;
+  --icon-md: 24px;
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}

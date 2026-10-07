@@ -1,0 +1,30 @@
+.pill {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-panel);
+  font-size: var(--font-size-sm);
+}
+
+.dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-warning);
+  transition: background var(--duration-base) var(--ease-out);
+}
+
+.pill[data-status='online'] .dot {
+  background: var(--color-success);
+}
+
+.pill[data-status='offline'] .dot {
+  background: var(--color-danger);
+}
