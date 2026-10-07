@@ -51,6 +51,10 @@ export const PALETTE = {
   healthBack: '#1d2421',
   health: '#e0625a',
 
+  fletching: '#e9e2d0',
+  bowString: '#efe6cf',
+  skin: '#f2d4b0',
+
   rawMeat: '#d4566a',
   cookedMeat: '#7a4426',
   smoke: '#f2f2f2',

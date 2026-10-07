@@ -108,12 +108,3 @@ export function creatureIds(): { id: string; kind: CreatureKind }[] {
     })),
   );
 }
-
-// --- Players vs creatures (Phase 4: bare hands; Phase 5 replaces this with weapons) ---
-
-export const UNARMED_ATTACK = {
-  damage: 8,
-  /** From the player to the creature's edge (m). */
-  range: 1.8,
-  cooldownMs: 450,
-} as const;

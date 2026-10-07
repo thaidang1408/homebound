@@ -10,6 +10,7 @@ import {
   isCreatureKind,
   isItemId,
   type DayPhase,
+  type HitConfirmPayload,
   type HomeState,
 } from '@homebound/shared';
 import { getSession, updateSession } from '../state/session';
@@ -27,6 +28,7 @@ interface Snapshot {
   myXp: number;
   myLevel: number;
   sleeping: Map<string, boolean>;
+  downed: Map<string, boolean>;
   phase: DayPhase;
   /** My backpack totals per item id. */
   items: Map<string, number>;
@@ -55,7 +57,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     slots(s.chest),
     ...players.map(
       ([id, p]) =>
-        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.xp}|${p.level}|${slots(p.inventory)}`,
+        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.downed}|${p.downed ? `${Math.round(p.bleedOut * 20)}/${Math.round(p.revive * 20)}` : ''}|${p.xp}|${p.level}|${slots(p.inventory)}`,
     ),
     // Health and presence change only in fights; patrol movement doesn't re-render the UI.
     ...[...s.creatures.entries()].map(([id, c]) => `${id}:${c.health}:${c.present}`),
@@ -72,6 +74,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     myXp: s.players.get(room.sessionId)?.xp ?? 0,
     myLevel: s.players.get(room.sessionId)?.level ?? 1,
     sleeping: new Map(players.map(([id, p]) => [id, p.sleeping])),
+    downed: new Map(players.map(([id, p]) => [id, p.downed])),
     phase: dayPhase(s.timeOfDay),
     items: totals(s.players.get(room.sessionId)?.inventory ?? []),
   };
@@ -109,6 +112,17 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
     showToast(`${room.state.players.get(id)?.name ?? 'Your partner'} came home`);
   }
 
+  for (const [id, down] of next.downed) {
+    const was = prev.downed.get(id) ?? false;
+    if (down === was) continue;
+    const name = room.state.players.get(id)?.name ?? 'Your partner';
+    if (id === room.sessionId) {
+      showToast(down ? 'You’re down! Hang on…' : 'Back on your feet!');
+    } else {
+      showToast(down ? `${name} is down! Hold E next to them to revive` : `${name} is back up`);
+    }
+  }
+
   for (const [id, sleeping] of next.sleeping) {
     if (id === room.sessionId || !sleeping || prev.sleeping.get(id)) continue;
     const name = room.state.players.get(id)?.name ?? 'Your partner';
@@ -133,8 +147,11 @@ export function watchRoom(room: Room<HomeState>): void {
     });
   };
   room.onStateChange(apply);
-  room.onMessage(ServerMessage.BlackedOut, () =>
-    showToast('You blacked out… and woke up at home.'),
+  room.onMessage(ServerMessage.Died, () =>
+    showToast('You didn’t make it… and woke up at home. Your items are safe.'),
+  );
+  room.onMessage(ServerMessage.HitConfirm, (p: HitConfirmPayload) =>
+    updateUi({ hitCount: getUi().hitCount + 1, lastHitKilled: p.killed }),
   );
   apply();
 }

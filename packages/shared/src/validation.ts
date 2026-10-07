@@ -10,6 +10,8 @@ import {
   WORLD_RADIUS,
 } from './constants.js';
 import type {
+  AttackPayload,
+  CraftPayload,
   InteractPayload,
   MovePayload,
   ReadyPayload,
@@ -75,6 +77,25 @@ function isSlotIndex(value: unknown): value is number {
 export function parseInteractPayload(value: unknown): InteractPayload | null {
   if (!isRecord(value) || typeof value.targetId !== 'string') return null;
   return { targetId: value.targetId };
+}
+
+export function parseAttackPayload(value: unknown): AttackPayload | null {
+  if (!isRecord(value) || !isSlotIndex(value.slot) || typeof value.targetId !== 'string') {
+    return null;
+  }
+  const { yaw, pitch } = value;
+  if (!isFiniteNumber(yaw) || !isFiniteNumber(pitch)) return null;
+  return {
+    slot: value.slot,
+    targetId: value.targetId,
+    yaw,
+    pitch: Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch)),
+  };
+}
+
+export function parseCraftPayload(value: unknown): CraftPayload | null {
+  if (!isRecord(value) || typeof value.recipeId !== 'string') return null;
+  return { recipeId: value.recipeId };
 }
 
 export function parseTransferPayload(value: unknown): TransferPayload | null {

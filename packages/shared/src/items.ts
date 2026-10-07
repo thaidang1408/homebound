@@ -8,6 +8,8 @@ export interface ItemDefinition {
   hunger?: number;
   /** Item id this turns into on a cooking station (checked with `cookResult`). */
   cooksInto?: string;
+  /** Held in the hotbar, this item is a weapon (weapons.ts). */
+  weapon?: string;
 }
 
 export const ITEMS = {
@@ -16,6 +18,9 @@ export const ITEMS = {
   berries: { name: 'Berries', icon: '🫐', maxStack: 20, hunger: 6 },
   wood: { name: 'Wood', icon: '🪵', maxStack: 20 },
   stone: { name: 'Stone', icon: '🪨', maxStack: 20 },
+  spear: { name: 'Spear', icon: '🔱', maxStack: 1, weapon: 'spear' },
+  bow: { name: 'Bow', icon: '🏹', maxStack: 1, weapon: 'bow' },
+  arrow: { name: 'Arrow', icon: '➶', maxStack: 30 },
 } as const satisfies Record<string, ItemDefinition>;
 
 export type ItemId = keyof typeof ITEMS;

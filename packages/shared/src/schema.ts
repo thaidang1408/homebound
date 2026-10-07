@@ -43,6 +43,18 @@ export const PlayerState = schema(
     health: t.uint8().default(HEALTH_MAX),
     /** Exact value (regen is fractional); never sent. */
     healthExact: t.float64().noSync().default(HEALTH_MAX),
+    /** At 0 health: on the ground, waiting for the partner (ADR-017). */
+    downed: t.boolean().default(false),
+    /** Share of the bleed-out time left while downed (1 → 0). */
+    bleedOut: t.quantized({ min: 0, max: 1, bits: 8 }).default(1),
+    /** Revive progress while the partner holds [E] (0 → 1). */
+    revive: t.quantized({ min: 0, max: 1, bits: 8 }).default(0),
+    // --- server-only ---
+    bleedMs: t.float64().noSync().default(0),
+    reviveMs: t.float64().noSync().default(0),
+    /** sessionId of whoever is reviving, and when they last held [E]. */
+    reviverId: t.string().noSync().default(''),
+    revivePingAt: t.float64().noSync().default(0),
     /** Lifetime XP; level is derived from it (progression.ts) and synced for the UI. */
     xp: t.uint32().default(0),
     level: t.uint8().default(1),
@@ -112,6 +124,25 @@ export const CreatureState = schema(
 );
 export type CreatureState = SchemaType<typeof CreatureState>;
 
+/** An arrow in flight. Simulated on the server; clients interpolate and orient it. */
+export const ProjectileState = schema(
+  {
+    x: t.float32().default(0),
+    y: t.float32().default(0),
+    z: t.float32().default(0),
+    // --- server-only flight ---
+    vx: t.float64().noSync().default(0),
+    vy: t.float64().noSync().default(0),
+    vz: t.float64().noSync().default(0),
+    ageMs: t.float64().noSync().default(0),
+    damage: t.uint8().noSync().default(0),
+    /** sessionId of the shooter (creatures turn on them; they get the XP). */
+    owner: t.string().noSync().default(''),
+  },
+  'ProjectileState',
+);
+export type ProjectileState = SchemaType<typeof ProjectileState>;
+
 export const HomeState = schema(
   {
     phase: t.string().default(GamePhase.Lobby),
@@ -127,6 +158,8 @@ export const HomeState = schema(
     resources: t.map(ResourceState),
     /** Keyed by creature id (`boar-0`…). Not saved: a re-opened home has fresh creatures. */
     creatures: t.map(CreatureState),
+    /** Arrows in flight, keyed by a per-room counter. */
+    projectiles: t.map(ProjectileState),
   },
   'HomeState',
 );

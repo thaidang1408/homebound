@@ -4,7 +4,6 @@ import type { Room } from '@colyseus/sdk';
 import {
   ClientMessage,
   INTERACT_RANGE,
-  UNARMED_ATTACK,
   WORLD_COLLIDERS,
   MAX_PITCH,
   MOVE_SEND_INTERVAL_MS,
@@ -14,6 +13,7 @@ import {
   PLAYER_WALK_SPEED,
   ServerMessage,
   clampToWorld,
+  getWeapon,
   getItem,
   isItemId,
   resolveCircle,
@@ -23,8 +23,9 @@ import {
   type TeleportPayload,
 } from '@homebound/shared';
 import { MAX_FRAME_DT, MOUSE_SENSITIVITY, MOVE_EPSILON } from '../../config/controls';
-import { getUi, updateUi } from '../../state/ui';
-import { findCreature, findFocus, isAvailable } from '../interaction/focus';
+import { getUi, showToast, updateUi } from '../../state/ui';
+import { findCreature, findDownedPartner, findFocus, isAvailable } from '../interaction/focus';
+import { heldItem, heldWeaponId } from './held';
 import { autopilot, yawToward } from './autopilot';
 import { useHeldKeys } from './keyboard';
 import { localPose } from './localPose';
@@ -58,6 +59,12 @@ const SLEEP_PITCH = 1.25;
 /** A strike nods the view down a touch: you feel the swing even when it misses. */
 const SWING_MS = 160;
 const SWING_PITCH = 0.05;
+/** Taking a hit shakes the view briefly. */
+const SHAKE_MS = 220;
+const SHAKE_ANGLE = 0.035;
+/** Downed: eyes just above the grass, head tilted. */
+const DOWNED_EYE_HEIGHT = 0.45;
+const DOWNED_ROLL = 0.35;
 
 /**
  * First-person controller. Movement is predicted locally (instant response) and sent to the
@@ -73,6 +80,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
   const lastSent = useRef<MovePayload>({ x: 0, z: 0, yaw: 0, pitch: 0 });
   const sinceSend = useRef(0);
   const swingAt = useRef(-1e9);
+  const shake = useRef({ seen: 0, at: -1e9 });
 
   useEffect(() => {
     const self = room.state.players.get(room.sessionId);
@@ -98,21 +106,38 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
         Math.min(MAX_PITCH, p.pitch - e.movementY * MOUSE_SENSITIVITY),
       );
     };
-    /** Left click strikes the creature in the crosshair, otherwise eats the held food. The server checks both. */
+    /**
+     * Left click uses what you hold: food is eaten, anything else attacks with its weapon (fists
+     * for empty hands / materials). The server checks everything.
+     */
     const use = (e: MouseEvent) => {
       if (e.button !== 0 || document.pointerLockElement !== canvas) return;
-      const prey = getUi().preyId;
-      if (prey) {
-        const now = performance.now();
-        if (now - swingAt.current < UNARMED_ATTACK.cooldownMs) return;
-        swingAt.current = now;
-        room.send(ClientMessage.Attack, { targetId: prey });
+      const me = room.state.players.get(room.sessionId);
+      if (!me || me.downed || me.sleeping) return;
+      const h = heldItem(room);
+      if (isItemId(h.itemId) && getItem(h.itemId).hunger !== undefined) {
+        room.send(ClientMessage.UseItem, { slot: h.slot });
         return;
       }
-      const slot = getUi().selectedSlot;
-      const stack = room.state.players.get(room.sessionId)?.inventory.at(slot);
-      if (!stack || !isItemId(stack.itemId) || getItem(stack.itemId).hunger === undefined) return;
-      room.send(ClientMessage.UseItem, { slot });
+      const now = performance.now();
+      if (now - swingAt.current < h.weapon.cooldownMs) return;
+      const { weapon } = h;
+      if (weapon.kind === 'ranged') {
+        const ammo = [...me.inventory].some((s) => s.itemId === weapon.ammo && s.qty > 0);
+        if (!ammo) {
+          showToast('No arrows — craft some at the workbench.');
+          return;
+        }
+      }
+      swingAt.current = now;
+      localPose.attackAt = now;
+      const p = pose.current;
+      room.send(ClientMessage.Attack, {
+        slot: h.slot,
+        targetId: h.weapon.kind === 'melee' ? (getUi().preyId ?? '') : '',
+        yaw: p.yaw,
+        pitch: p.pitch,
+      });
     };
     canvas.addEventListener('click', lock);
     document.addEventListener('mousemove', look);
@@ -130,7 +155,14 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     const p = pose.current;
     const held = keys.current;
 
-    const sleeping = room.state.players.get(room.sessionId)?.sleeping ?? false;
+    const me = room.state.players.get(room.sessionId);
+    const sleeping = me?.sleeping ?? false;
+    if (me?.downed) {
+      camera.position.set(p.x, terrainHeight(p.x, p.z) + DOWNED_EYE_HEIGHT, p.z);
+      camera.rotation.set(p.pitch, p.yaw, DOWNED_ROLL, 'YXZ');
+      if (getUi().focusId || getUi().preyId) updateUi({ focusId: null, preyId: null });
+      return; // can look around, nothing else
+    }
     if (sleeping) {
       camera.position.set(p.x, SLEEP_EYE_HEIGHT, p.z - SLEEP_HEAD_OFFSET);
       camera.rotation.set(SLEEP_PITCH, 0, 0, 'YXZ');
@@ -166,16 +198,26 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT, p.z);
     const swing = (performance.now() - swingAt.current) / SWING_MS;
     const nod = swing < 1 ? -Math.sin(swing * Math.PI) * SWING_PITCH : 0;
-    camera.rotation.set(p.pitch + nod, p.yaw, 0, 'YXZ');
+    const { hurtCount } = getUi();
+    if (hurtCount !== shake.current.seen)
+      shake.current = { seen: hurtCount, at: performance.now() };
+    const shaking = (performance.now() - shake.current.at) / SHAKE_MS;
+    const jolt = shaking < 1 ? Math.sin(shaking * 40) * SHAKE_ANGLE * (1 - shaking) : 0;
+    camera.rotation.set(p.pitch + nod + jolt, p.yaw + jolt * 0.5, 0, 'YXZ');
 
     localPose.x = p.x;
     localPose.z = p.z;
     localPose.yaw = p.yaw;
+    localPose.pitch = p.pitch;
 
-    const carcass = findCreature(room, p.x, p.z, p.yaw, INTERACT_RANGE, true);
-    const focus = carcass ?? findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
+    const focus =
+      findDownedPartner(room, p.x, p.z) ??
+      findCreature(room, p.x, p.z, p.yaw, INTERACT_RANGE, true) ??
+      findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
     if (focus !== getUi().focusId) updateUi({ focusId: focus });
-    const prey = findCreature(room, p.x, p.z, p.yaw, UNARMED_ATTACK.range, false);
+    const weapon = getWeapon(heldWeaponId(room));
+    const prey =
+      weapon.kind === 'melee' ? findCreature(room, p.x, p.z, p.yaw, weapon.range, false) : null;
     if (prey !== getUi().preyId) updateUi({ preyId: prey });
 
     sinceSend.current += dt * 1000;

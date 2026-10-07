@@ -87,3 +87,13 @@ export function findCreature(
   });
   return best;
 }
+
+/** A downed partner close enough to revive (no aiming needed: you kneel next to them). */
+export function findDownedPartner(room: Room<HomeState>, x: number, z: number): string | null {
+  let found: string | null = null;
+  room.state.players.forEach((p, id) => {
+    if (id === room.sessionId || !p.downed) return;
+    if (Math.hypot(p.x - x, p.z - z) <= INTERACT_RANGE + ALWAYS_FOCUS_DISTANCE) found = id;
+  });
+  return found;
+}

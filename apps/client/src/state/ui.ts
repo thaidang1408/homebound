@@ -1,6 +1,6 @@
 import { createStore } from './createStore';
 
-export type Panel = 'none' | 'inventory' | 'storage';
+export type Panel = 'none' | 'inventory' | 'storage' | 'workbench';
 
 export interface Toast {
   id: number;
@@ -11,12 +11,15 @@ interface UiState {
   /** Selected hotbar slot (0-based). Local only: the server is told the slot when an item is used. */
   selectedSlot: number;
   panel: Panel;
-  /** Furniture id the player is looking at and close enough to use. */
+  /** What [E] would use: furniture/resource id, carcass creature id, or a downed partner's sessionId. */
   focusId: string | null;
-  /** Live creature under the crosshair and within striking reach (left click attacks). */
+  /** Live creature under the crosshair and within reach of the held melee weapon. */
   preyId: string | null;
   /** Bumped whenever the local player takes damage (drives the red flash). */
   hurtCount: number;
+  /** Bumped when the server confirms one of my attacks landed (hitmarker). */
+  hitCount: number;
+  lastHitKilled: boolean;
   toasts: Toast[];
 }
 
@@ -26,6 +29,8 @@ const store = createStore<UiState>({
   focusId: null,
   preyId: null,
   hurtCount: 0,
+  hitCount: 0,
+  lastHitKilled: false,
   toasts: [],
 });
 

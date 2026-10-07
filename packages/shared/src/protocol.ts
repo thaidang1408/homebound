@@ -35,18 +35,26 @@ export const ClientMessage = {
   Transfer: 'transfer',
   /** Use the item in an inventory slot (eat food). */
   UseItem: 'use-item',
-  /** Strike the creature in your crosshair (bare hands for now). Payload: InteractPayload. */
+  /** Use the weapon in a hotbar slot: strike the creature in the crosshair, or shoot. */
   Attack: 'attack',
+  /** Craft a workbench recipe. */
+  Craft: 'craft',
   /** Development servers only: jump the clock (playtests). Ignored in production. */
   DevSetTime: 'dev:set-time',
+  /** Development servers only: lose health (test downed/revive). Payload `{ amount }`. */
+  DevHurt: 'dev:hurt',
+  /** Development servers only: get items (test weapons/crafting). Payload `{ itemId, qty }`. */
+  DevGive: 'dev:give',
 } as const;
 
 /** Server → client message names. */
 export const ServerMessage = {
   /** Server overrode the local player's position (rejected move, bed). Snap to it. */
   Teleport: 'teleport',
-  /** You ran out of health and woke up at home (Phase 4 stand-in for downed/revive). */
-  BlackedOut: 'blacked-out',
+  /** Your attack landed (hitmarker). */
+  HitConfirm: 'hit-confirm',
+  /** You bled out (or went down alone) and woke up at home. */
+  Died: 'died',
 } as const;
 
 export interface ReadyPayload {
@@ -82,4 +90,22 @@ export interface DevSetTimePayload {
 
 export interface UseItemPayload {
   slot: number;
+}
+
+export interface AttackPayload {
+  /** Hotbar slot of the held weapon (empty / non-weapon = fists). */
+  slot: number;
+  /** Melee: the creature in the crosshair ('' when shooting or swinging at air). */
+  targetId: string;
+  /** Ranged: the aim direction (yaw 0 looks toward −Z, pitch + looks up). */
+  yaw: number;
+  pitch: number;
+}
+
+export interface CraftPayload {
+  recipeId: string;
+}
+
+export interface HitConfirmPayload {
+  killed: boolean;
 }

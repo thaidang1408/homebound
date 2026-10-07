@@ -12,6 +12,11 @@ import { angleDelta } from '../angles';
 const SLEEP_TILT = -Math.PI / 2;
 const SLEEP_HEIGHT = 0.62;
 const SLEEP_FEET_OFFSET = 0.85;
+const DOWNED_TILT = 1.2;
+const DOWNED_HEIGHT = 0.3;
+const TAG_HIGH = 2.15;
+const TAG_LOW = 1.2;
+const TAG_HIDE_DISTANCE = 2.5;
 
 interface Props {
   room: Room<HomeState>;
@@ -20,19 +25,30 @@ interface Props {
   slot: number;
   connected: boolean;
   sleeping: boolean;
+  downed: boolean;
   level: number;
 }
 
 /** The partner's body. Reads synced state every frame and smooths toward it. */
-export function RemotePlayer({ room, sessionId, name, slot, connected, sleeping, level }: Props) {
+export function RemotePlayer({
+  room,
+  sessionId,
+  name,
+  slot,
+  connected,
+  sleeping,
+  downed,
+  level,
+}: Props) {
   const body = useRef<Group>(null);
   const head = useRef<Group>(null);
+  const tag = useRef<Group>(null);
   const placed = useRef(false);
   const color = playerColor(slot);
 
-  useFrame((_, rawDt) => {
+  useFrame(({ camera }, rawDt) => {
     const state = room.state.players.get(sessionId);
-    if (!state || !body.current || !head.current) return;
+    if (!state || !body.current || !head.current || !tag.current) return;
     const g = body.current;
 
     if (!placed.current) {
@@ -43,50 +59,75 @@ export function RemotePlayer({ room, sessionId, name, slot, connected, sleeping,
 
     const dt = Math.min(rawDt, MAX_FRAME_DT);
     const asleep = state.sleeping;
+    const down = state.downed;
     const targetZ = asleep ? state.z + SLEEP_FEET_OFFSET : state.z;
     g.position.x = MathUtils.damp(g.position.x, state.x, REMOTE_SMOOTHING, dt);
     g.position.z = MathUtils.damp(g.position.z, targetZ, REMOTE_SMOOTHING, dt);
     const ground = terrainHeight(g.position.x, g.position.z);
     g.position.y = MathUtils.damp(
       g.position.y,
-      asleep ? SLEEP_HEIGHT : ground,
+      asleep ? SLEEP_HEIGHT : down ? ground + DOWNED_HEIGHT : ground,
       REMOTE_SMOOTHING,
       dt,
     );
-    g.rotation.x = MathUtils.damp(g.rotation.x, asleep ? SLEEP_TILT : 0, REMOTE_SMOOTHING, dt);
+    // The name tag stays upright above wherever the body is (it doesn't tip over with it).
+    tag.current.position.set(
+      g.position.x,
+      ground + (asleep || down ? TAG_LOW : TAG_HIGH),
+      g.position.z,
+    );
+    // Right next to them the tag would fill the screen; the [E] prompt says it all.
+    tag.current.visible = camera.position.distanceTo(tag.current.position) > TAG_HIDE_DISTANCE;
+    // Downed: slumped on the ground, tipped forward.
+    g.rotation.x = MathUtils.damp(
+      g.rotation.x,
+      asleep ? SLEEP_TILT : down ? DOWNED_TILT : 0,
+      REMOTE_SMOOTHING,
+      dt,
+    );
     const t = 1 - Math.exp(-REMOTE_SMOOTHING * dt);
     g.rotation.y += angleDelta(g.rotation.y, asleep ? 0 : state.yaw) * t;
     head.current.rotation.x = MathUtils.lerp(head.current.rotation.x, state.pitch, t);
   });
 
   return (
-    <group ref={body}>
-      {/* Low-poly body: capsule torso + boxy head with a visor showing where they look. */}
-      <mesh position={[0, 0.85, 0]}>
-        <capsuleGeometry args={[0.32, 0.9, 3, 8]} />
-        <meshStandardMaterial
-          color={color}
-          flatShading
-          transparent={!connected}
-          opacity={connected ? 1 : 0.35}
-        />
-      </mesh>
-      <group ref={head} position={[0, 1.6, 0]}>
-        <mesh>
-          <boxGeometry args={[0.42, 0.38, 0.42]} />
-          <meshStandardMaterial color="#f2d4b0" flatShading />
+    <>
+      <group ref={body}>
+        {/* Low-poly body: capsule torso + boxy head with a visor showing where they look. */}
+        <mesh position={[0, 0.85, 0]}>
+          <capsuleGeometry args={[0.32, 0.9, 3, 8]} />
+          <meshStandardMaterial
+            color={color}
+            flatShading
+            transparent={!connected}
+            opacity={connected ? 1 : 0.35}
+          />
         </mesh>
-        <mesh position={[0, 0.04, -0.215]}>
-          <boxGeometry args={[0.3, 0.1, 0.02]} />
-          <meshStandardMaterial color="#2a3430" />
-        </mesh>
+        <group ref={head} position={[0, 1.6, 0]}>
+          <mesh>
+            <boxGeometry args={[0.42, 0.38, 0.42]} />
+            <meshStandardMaterial color="#f2d4b0" flatShading />
+          </mesh>
+          <mesh position={[0, 0.04, -0.215]}>
+            <boxGeometry args={[0.3, 0.1, 0.02]} />
+            <meshStandardMaterial color="#2a3430" />
+          </mesh>
+        </group>
       </group>
-      <NameTag
-        y={2.15}
-        text={
-          !connected ? `${name} (reconnecting…)` : sleeping ? `${name} 💤` : `${name} · Lv ${level}`
-        }
-      />
-    </group>
+      <group ref={tag}>
+        <NameTag
+          y={0}
+          text={
+            !connected
+              ? `${name} (reconnecting…)`
+              : downed
+                ? `${name} — DOWN! Hold E`
+                : sleeping
+                  ? `${name} 💤`
+                  : `${name} · Lv ${level}`
+          }
+        />
+      </group>
+    </>
   );
 }

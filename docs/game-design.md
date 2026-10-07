@@ -1,6 +1,6 @@
 # Game design
 
-_Last updated: Phase 4 (2026-10-07). What exists in the build, not the full vision (see the master
+_Last updated: Phase 5 (2026-10-07). What exists in the build, not the full vision (see the master
 prompt summary in `development-phases.md`)._
 
 ## The home (Phase 2)
@@ -42,23 +42,40 @@ for rendering, client collision, server validation and interaction reach.
   faster than walking, slower than sprinting, so you can always run. Before striking it rears back
   for 0.55 s: step away to dodge. Hits make it flinch and get knocked back, except mid wind-up.
   By day only one boar hunts you at a time; at night up to two (plus any you provoke).
-- **Fighting:** look at a boar within reach → the crosshair turns red with "Click Punch boar".
-  Bare hands deal 8 (5 punches, one every 0.45 s). Weapons arrive in Phase 5.
+- **Fighting:** see "Combat and survival" below.
 - **Loot:** a downed boar becomes a carcass → `[E] Butcher boar` → 2–3 raw meat (+15 XP to the
   killer). A new boar appears in the meadow 3 minutes later.
 - **Safe yard:** boars never enter the yard around the house and lose interest once you reach it.
   They also give up when you get 18 m away or leave their territory.
-- **Health** 0–100 (HUD), heals 0.25/s while not starving. At 0 you black out and wake up at home
-  with 50 health and all your items (Phase 5 replaces this with downed + revive by your partner).
+- **Health** 0–100 (HUD), heals 0.25/s while fed, drains 0.55/s while starving.
+
+## Combat and survival (Phase 5, ADR-017)
+
+| Weapon   | How                   | Damage | Reach / speed       | Every  | Boar (40 HP) |
+| -------- | --------------------- | ------ | ------------------- | ------ | ------------ |
+| Fists    | empty hand / material | 8      | 1.8 m               | 0.45 s | 5 hits       |
+| 🔱 Spear | hotbar, click         | 20     | 2.6 m               | 0.7 s  | 2 hits       |
+| 🏹 Bow   | hotbar, click (aim!)  | 16     | arrow 34 m/s, drops | 0.8 s  | 3 arrows     |
+
+- **Workbench** (`[E] Craft`): Spear = 3 wood + 2 stone · Bow = 4 wood · Arrows x5 = 1 wood +
+  1 stone. +5 XP each. The loop: chop/mine → craft → hunt.
+- **Feedback:** held weapon in view (thrust, punch, bow kick), hitmarker (red on a kill), boar
+  flash + health bar, red screen edge + camera shake when you're hit.
+- **Downed:** at 0 health you drop to the ground (view from the grass, red vignette, bleed-out
+  bar, "Hang on — Binh can revive you"). Your partner sees "An is DOWN — go help!" and a toast;
+  next to you they get `[E] Hold — revive An`; 3 s of holding gets you up with 30 health (+15 XP
+  for them). Boars ignore downed players.
+- **Death:** bleeding out (30 s), going down alone, or both going down → you wake up at home with
+  50 health, at least 30 hunger, and all your items.
 
 ## Core loop available now
 
 ```text
-go out: hunt boar / chop / mine / pick → butcher → home → stove (cook) → eat → dusk → bed → dawn
+chop / mine → workbench (spear, bow, arrows) → hunt boar → butcher → home → cook → eat → dusk → bed
 ```
 
-- **Hunger** 0–100, starts at 80, drains over 20 min of play, paused while asleep. No penalty at 0
-  yet (Phase 5 adds health damage). Raw meat +8, cooked meat +35.
+- **Hunger** 0–100, starts at 80, drains over 20 min of play, paused while asleep or downed. At 0
+  you lose health. Raw meat +8, cooked meat +35.
 - **Sleep:** lying down moves you onto your side of the bed. When every player in the home is in
   bed (a lone player counts), the screen fades for 2.5 s and the next day starts. Getting up
   cancels. Your partner gets a toast when you go to bed.
@@ -81,6 +98,6 @@ position. Creatures are not saved: a re-opened home has a fresh herd. A player i
 
 ## Controls
 
-WASD move · Mouse look · Shift sprint · E interact (hold to keep harvesting) · Left click punch the
-creature in the crosshair, otherwise eat held food · 1–5 / wheel hotbar ·
+WASD move · Mouse look · Shift sprint · E interact (hold to keep harvesting / reviving) · Left click
+use the held item (food: eat; spear/bow/fists: attack) · 1–5 / wheel hotbar ·
 Tab backpack · Esc pause.

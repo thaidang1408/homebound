@@ -2,8 +2,8 @@ import {
   CREATURES,
   CreatureMode,
   CreatureState,
+  CREATURE_HIT_HEIGHT,
   INTERACT_TOLERANCE,
-  UNARMED_ATTACK,
   WORLD_COLLIDERS,
   WORLD_RADIUS,
   ZONES,
@@ -11,6 +11,7 @@ import {
   dayPhase,
   isCreatureKind,
   resolveCircle,
+  terrainHeight,
   type CreatureDefinition,
   type HomeState,
   type ItemId,
@@ -268,42 +269,72 @@ export function tickCreatures(state: HomeState, dtMs: number, random: Random): C
   return hits;
 }
 
-export type StrikeOutcome = 'hit' | 'killed' | 'out-of-reach' | 'invalid';
+export type HitOutcome = 'hit' | 'killed' | 'invalid';
 
 /**
- * A player hits a creature with bare hands. Hits during a wind-up don't interrupt it (no
- * stun-lock); otherwise the creature flinches, is knocked back and turns on its attacker.
+ * Damages a creature from a blow coming from `from` (a player or an arrow). Hits during a wind-up
+ * don't interrupt it (no stun-lock); otherwise the creature flinches, is knocked back and turns on
+ * the attacker.
  */
-export function strikeCreature(
+export function damageCreature(
   state: HomeState,
   creatureId: string,
-  attacker: { sessionId: string; player: PlayerState },
-): StrikeOutcome {
+  attackerId: string,
+  from: Point,
+  damage: number,
+): HitOutcome {
   const c = state.creatures.get(creatureId);
   const def = c ? defOf(c) : undefined;
   if (!c || !def || !c.present || c.mode === CreatureMode.Dead) return 'invalid';
-  const { player } = attacker;
-  if (reach(c, def, player) > UNARMED_ATTACK.range + STRIKE_TOLERANCE) return 'out-of-reach';
 
-  c.health = Math.max(0, c.health - UNARMED_ATTACK.damage);
+  c.health = Math.max(0, c.health - damage);
   if (c.health === 0) {
     c.target = '';
     setMode(c, CreatureMode.Dead);
     return 'killed';
   }
-  c.target = attacker.sessionId;
+  c.target = attackerId;
   if (c.mode !== CreatureMode.Attack) {
-    const d = Math.hypot(c.x - player.x, c.z - player.z) || 1;
+    const d = Math.hypot(c.x - from.x, c.z - from.z) || 1;
     const pushed = constrain(def, {
-      x: c.x + ((c.x - player.x) / d) * def.knockback,
-      z: c.z + ((c.z - player.z) / d) * def.knockback,
+      x: c.x + ((c.x - from.x) / d) * def.knockback,
+      z: c.z + ((c.z - from.z) / d) * def.knockback,
     });
     c.x = pushed.x;
     c.z = pushed.z;
-    face(c, player);
+    // Shot from afar it turns toward the shooter, not the arrow.
+    const attacker = state.players.get(attackerId);
+    face(c, attacker ?? from);
     setMode(c, CreatureMode.Hurt, def.hurtMs);
   }
   return 'hit';
+}
+
+export type StrikeOutcome = HitOutcome | 'out-of-reach';
+
+/** A melee blow: the creature's body must be within `range` of the player. */
+export function strikeCreature(
+  state: HomeState,
+  creatureId: string,
+  attacker: { sessionId: string; player: PlayerState },
+  weapon: { damage: number; range: number },
+): StrikeOutcome {
+  if (creatureReach(state, creatureId, attacker.player) > weapon.range + STRIKE_TOLERANCE) {
+    return state.creatures.has(creatureId) ? 'out-of-reach' : 'invalid';
+  }
+  return damageCreature(state, creatureId, attacker.sessionId, attacker.player, weapon.damage);
+}
+
+/** Where a creature's body is, if `p` hits the vertical cylinder of a live creature. */
+export function creatureAt(state: HomeState, p: { x: number; y: number; z: number }): string {
+  for (const [id, c] of state.creatures) {
+    const def = defOf(c);
+    if (!def || !c.present || c.mode === CreatureMode.Dead) continue;
+    if (Math.hypot(p.x - c.x, p.z - c.z) > def.radius) continue;
+    const ground = terrainHeight(c.x, c.z);
+    if (p.y >= ground && p.y <= ground + CREATURE_HIT_HEIGHT) return id;
+  }
+  return '';
 }
 
 export type ButcherOutcome = 'butchered' | 'inventory-full' | 'invalid';

@@ -6,7 +6,7 @@ import {
   GamePhase,
   HEALTH_MAX,
   ROOM_NAME,
-  UNARMED_ATTACK,
+  WEAPONS,
   ZONES,
   type HomeState,
 } from '@homebound/shared';
@@ -59,8 +59,8 @@ describe('creatures', () => {
 
   test('you cannot hit a boar from the house', async () => {
     const room = await soloGame();
-    room.send(ClientMessage.Attack, { targetId: 'boar-0' });
-    room.send(ClientMessage.Attack, { targetId: 'not-a-boar' });
+    room.send(ClientMessage.Attack, { slot: 0, targetId: 'boar-0', yaw: 0, pitch: 0 });
+    room.send(ClientMessage.Attack, { slot: 0, targetId: 'not-a-boar', yaw: 0, pitch: 0 });
     await sleep(300);
     expect(room.state.creatures.get('boar-0')?.health).toBe(CREATURES.boar.maxHealth);
   });
@@ -83,8 +83,8 @@ describe('creatures', () => {
 
       const xpBefore = self(room).xp;
       while (boar()?.mode !== CreatureMode.Dead) {
-        room.send(ClientMessage.Attack, { targetId: id });
-        await sleep(UNARMED_ATTACK.cooldownMs + 50);
+        room.send(ClientMessage.Attack, { slot: 0, targetId: id, yaw: 0, pitch: 0 });
+        await sleep(WEAPONS.fists.cooldownMs + 50);
         // A blackout sends you home: the hunt failed.
         if (Math.hypot(self(room).x, self(room).z) < ZONES.yard.radius)
           throw new Error('blacked out');

@@ -1,4 +1,12 @@
-import { ClientMessage, HOTBAR_SLOTS, getItem, isItemId, type Container } from '@homebound/shared';
+import {
+  ClientMessage,
+  HOTBAR_SLOTS,
+  RECIPES,
+  getItem,
+  isItemId,
+  type Container,
+  type RecipeId,
+} from '@homebound/shared';
 import { useSession } from '../../state/session';
 import { Button } from '../components/Button';
 import { ItemSlot } from '../components/ItemSlot';
@@ -93,6 +101,54 @@ export function StoragePanel() {
     <Shell title="Shared storage" hint="Click a stack to move it. Both of you can use this chest.">
       <Grid title="Chest" stacks={[...room.state.chest]} onSlot={move('chest')} />
       <Grid title="Your items" stacks={[...me.inventory]} onSlot={move('player')} hotbar />
+    </Shell>
+  );
+}
+
+/** Workbench: turn wood and stone into weapons and arrows (from your backpack). */
+export function WorkbenchPanel() {
+  const { room } = useSession();
+  const me = room?.state.players.get(room.sessionId);
+  if (!room || !me) return null;
+
+  const have = (id: string) =>
+    [...me.inventory].filter((s) => s.itemId === id).reduce((n, s) => n + s.qty, 0);
+
+  return (
+    <Shell title="Workbench" hint="Crafting uses materials from your backpack.">
+      <ul className={styles.recipes}>
+        {(Object.entries(RECIPES) as [RecipeId, (typeof RECIPES)[RecipeId]][]).map(([id, r]) => {
+          const out = getItem(r.output);
+          const ready = r.inputs.every((i) => have(i.itemId) >= i.qty);
+          return (
+            <li key={id} className={styles.recipe}>
+              <span className={styles.recipeIcon} aria-hidden>
+                {out.icon}
+              </span>
+              <span className={styles.recipeText}>
+                <strong>
+                  {out.name}
+                  {r.qty > 1 ? ` ×${r.qty}` : ''}
+                </strong>
+                <span className={styles.inputs}>
+                  {r.inputs.map((i) => (
+                    <span key={i.itemId} data-short={have(i.itemId) < i.qty}>
+                      {getItem(i.itemId).icon} {have(i.itemId)}/{i.qty}
+                    </span>
+                  ))}
+                </span>
+              </span>
+              <Button
+                variant={ready ? 'primary' : 'secondary'}
+                disabled={!ready}
+                onClick={() => room.send(ClientMessage.Craft, { recipeId: id })}
+              >
+                Craft
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
     </Shell>
   );
 }

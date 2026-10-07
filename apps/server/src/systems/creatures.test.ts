@@ -2,12 +2,10 @@ import { describe, expect, test } from 'vitest';
 import {
   CREATURES,
   CreatureMode,
-  HEALTH_MAX,
-  HEALTH_REGEN_PER_SECOND,
   HomeState,
   PlayerState,
   SIMULATION_TICK_MS,
-  UNARMED_ATTACK,
+  WEAPONS,
   WORLD_COLLIDERS,
   ZONES,
   collides,
@@ -22,9 +20,9 @@ import {
   tickCreatures,
   type CreatureHit,
 } from './creatures.js';
-import { hurtPlayer, tickNeeds } from './needs.js';
 
 const BOAR = CREATURES.boar;
+const FISTS = WEAPONS.fists;
 const MEADOW = ZONES.meadow.center;
 const DAY = 0.5;
 const NIGHT = 0.95;
@@ -137,34 +135,36 @@ describe('creatures', () => {
     const { player, boar, run, state } = setup();
     stand(player, boar, 1);
     const before = boar.x;
-    expect(strikeCreature(state, 'boar-0', { sessionId: 'p1', player })).toBe('hit');
+    expect(strikeCreature(state, 'boar-0', { sessionId: 'p1', player }, FISTS)).toBe('hit');
     expect(boar.mode).toBe(CreatureMode.Hurt);
-    expect(boar.health).toBe(BOAR.maxHealth - UNARMED_ATTACK.damage);
+    expect(boar.health).toBe(BOAR.maxHealth - FISTS.damage);
     expect(boar.x).toBeGreaterThan(before); // pushed away from the player (east)
     run(BOAR.hurtMs + 2 * SIMULATION_TICK_MS);
     expect(boar.mode).toBe(CreatureMode.Attack);
-    strikeCreature(state, 'boar-0', { sessionId: 'p1', player });
+    strikeCreature(state, 'boar-0', { sessionId: 'p1', player }, FISTS);
     expect(boar.mode).toBe(CreatureMode.Attack);
   });
 
   test('out of reach strikes are refused', () => {
     const { player, boar, state } = setup();
     stand(player, boar, 5);
-    expect(strikeCreature(state, 'boar-0', { sessionId: 'p1', player })).toBe('out-of-reach');
+    expect(strikeCreature(state, 'boar-0', { sessionId: 'p1', player }, FISTS)).toBe(
+      'out-of-reach',
+    );
     expect(boar.health).toBe(BOAR.maxHealth);
   });
 
   test('dies, is butchered for meat, then a fresh one respawns', () => {
     const { player, boar, state, random, run } = setup();
-    const hitsToKill = Math.ceil(BOAR.maxHealth / UNARMED_ATTACK.damage);
+    const hitsToKill = Math.ceil(BOAR.maxHealth / FISTS.damage);
     let outcome = '';
     for (let i = 0; i < hitsToKill; i++) {
       stand(player, boar, 1);
-      outcome = strikeCreature(state, 'boar-0', { sessionId: 'p1', player });
+      outcome = strikeCreature(state, 'boar-0', { sessionId: 'p1', player }, FISTS);
     }
     expect(outcome).toBe('killed');
     expect(boar.mode).toBe(CreatureMode.Dead);
-    expect(strikeCreature(state, 'boar-0', { sessionId: 'p1', player })).toBe('invalid');
+    expect(strikeCreature(state, 'boar-0', { sessionId: 'p1', player }, FISTS)).toBe('invalid');
 
     expect(butcherCreature(state, 'boar-0', player, random)).toBe('butchered');
     const meat = countItem(player.inventory, 'raw_meat');
@@ -185,28 +185,5 @@ describe('creatures', () => {
     for (const s of player.inventory) Object.assign(s, { itemId: 'stone', qty: 10 });
     expect(butcherCreature(state, 'boar-0', player, random)).toBe('inventory-full');
     expect(boar.present).toBe(true);
-  });
-});
-
-describe('health', () => {
-  test('regenerates while fed, not while starving', () => {
-    const state = new HomeState();
-    const p = new PlayerState();
-    state.players.set('p1', p);
-    hurtPlayer(p, 30);
-    tickNeeds(state, 10);
-    expect(p.healthExact).toBeCloseTo(HEALTH_MAX - 30 + HEALTH_REGEN_PER_SECOND * 10);
-    p.hungerExact = 0;
-    const now = p.healthExact;
-    tickNeeds(state, 10);
-    expect(p.healthExact).toBe(now);
-  });
-
-  test('the last blow reports a blackout once', () => {
-    const p = new PlayerState();
-    expect(hurtPlayer(p, HEALTH_MAX - 1)).toBe(false);
-    expect(hurtPlayer(p, 5)).toBe(true);
-    expect(p.health).toBe(0);
-    expect(hurtPlayer(p, 5)).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import {
   HEALTH_MAX,
   HEALTH_REGEN_PER_SECOND,
   HUNGER_DECAY_PER_SECOND,
+  STARVING_DAMAGE_PER_SECOND,
   HUNGER_MAX,
   getItem,
   type HomeState,
@@ -27,17 +28,22 @@ export function hurtPlayer(player: PlayerState, damage: number): boolean {
 }
 
 /**
- * Hunger drains over time, paused while asleep. Health slowly regenerates while fed.
- * Starving has no penalty until Phase 5.
+ * Hunger drains over time (paused while asleep or downed). Fed players slowly heal; starving ones
+ * slowly lose health. Returns the sessionIds whose health just reached 0.
  */
-export function tickNeeds(state: HomeState, dtSeconds: number): void {
-  for (const player of state.players.values()) {
-    if (player.hungerExact > 0 && player.health > 0) {
+export function tickNeeds(state: HomeState, dtSeconds: number): string[] {
+  const fell: string[] = [];
+  for (const [id, player] of state.players) {
+    if (player.downed) continue;
+    if (player.hungerExact > 0) {
       setHealth(player, player.healthExact + HEALTH_REGEN_PER_SECOND * dtSeconds);
+    } else if (hurtPlayer(player, STARVING_DAMAGE_PER_SECOND * dtSeconds)) {
+      fell.push(id);
     }
     if (player.sleeping) continue;
     setHunger(player, player.hungerExact - HUNGER_DECAY_PER_SECOND * dtSeconds);
   }
+  return fell;
 }
 
 /** Eats one item from an inventory slot. Returns false if the slot isn't edible food. */

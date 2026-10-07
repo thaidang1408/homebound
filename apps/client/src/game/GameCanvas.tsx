@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { CAMERA_FOV } from '../config/controls';
 import { useSession } from '../state/session';
+import { Arrows } from './combat/Arrows';
+import { HeldItem } from './combat/HeldItem';
 import { Creatures } from './creatures/Creatures';
 import { LocalPlayer } from './player/LocalPlayer';
 import { RemotePlayer } from './player/RemotePlayer';
@@ -26,6 +28,8 @@ function Players() {
     <>
       <LocalPlayer room={room} />
       <Creatures room={room} />
+      <Arrows room={room} />
+      <HeldItem room={room} />
       {partners.map(([id, p]) => (
         <RemotePlayer
           key={id}
@@ -35,6 +39,7 @@ function Players() {
           slot={p.slot}
           connected={p.connected}
           sleeping={p.sleeping}
+          downed={p.downed}
           level={p.level}
         />
       ))}

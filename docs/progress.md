@@ -179,8 +179,7 @@
 
 ## Phase 4 — Creature + hunting
 
-**Status:** Done on one machine (tests + all 5 e2e scenarios pass), awaiting the user's test +
-approval (2026-10-07)
+**Status:** Approved by the user (2026-10-07)
 
 **What was built**
 
@@ -225,3 +224,45 @@ approval (2026-10-07)
 - Bundle ~1.35 MB (~381 kB gzip); code-splitting in Phase 7.
 
 **Next phase:** Phase 5 — combat + survival.
+
+## Phase 5 — Combat + survival
+
+**Status:** Done on one machine (tests + all 6 e2e scenarios pass), awaiting the user's test +
+approval (2026-10-07)
+
+**What was built** (ADR-017)
+
+- Weapons as data: fists, spear (melee 20 dmg, 2.6 m), bow (16 dmg arrows, 34 m/s, gravity). The
+  held hotbar item is the weapon; left click uses it (food is still eaten).
+- Server-simulated arrows (swept collision vs boars, ground, trees, walls), one arrow per shot.
+- Workbench crafting: spear, bow, arrows x5 from wood/stone; panel shows have/need; +5 XP.
+- Starvation drains health; health regen only while fed.
+- Downed (30 s bleed-out) → partner holds E for 3 s → revived with 30 health (+15 XP to the
+  helper). Bleed-out / alone / both down → death → wake at home with 50 health, ≥30 hunger, items
+  kept. Replaces the Phase 4 blackout.
+- Feedback: first-person spear/bow/fist with thrust/punch/recoil, hitmarker (red on a kill), camera
+  shake + red flash when hit, downed overlay with bleed/revive bar, partner "DOWN — go help!"
+  pill/toast/name tag, revive progress in the prompt.
+- Dev-only `dev:hurt`, `dev:give` (production-gated) for tests.
+
+**Tests**
+
+- `npm test`: 129 passing. New: starvation, fall-once; downed/revive (alone → death, revive
+  timing, reach, bleed-out, both down), respawn keeps items; weapon mapping; an arrow drops and
+  hits a boar, the ground stops arrows; crafting all-or-nothing, arrow bundles; networked: solo
+  death → home, a downed player can't move, the partner revives (+XP), crafting only at the
+  workbench, bow ammo + cooldown.
+- `npm run e2e`: 6 scenarios passing (new `combat`: craft spear/bow/arrows in the workbench panel,
+  B goes down, A is told, walks over and holds E to revive, a bow shot uses an arrow, spear thrust).
+  Screenshot review fixed an oversized bow view model and the partner's name tag tipping over and
+  filling the screen when you stand next to them.
+
+**Known issues**
+
+- No item durability, no arrow pickup, no headshots (kept simple on purpose).
+- Melee aim uses your horizontal look only; the bow uses your real pitch.
+- The held weapon can clip into walls (no separate view-model render pass).
+- Remote players don't show what they hold yet (Phase 7). No sound yet (Phase 7).
+- Bundle 1.36 MB (384 kB gzip); code-splitting in Phase 7.
+
+**Next phase:** Phase 6 — game loop.

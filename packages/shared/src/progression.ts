@@ -6,6 +6,10 @@ export const XP_REWARDS = {
   sleepNight: 20,
   /** Each harvest of a tree, rock or bush. */
   gather: 2,
+  /** Each item crafted at the workbench. */
+  craft: 5,
+  /** Reviving your downed partner. */
+  revive: 15,
 } as const;
 
 export const MAX_LEVEL = 50;

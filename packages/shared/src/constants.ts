@@ -94,13 +94,34 @@ export const COOK_TIME_MS = 6000;
 /** Once everyone is in bed, wait this long (fade to black) before the new day starts. */
 export const NEW_DAY_DELAY_MS = 2500;
 
-// --- Health ---
+// --- Health, downed, death (ADR-017) ---
 
 export const HEALTH_MAX = 100;
 /** Slow natural healing while not starving (full in ~7 minutes). */
 export const HEALTH_REGEN_PER_SECOND = 0.25;
-/**
- * Phase 4 stand-in for downed/revive (Phase 5): at 0 health you black out and wake up at home
- * with this much health, keeping your items.
- */
-export const BLACKOUT_HEALTH = 50;
+/** Starving (hunger 0) drains health: full to empty in ~3 minutes. */
+export const STARVING_DAMAGE_PER_SECOND = 0.55;
+/** At 0 health you are downed: your partner has this long to revive you. */
+export const BLEED_OUT_MS = 30_000;
+/** Holding [E] on a downed partner for this long gets them back up… */
+export const REVIVE_MS = 3_000;
+/** …with this much health. */
+export const REVIVE_HEALTH = 30;
+/** The reviver must keep pinging (holding E) at least this often or the revive pauses. */
+export const REVIVE_PING_TIMEOUT_MS = 900;
+/** Bleeding out (or going down with nobody to help): wake up at home with this much health… */
+export const RESPAWN_HEALTH = 50;
+/** …and at least this much hunger, so starving can't chain deaths. */
+export const RESPAWN_MIN_HUNGER = 30;
+
+// --- Projectiles ---
+
+export const PROJECTILE_GRAVITY = 9.8; // m/s²
+/** Arrows that hit nothing disappear after this long. */
+export const PROJECTILE_LIFETIME_MS = 2000;
+/** Projectiles are swept in steps this long, so fast arrows can't skip through a boar. */
+export const PROJECTILE_STEP = 0.25; // m
+/** Trees, rocks and walls stop arrows below this height. */
+export const OBSTACLE_HEIGHT = 4.5; // m
+/** Creatures are hit-tested as upright cylinders this tall. */
+export const CREATURE_HIT_HEIGHT = 1.1; // m

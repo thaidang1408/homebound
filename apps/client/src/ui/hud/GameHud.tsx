@@ -12,13 +12,14 @@ import {
   type DayPhase,
 } from '@homebound/shared';
 import { promptFor } from '../../game/interaction/prompt';
+import { heldWeaponId } from '../../game/player/held';
 import { leaveRoom } from '../../networking/connection';
 import { useSession } from '../../state/session';
 import { useUi } from '../../state/ui';
 import { Button } from '../components/Button';
 import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
-import { InventoryPanel, StoragePanel } from '../panels/InventoryPanels';
+import { InventoryPanel, StoragePanel, WorkbenchPanel } from '../panels/InventoryPanels';
 import { Compass } from './Compass';
 import styles from './GameHud.module.css';
 import { resumePlay, useGameKeys } from './useGameKeys';
@@ -50,7 +51,7 @@ const CONTROLS: readonly [string, string][] = [
   ['Mouse', 'Look'],
   ['Shift', 'Sprint'],
   ['E', 'Interact'],
-  ['Click', 'Attack / eat held food'],
+  ['Click', 'Use held item (attack / shoot / eat)'],
   ['1–5', 'Hotbar'],
   ['Tab', 'Backpack'],
   ['Esc', 'Pause'],
@@ -58,7 +59,16 @@ const CONTROLS: readonly [string, string][] = [
 
 export function GameHud() {
   const { room, connection } = useSession();
-  const { focusId, preyId, hurtCount, panel: openPanel, selectedSlot, toasts } = useUi();
+  const {
+    focusId,
+    preyId,
+    hurtCount,
+    hitCount,
+    lastHitKilled,
+    panel: openPanel,
+    selectedSlot,
+    toasts,
+  } = useUi();
   const locked = usePointerLocked();
   useGameKeys();
   if (!room) return null;
@@ -69,9 +79,11 @@ export function GameHud() {
     ? `Home alone — share code ${room.roomId}`
     : !partner.connected
       ? `${partner.name} disconnected — waiting…`
-      : partner.sleeping
-        ? `${partner.name} is in bed`
-        : `${partner.name} is here`;
+      : partner.downed
+        ? `${partner.name} is DOWN — go help!`
+        : partner.sleeping
+          ? `${partner.name} is in bed`
+          : `${partner.name} is here`;
   const prompt = focusId && locked ? promptFor(focusId, room.state, room.sessionId) : null;
   const hunger = me?.hunger ?? HUNGER_MAX;
   const health = me?.health ?? HEALTH_MAX;
@@ -114,7 +126,10 @@ export function GameHud() {
           </span>
           <span className={styles.meterValue}>{progress.intoLevel}</span>
         </div>
-        <span className={styles.pill} data-tone={partner?.connected ? 'ok' : 'warn'}>
+        <span
+          className={styles.pill}
+          data-tone={partner?.downed ? 'danger' : partner?.connected ? 'ok' : 'warn'}
+        >
           {partnerStatus}
         </span>
       </div>
@@ -146,13 +161,22 @@ export function GameHud() {
       {/* Re-keyed on every hit so the flash animation restarts. */}
       {hurtCount > 0 && <div key={hurtCount} className={styles.hurt} aria-hidden />}
 
-      {locked && !me?.sleeping && (
+      {locked && !me?.sleeping && !me?.downed && (
         <div className={styles.crosshair} data-prey={preyName !== undefined} aria-hidden />
+      )}
+      {/* Re-keyed per confirmed hit so the hitmarker animation restarts. */}
+      {hitCount > 0 && (
+        <div
+          key={`hit-${hitCount}`}
+          className={styles.hitmarker}
+          data-kill={lastHitKilled}
+          aria-hidden
+        />
       )}
       {locked && preyName && !prompt && (
         <div className={styles.prompt} data-actionable>
           <kbd className={styles.key}>Click</kbd>
-          Punch {preyName.toLowerCase()}
+          {heldWeaponId(room) === 'spear' ? 'Stab' : 'Punch'} {preyName.toLowerCase()}
           <span className={styles.preyTrack} aria-label="Creature health">
             <span className={styles.preyFill} style={{ width: `${preyHealth * 100}%` }} />
           </span>
@@ -179,6 +203,26 @@ export function GameHud() {
         </div>
       )}
 
+      {me?.downed && (
+        <div className={styles.downed} role="alert">
+          <p className={styles.sleepText}>You’re down!</p>
+          <p className={styles.sleepHint}>
+            {partner?.connected
+              ? me.revive > 0
+                ? `${partner.name} is reviving you…`
+                : `Hang on — ${partner.name} can revive you`
+              : 'Hang on…'}
+          </p>
+          <span className={styles.bleedTrack}>
+            <span
+              className={styles.bleedFill}
+              style={{ width: `${(me.revive > 0 ? me.revive : me.bleedOut) * 100}%` }}
+              data-reviving={me.revive > 0}
+            />
+          </span>
+        </div>
+      )}
+
       {me?.sleeping && (
         <div
           className={styles.sleep}
@@ -198,6 +242,7 @@ export function GameHud() {
 
       {openPanel === 'inventory' && <InventoryPanel />}
       {openPanel === 'storage' && <StoragePanel />}
+      {openPanel === 'workbench' && <WorkbenchPanel />}
 
       {!locked && openPanel === 'none' && (
         <div className={`${panel.overlay} ${styles.interactive}`} onClick={resumePlay}>

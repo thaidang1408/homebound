@@ -12,6 +12,8 @@ declare global {
       getUi: typeof getUi;
       walkTo: typeof walkTo;
       setTime: typeof setTime;
+      hurt: typeof hurt;
+      give: typeof give;
     };
   }
 }
@@ -21,4 +23,14 @@ function setTime(timeOfDay: number): void {
   getSession().room?.send(ClientMessage.DevSetTime, { timeOfDay });
 }
 
-window.__homebound = { getSession, getUi, walkTo, setTime };
+/** Lose health (dev servers only): test downed/revive. */
+function hurt(amount: number): void {
+  getSession().room?.send(ClientMessage.DevHurt, { amount });
+}
+
+/** Get items (dev servers only): test weapons and crafting. */
+function give(itemId: string, qty: number): void {
+  getSession().room?.send(ClientMessage.DevGive, { itemId, qty });
+}
+
+window.__homebound = { getSession, getUi, walkTo, setTime, hurt, give };

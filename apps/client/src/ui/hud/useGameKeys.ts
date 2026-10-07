@@ -6,7 +6,7 @@ import {
   findInteractable,
 } from '@homebound/shared';
 import { getSession } from '../../state/session';
-import { getUi, showToast, updateUi, type Panel } from '../../state/ui';
+import { getUi, updateUi, type Panel } from '../../state/ui';
 
 /** The canvas owns the mouse; panels release it. */
 export function resumePlay(): void {
@@ -23,10 +23,10 @@ export function closePanel(): void {
   resumePlay();
 }
 
-/** Holding [E] on a tree/rock/bush keeps harvesting at the cooldown rhythm. */
+/** Holding [E] repeats at the harvest rhythm; also keeps a revive going (server timeout 900 ms). */
 const HOLD_REPEAT_MS = HARVEST_COOLDOWN_MS + 40;
 
-/** Returns true if the target was a resource node (so holding [E] should repeat). */
+/** Returns true if holding [E] should repeat (harvesting a node, reviving a partner). */
 function interact(): boolean {
   const room = getSession().room;
   const me = room?.state.players.get(room.sessionId);
@@ -37,6 +37,10 @@ function interact(): boolean {
     room.send(ClientMessage.Interact, { targetId: focusId }); // butcher a carcass
     return false;
   }
+  if (focusId && room.state.players.has(focusId)) {
+    room.send(ClientMessage.Interact, { targetId: focusId }); // reviving: keep holding E
+    return true;
+  }
   const target = focusId ? findInteractable(focusId) : undefined;
   if (!target) return false;
 
@@ -45,7 +49,7 @@ function interact(): boolean {
       openPanel('storage');
       break;
     case 'workbench':
-      showToast('Nothing to craft yet — bring materials back from the wild.');
+      openPanel('workbench');
       break;
     case 'stove':
     case 'bed':

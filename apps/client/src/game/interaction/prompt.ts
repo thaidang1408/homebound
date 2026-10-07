@@ -32,6 +32,14 @@ function hasSpaceFor(me: PlayerState, id: ItemId): boolean {
 /** What pressing [E] on `focusId` would do right now, in player words. */
 export function promptFor(focusId: string, state: HomeState, sessionId: string): Prompt | null {
   const me = state.players.get(sessionId);
+  const partner = state.players.get(focusId);
+  if (partner?.downed) {
+    const share = Math.round(partner.revive * 100);
+    return {
+      text: `Hold — revive ${partner.name}${share > 0 ? ` (${share}%)` : ''}`,
+      actionable: true,
+    };
+  }
   const creature = state.creatures.get(focusId);
   if (creature && me && isCreatureKind(creature.kind)) {
     const def = CREATURES[creature.kind];
@@ -67,7 +75,7 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
         : { text: 'Sleep', actionable: true };
     }
     case 'workbench':
-      return { text: 'Use workbench', actionable: true };
+      return { text: 'Craft', actionable: true };
     case 'tree':
     case 'rock':
     case 'bush': {

@@ -137,9 +137,31 @@ timers, targets and patrol goals are `noSync`. The client animates from `mode`.
   boar per player by day, two at night).
 - **No stun-lock:** hits during a wind-up don't interrupt it.
 - **Creatures are not saved:** a re-opened home gets fresh creatures (nothing a player owns is lost).
-- **Phase 4 stand-ins, replaced in Phase 5:** players strike with bare hands (`UNARMED_ATTACK`);
+- **Phase 4 stand-ins, replaced in Phase 5 (ADR-017):** players strike with bare hands (`UNARMED_ATTACK`);
   at 0 health a player blacks out and wakes up at home with `BLACKOUT_HEALTH` (instead of
   downed/revive). Player health is saved.
 
 **Why:** content as data (CLAUDE.md), smallest AI that reads well; behaviour trees/navmesh are
 unnecessary for open meadows with a few trees (collision sliding is enough).
+
+## ADR-017: Weapons as data, server-simulated arrows, downed → revive → death, workbench crafting (2026-10-07)
+
+**Decision:**
+
+- **Weapons** live in `packages/shared/src/weapons.ts` (`fists`, `spear` melee; `bow` ranged with
+  `arrow` ammo). An item's `weapon` field links it to a weapon. The client sends `attack { slot,
+targetId, yaw, pitch }`; the server reads the weapon from its own copy of that hotbar slot,
+  applies the cooldown, and for melee checks reach to the creature's body.
+- **Arrows** are simulated on the server (gravity, swept in 0.25 m steps against creature
+  cylinders, terrain, trees/rocks/walls). Only x/y/z are synced; clients extrapolate and orient
+  them. Hits send `hit-confirm` to the shooter (hitmarker); creatures turn on the shooter.
+- **Downed / revive / death** (replaces the Phase 4 blackout): at 0 health you're downed for 30 s;
+  a partner holding [E] next to you for 3 s revives you with 30 health (bleeding pauses while they
+  do). Bleeding out, going down alone, or both going down = death: wake up at home with 50 health
+  and at least 30 hunger, **items kept** (co-op, not punishment). Starving drains health.
+- **Crafting** at the workbench from `recipes.ts` (spear, bow, arrows x5), atomic, +5 XP. Added now
+  because weapons need a source that also works for existing saves.
+- Dev-only `dev:hurt` / `dev:give` for tests (same production gate as ADR-015).
+
+**Why:** content as data; the server stays authoritative over damage, ammo and hits; the downed
+state is the core co-op moment ("go help!") of the MVP.
