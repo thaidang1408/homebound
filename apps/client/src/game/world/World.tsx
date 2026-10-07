@@ -1,20 +1,18 @@
-import { House } from './House';
 import { FocusMarker } from '../interaction/FocusMarker';
-import { PALETTE } from './palette';
+import { DayNight } from './DayNight';
+import { Decorations } from './Decorations';
+import { House } from './House';
+import { Resources } from './Resources';
+import { Terrain } from './Terrain';
 
-/** The playable world: ground, sky, sun and the home. Phase 3 adds the forest around it. */
+/** The playable world: sky and light, terrain, the home, the forest and its resources. */
 export function World() {
   return (
     <>
-      <color attach="background" args={[PALETTE.sky]} />
-      <hemisphereLight args={[PALETTE.hemiSky, PALETTE.hemiGround, 0.9]} />
-      <directionalLight position={[8, 12, 5]} intensity={1.6} color={PALETTE.sun} />
-
-      <mesh rotation-x={-Math.PI / 2}>
-        <circleGeometry args={[30, 12]} />
-        <meshStandardMaterial color={PALETTE.grass} flatShading />
-      </mesh>
-
+      <DayNight />
+      <Terrain />
+      <Decorations />
+      <Resources />
       <House />
       <FocusMarker />
     </>

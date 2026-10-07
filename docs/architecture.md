@@ -1,6 +1,6 @@
 # Architecture
 
-_Last updated: Phase 2 (2026-10-07)._
+_Last updated: Phase 3 (2026-10-07)._
 
 ## Overview
 
@@ -45,7 +45,7 @@ One `.env` at the repo root (`.env.example`):
 src/
   rooms/HomeRoom.ts       lifecycle, message handlers (validate → system → state), autosave
   rooms/roomCode.ts       home codes; synchronous claim so a home can't run twice
-  systems/                pure game rules on state: needs, stove, sleep, progression (unit-tested)
+  systems/                pure game rules on state: needs, stove, sleep, clock, harvest, progression
   inventory/inventory.ts  slot inventories, atomic add/remove/move (unit-tested)
   persistence/            homeSaves.ts (file I/O + validation), homeState.ts (state ↔ save mapping)
   test/harness.ts         real server + SDK clients for integration tests (temp save dir)
@@ -60,7 +60,8 @@ src/
   networking/roomWatcher.ts re-renders UI only when the low-frequency state slice changes; toasts
   state/                    tiny external stores: session (room, screen), ui (panel, focus, hotbar, toasts)
   game/GameCanvas.tsx       R3F canvas: World + LocalPlayer + RemotePlayer(s)
-  game/world/               House (walls, roof, lamps), Furniture, Stove (state-driven visuals), palette
+  game/world/               Terrain, DayNight (sky/sun/moon/fog/stars), Resources (instanced), Decorations,
+                            House, Furniture, Stove (state-driven visuals), palette
   game/player/              controller (collision, sleep camera, dev autopilot), partner body, NameTag
   game/interaction/         focus (near + facing), prompt text, floor focus marker
   ui/screens/               Landing, Lobby
@@ -75,6 +76,10 @@ src/
 - The store is bumped only when the UI slice changes (players, ready, hunger, inventory, chest, stove
   status, day, XP); positions never go through React.
 - All UI styling via tokens in `src/ui/design-system/tokens.css`.
+
+Shared world data (`packages/shared/src/world/`): `house.ts` (layout), `layout.ts` (seeded outdoor
+nodes + zones), `terrain.ts` (height), `time.ts` (day phases), `resources.ts` (node kinds),
+`interactables.ts` (furniture + nodes, `WORLD_COLLIDERS`), `collision.ts`.
 
 Networking details (messages, movement model, disconnects): `docs/networking.md`.
 

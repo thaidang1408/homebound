@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
-import { ClientMessage, HOTBAR_SLOTS, findFurniture } from '@homebound/shared';
+import {
+  ClientMessage,
+  HARVEST_COOLDOWN_MS,
+  HOTBAR_SLOTS,
+  findInteractable,
+} from '@homebound/shared';
 import { getSession } from '../../state/session';
 import { getUi, showToast, updateUi, type Panel } from '../../state/ui';
 
@@ -18,14 +23,18 @@ export function closePanel(): void {
   resumePlay();
 }
 
-function interact(): void {
+/** Holding [E] on a tree/rock/bush keeps harvesting at the cooldown rhythm. */
+const HOLD_REPEAT_MS = HARVEST_COOLDOWN_MS + 40;
+
+/** Returns true if the target was a resource node (so holding [E] should repeat). */
+function interact(): boolean {
   const room = getSession().room;
   const me = room?.state.players.get(room.sessionId);
-  if (!room || !me) return;
+  if (!room || !me) return false;
   // In bed, [E] always means "get up".
   const focusId = me.sleeping ? 'bed' : getUi().focusId;
-  const target = focusId ? findFurniture(focusId) : undefined;
-  if (!target) return;
+  const target = focusId ? findInteractable(focusId) : undefined;
+  if (!target) return false;
 
   switch (target.kind) {
     case 'chest':
@@ -38,14 +47,26 @@ function interact(): void {
     case 'bed':
       room.send(ClientMessage.Interact, { targetId: target.id });
       break;
-    case 'decor':
-      break;
+    case 'tree':
+    case 'rock':
+    case 'bush':
+      room.send(ClientMessage.Interact, { targetId: target.id });
+      return true;
   }
+  return false;
 }
 
-/** In-game keys: E interact, Tab inventory, 1–5 / wheel hotbar, Esc closes panels. */
+/** In-game keys: E interact (hold to keep harvesting), Tab inventory, 1–5 / wheel hotbar, Esc closes panels. */
 export function useGameKeys(): void {
   useEffect(() => {
+    let hold: ReturnType<typeof setInterval> | undefined;
+    const stopHold = () => {
+      clearInterval(hold);
+      hold = undefined;
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'KeyE') stopHold();
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
       const locked = document.pointerLockElement !== null;
@@ -62,7 +83,11 @@ export function useGameKeys(): void {
         return;
       }
       if (!locked) return;
-      if (e.code === 'KeyE') interact();
+      if (e.code === 'KeyE' && interact() && !hold) {
+        hold = setInterval(() => {
+          if (document.pointerLockElement === null || !interact()) stopHold();
+        }, HOLD_REPEAT_MS);
+      }
       const digit = Number(e.code.replace('Digit', ''));
       if (e.code.startsWith('Digit') && digit >= 1 && digit <= HOTBAR_SLOTS) {
         updateUi({ selectedSlot: digit - 1 });
@@ -75,9 +100,14 @@ export function useGameKeys(): void {
       updateUi({ selectedSlot: next });
     };
     window.addEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', stopHold);
     window.addEventListener('wheel', onWheel);
     return () => {
+      stopHold();
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', stopHold);
       window.removeEventListener('wheel', onWheel);
     };
   }, []);

@@ -1,5 +1,5 @@
 // Phase 2: chest → stove → eat → both sleep → new day, through the real UI and controls.
-import { countItem, myPlayer, play, prompt, startPair, walk } from './lib.mjs';
+import { countItem, myPlayer, play, prompt, setTime, startPair, walk } from './lib.mjs';
 
 // Furniture centres and walkable routes (see packages/shared/src/world/house.ts).
 const CHEST = { x: -5.3, z: 3.0 };
@@ -87,8 +87,11 @@ export default async function homeLoop(t) {
   );
   t.check('the meat was eaten', countItem(after.items, 'cooked_meat') === 0);
 
-  // Sleep together → new day
+  // Sleep together → new day (beds only work in the evening)
   await walk(a, STOVE_TO_BED, BED);
+  await prompt(a, /sleep after sunset/).waitFor();
+  t.check('beds refuse daytime naps', true);
+  await setTime(a, 0.8);
   await prompt(a, /Sleep$/).waitFor();
   await a.keyboard.press('KeyE');
   await a.getByText(/Sleeping… waiting for Binh/).waitFor();
@@ -102,7 +105,7 @@ export default async function homeLoop(t) {
   await b.keyboard.press('KeyE');
   await a.getByText('Good night…').waitFor();
   await a.getByText('Day 2 — good morning!').waitFor({ timeout: 8000 });
-  await b.getByText('☀️ Day 2').waitFor();
+  await b.getByText(/Day 2/).first().waitFor();
   t.check('both sleeping starts day 2', true);
   const woke = await Promise.all([myPlayer(a), myPlayer(b)]);
   t.check(

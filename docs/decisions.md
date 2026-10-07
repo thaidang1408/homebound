@@ -105,3 +105,20 @@ add hunting/combat XP and unlocks.
 root while React was already rendering" when a partner left. It was the only drei usage.
 **Decision:** `NameTag` draws the label into a `CanvasTexture` on a sprite (no DOM, no network
 font). `@react-three/drei` removed from dependencies.
+
+## ADR-014: Seeded world shared by client and server (2026-10-07)
+
+**Decision:** The outdoor layout (trees, rocks, bushes, zones, road) is generated from a fixed seed
+in `packages/shared/src/world/layout.ts` with a tiny PRNG (`random.ts`); terrain height is a pure
+function (`terrain.ts`). Client and server compute the identical world, so only live values
+(resource charges, time of day) are synced and saved. Cosmetic grass/flowers use a client-only seed.
+**Why:** No map files, no world download, collisions and reach checks agree on both sides.
+**Revisit when:** hand-authored maps or multiple biomes are needed (data file per biome, same idea).
+
+## ADR-015: Server-owned clock, bedtime rule, dev-only commands (2026-10-07)
+
+**Decision:** The server advances `timeOfDay` (12-minute day); passing midnight increments the day.
+Beds work only from evening (0.7) to dawn, so "it gets dark → run home → sleep together" happens.
+Sleeping wakes everyone at dawn (the day number only increments if you slept before midnight).
+A `dev:set-time` message exists for playtests and is registered only when `NODE_ENV !== 'production'`.
+**Action for Phase 8:** set `NODE_ENV=production` on the public server.

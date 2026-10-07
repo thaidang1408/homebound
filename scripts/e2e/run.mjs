@@ -2,10 +2,16 @@
 // Usage: npm run e2e [-- http://host:5173] [scenario...]. Screenshots: scripts/e2e/out/.
 import { createRun } from './lib.mjs';
 import homeLoop from './home-loop.mjs';
+import outdoors from './outdoors.mjs';
 import soloSave from './solo-save.mjs';
 import twoPlayers from './two-players.mjs';
 
-const SCENARIOS = { 'two-players': twoPlayers, 'home-loop': homeLoop, 'solo-save': soloSave };
+const SCENARIOS = {
+  'two-players': twoPlayers,
+  'home-loop': homeLoop,
+  'solo-save': soloSave,
+  outdoors,
+};
 
 const args = process.argv.slice(2);
 const appUrl = args.find((a) => a.startsWith('http')) ?? 'http://localhost:5173';

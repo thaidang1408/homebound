@@ -27,8 +27,10 @@ The landing screen shows "Server online" when the client can reach the server.
 1. Enter a name → **Build a new home** → **Start game** (you can play alone).
 2. Your partner enters the 5-character home code shown in the HUD → **Join** — any time, even mid-game.
 3. Click the world to capture the mouse. WASD move, Mouse look, Shift sprint, **E** interact,
-   left click eat the held food, 1–5 / wheel hotbar, Tab backpack, Esc pause.
-4. Loop: take raw meat from the **chest** → cook it at the **stove** → eat → both lie in the **bed** → new day.
+   left click eat the held food, 1–5 / wheel hotbar, Tab backpack, Esc pause. Hold **E** to keep
+   chopping/mining/picking.
+4. Loop: take raw meat from the **chest** → cook it at the **stove** → eat → head out the front door to
+   chop wood, mine stone and pick berries → when the sun sets, come home → both lie in the **bed** → dawn.
 5. Homes save automatically. Next time, **Continue home** (or enter the code) picks up where you left off.
    Saves live in `apps/server/data/homes/` in dev.
 

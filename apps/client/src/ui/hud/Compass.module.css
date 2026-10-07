@@ -1,0 +1,41 @@
+.compass {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  /* Shrinks so it never overlaps the meters (left) or the day badge (right). */
+  width: clamp(160px, calc(100vw - 660px), 360px);
+  height: 32px;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+/* Every mark sits at the centre; its translateX (set each frame) slides it along the bar. */
+.cardinal,
+.marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: -0.6em;
+  margin-left: -0.5em;
+  width: 1em;
+  text-align: center;
+  line-height: 1.2;
+  will-change: transform;
+}
+
+.cardinal {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
+.marker {
+  font-size: var(--font-size-md);
+}
+
+.marker[data-edge='true'] {
+  opacity: 0.6;
+}

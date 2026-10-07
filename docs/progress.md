@@ -81,7 +81,7 @@
 
 ## Phase 2 — House + interaction (+ saves, solo start, XP)
 
-**Status:** Done on one machine, awaiting the user's test + approval (2026-10-07)
+**Status:** Approved by the user (2026-10-07).
 
 **What was built**
 
@@ -131,3 +131,48 @@
 - E2E runs create test homes in the dev save folder (git-ignored).
 
 **Next phase:** Phase 3 — outdoor world.
+
+## Phase 3 — Outdoor world
+
+**Status:** Done on one machine, awaiting the user's test + approval (2026-10-07)
+
+**What was built**
+
+- Seeded outdoor world shared by client and server (ADR-014): 110 trees, 26 rocks, 24 berry bushes;
+  flat yard, dirt road from the front door to a forest clearing, west grove (rocks/berries), east
+  meadow kept open for Phase 4 hunting; world radius 58 m.
+- Low-poly terrain (one vertex-colored mesh): flat yard, rolling hills, rising rim; road and grove
+  tinted; players and props follow the ground height.
+- Resources: chop / mine / pick with `[E]`, hold to repeat; server checks reach, cooldown, charges,
+  backpack space; depleted nodes show stump/rubble/bare bush, regrow after 3–6 min; hit wobble;
+  +2 XP per harvest; berries are food. Charges are saved.
+- Collision with trees and rocks on client (sliding) and server (rejection).
+- Day/night (ADR-015): server clock (12 min day), dawn/dusk sky, moonlit night with fog and stars;
+  HUD clock with phase icon; dusk and night toasts; beds only from evening to dawn; sleeping skips
+  to dawn. Time of day is saved.
+- Navigation: compass bar (N/E/S/W, home, partner pinned at the edge); the road leads out and back.
+- Atmosphere: instanced grass tufts and flowers, warm house lamps at night.
+- Item pickup toasts ("+1 🪵 Wood") for any backpack gain.
+- Dev-only `dev:set-time` command for playtests (off when `NODE_ENV=production`).
+
+**Tests**
+
+- `npm test`: 99 passing. New: PRNG determinism; world layout invariants (yard/road/clearing free,
+  inside the world, road walkable from the door); terrain; day phases/bedtime/wrap/clock label;
+  harvest charges/cooldown/full backpack/regrowth; clock wrap; bedtime + after-midnight sleep;
+  networked outdoor tests (morning start, clock runs, walk down the road, chop with cooldown, out of
+  reach refused); daytime bed refused; resources and time saved.
+- `npm run e2e`: 4 scenarios passing (two-players, home-loop now checks "sleep after sunset",
+  solo-save, outdoors: road → tree → hold E chopping → dusk warning → night).
+- Fixed a flaky-test cause: the harness now waits for the first state patch (bigger state).
+
+**Known issues**
+
+- Wood and stone have no use yet (crafting comes with the game loop phase).
+- No creatures yet: night is atmospheric only (Phase 4 adds night-active creatures).
+- No terrain-height validation on the server (movement is 2D on the ground; fine for now).
+- Collision checks every box (151) per move; fine at 2 players — add a spatial grid if profiling says so.
+- Night darkness is a tuning knob (`DayNight.tsx` keyframes) — tell me if it feels too dark/light.
+- Bundle 1.34 MB (378 kB gzip); code-splitting in Phase 7.
+
+**Next phase:** Phase 4 — creature + hunting.

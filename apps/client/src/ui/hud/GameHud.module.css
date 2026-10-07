@@ -56,6 +56,17 @@
   letter-spacing: 0.04em;
 }
 
+.clock {
+  margin-left: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.day[data-phase='night'] {
+  border-color: var(--color-stamina);
+}
+
 /* --- Needs meter --- */
 
 .meter {
@@ -143,7 +154,7 @@
 
 .banner {
   position: absolute;
-  top: var(--space-4);
+  top: calc(var(--space-4) + 44px); /* below the compass */
   left: 50%;
   transform: translateX(-50%);
   padding: var(--space-2) var(--space-6);

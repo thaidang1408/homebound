@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { Room } from '@colyseus/sdk';
 import {
   ClientMessage,
-  HOUSE_COLLIDERS,
+  WORLD_COLLIDERS,
   MAX_PITCH,
   MOVE_SEND_INTERVAL_MS,
   PLAYER_EYE_HEIGHT,
@@ -15,15 +15,17 @@ import {
   getItem,
   isItemId,
   resolveCircle,
+  terrainHeight,
   type HomeState,
   type MovePayload,
   type TeleportPayload,
 } from '@homebound/shared';
 import { MAX_FRAME_DT, MOUSE_SENSITIVITY, MOVE_EPSILON } from '../../config/controls';
 import { getUi, updateUi } from '../../state/ui';
-import { findFocus } from '../interaction/focus';
+import { findFocus, isAvailable } from '../interaction/focus';
 import { autopilot, yawToward } from './autopilot';
 import { useHeldKeys } from './keyboard';
+import { localPose } from './localPose';
 
 /** Dev-only: turn toward the next autopilot waypoint; returns 1 to walk forward, 0 when done. */
 function steerAutopilot(p: MovePayload, stepLength: number): number {
@@ -141,15 +143,19 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
         p.z + (-cos * forward - sin * strafe) * step,
       );
       // Push out of walls/furniture: the player slides along them.
-      const next = resolveCircle(wanted, PLAYER_RADIUS, HOUSE_COLLIDERS);
+      const next = resolveCircle(wanted, PLAYER_RADIUS, WORLD_COLLIDERS);
       p.x = next.x;
       p.z = next.z;
     }
 
-    camera.position.set(p.x, PLAYER_EYE_HEIGHT, p.z);
+    camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT, p.z);
     camera.rotation.set(p.pitch, p.yaw, 0, 'YXZ');
 
-    const focus = findFocus(p.x, p.z, p.yaw);
+    localPose.x = p.x;
+    localPose.z = p.z;
+    localPose.yaw = p.yaw;
+
+    const focus = findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
     if (focus !== getUi().focusId) updateUi({ focusId: focus });
 
     sinceSend.current += dt * 1000;

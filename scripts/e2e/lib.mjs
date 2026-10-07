@@ -119,3 +119,12 @@ export const countItem = (items, id) =>
 
 /** The interaction prompt under the crosshair ("[E] Sleep"), matched on its text. */
 export const prompt = (page, text) => page.locator('[data-actionable]').filter({ hasText: text });
+
+/** Dev command: set the world clock (0 = midnight, 0.8 = evening) and wait until it applies. */
+export async function setTime(page, timeOfDay) {
+  await hb(page, (h, t) => h.setTime(t), timeOfDay);
+  await page.waitForFunction(
+    (t) => Math.abs(window.__homebound.getSession().room.state.timeOfDay - t) < 0.01,
+    timeOfDay,
+  );
+}

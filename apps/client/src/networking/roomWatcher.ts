@@ -1,5 +1,14 @@
 import type { Room } from '@colyseus/sdk';
-import { GamePhase, StoveStatus, type HomeState } from '@homebound/shared';
+import {
+  GamePhase,
+  StoveStatus,
+  clockLabel,
+  dayPhase,
+  getItem,
+  isItemId,
+  type DayPhase,
+  type HomeState,
+} from '@homebound/shared';
 import { getSession, updateSession } from '../state/session';
 import { showToast } from '../state/ui';
 
@@ -12,10 +21,19 @@ interface Snapshot {
   myXp: number;
   myLevel: number;
   sleeping: Map<string, boolean>;
+  phase: DayPhase;
+  /** My backpack totals per item id. */
+  items: Map<string, number>;
 }
 
 function slots(list: Iterable<{ itemId: string; qty: number }>): string {
   return [...list].map((s) => `${s.itemId}:${s.qty}`).join(',');
+}
+
+function totals(list: Iterable<{ itemId: string; qty: number }>): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const s of list) if (s.qty > 0) out.set(s.itemId, (out.get(s.itemId) ?? 0) + s.qty);
+  return out;
 }
 
 function snapshot(room: Room<HomeState>): Snapshot {
@@ -24,6 +42,8 @@ function snapshot(room: Room<HomeState>): Snapshot {
   const key = [
     s.phase,
     s.day,
+    // 10-minute clock resolution: the HUD clock re-renders ~every 5 s, not every tick.
+    clockLabel(s.timeOfDay),
     s.stove.status,
     s.stove.itemId,
     slots(s.chest),
@@ -40,6 +60,8 @@ function snapshot(room: Room<HomeState>): Snapshot {
     myXp: s.players.get(room.sessionId)?.xp ?? 0,
     myLevel: s.players.get(room.sessionId)?.level ?? 1,
     sleeping: new Map(players.map(([id, p]) => [id, p.sleeping])),
+    phase: dayPhase(s.timeOfDay),
+    items: totals(s.players.get(room.sessionId)?.inventory ?? []),
   };
 }
 
@@ -52,6 +74,14 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   }
   const ate = next.myHunger - prev.myHunger;
   if (ate > 0) showToast(`+${ate} hunger`);
+  for (const [id, qty] of next.items) {
+    const gained = qty - (prev.items.get(id) ?? 0);
+    if (gained > 0 && isItemId(id)) showToast(`+${gained} ${getItem(id).icon} ${getItem(id).name}`);
+  }
+  if (next.phase !== prev.phase) {
+    if (next.phase === 'evening') showToast('The sun is setting — head home before dark.');
+    if (next.phase === 'night') showToast('Night has fallen. Stay close to home.');
+  }
   const earned = next.myXp - prev.myXp;
   if (earned > 0) showToast(`+${earned} XP`);
   if (next.myLevel > prev.myLevel) showToast(`⭐ Level ${next.myLevel}!`);

@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { MathUtils, type Group } from 'three';
 import type { Room } from '@colyseus/sdk';
-import type { HomeState } from '@homebound/shared';
+import { terrainHeight, type HomeState } from '@homebound/shared';
 import { MAX_FRAME_DT, REMOTE_SMOOTHING } from '../../config/controls';
 import { playerColor } from './playerColors';
 import { NameTag } from './NameTag';
@@ -52,7 +52,13 @@ export function RemotePlayer({ room, sessionId, name, slot, connected, sleeping,
     const targetZ = asleep ? state.z + SLEEP_FEET_OFFSET : state.z;
     g.position.x = MathUtils.damp(g.position.x, state.x, REMOTE_SMOOTHING, dt);
     g.position.z = MathUtils.damp(g.position.z, targetZ, REMOTE_SMOOTHING, dt);
-    g.position.y = MathUtils.damp(g.position.y, asleep ? SLEEP_HEIGHT : 0, REMOTE_SMOOTHING, dt);
+    const ground = terrainHeight(g.position.x, g.position.z);
+    g.position.y = MathUtils.damp(
+      g.position.y,
+      asleep ? SLEEP_HEIGHT : ground,
+      REMOTE_SMOOTHING,
+      dt,
+    );
     g.rotation.x = MathUtils.damp(g.rotation.x, asleep ? SLEEP_TILT : 0, REMOTE_SMOOTHING, dt);
     const t = 1 - Math.exp(-REMOTE_SMOOTHING * dt);
     g.rotation.y += angleDelta(g.rotation.y, asleep ? 0 : state.yaw) * t;

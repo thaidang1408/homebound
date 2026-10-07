@@ -1,6 +1,6 @@
 # Networking
 
-_Last updated: Phase 2 (2026-10-07). Colyseus 0.18._
+_Last updated: Phase 3 (2026-10-07). Colyseus 0.18._
 
 ## Home flow (ADR-009/010/011)
 
@@ -25,18 +25,20 @@ Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `al
 
 ## State (schema, `packages/shared/src/schema.ts`)
 
-| Field                                                        | Type                              | Notes                                     |
-| ------------------------------------------------------------ | --------------------------------- | ----------------------------------------- |
-| `HomeState.phase`                                            | string                            | `lobby`                                   | `playing` |
-| `HomeState.day`                                              | uint16                            | starts at 1                               |
-| `HomeState.players`                                          | map&lt;sessionId, PlayerState&gt; |                                           |
-| `HomeState.chest`                                            | array&lt;ItemStack&gt; (16)       | shared storage                            |
-| `HomeState.stove`                                            | StoveState                        | status, itemId, progress (8-bit)          |
-| `PlayerState.name`, `slot`, `ready`, `connected`, `sleeping` |                                   |                                           |
-| `PlayerState.x`, `z` / `yaw` / `pitch`                       | float32 / angle / quantized       |                                           |
-| `PlayerState.hunger`                                         | uint8                             | rounded up from server-only `hungerExact` |
-| `PlayerState.xp` / `level`                                   | uint32 / uint8                    | level derived from xp                     |
-| `PlayerState.inventory`                                      | array&lt;ItemStack&gt; (10)       | first 5 = hotbar                          |
+| Field                                                        | Type                              | Notes                                               |
+| ------------------------------------------------------------ | --------------------------------- | --------------------------------------------------- |
+| `HomeState.phase`                                            | string                            | `lobby`                                             | `playing` |
+| `HomeState.day`                                              | uint16                            | starts at 1                                         |
+| `HomeState.timeOfDay`                                        | quantized 0–1 (wrap, 16-bit)      | server clock; dusk/night drive lighting             |
+| `HomeState.resources`                                        | map&lt;nodeId, ResourceState&gt;  | `charges` only; positions come from the shared seed |
+| `HomeState.players`                                          | map&lt;sessionId, PlayerState&gt; |                                                     |
+| `HomeState.chest`                                            | array&lt;ItemStack&gt; (16)       | shared storage                                      |
+| `HomeState.stove`                                            | StoveState                        | status, itemId, progress (8-bit)                    |
+| `PlayerState.name`, `slot`, `ready`, `connected`, `sleeping` |                                   |                                                     |
+| `PlayerState.x`, `z` / `yaw` / `pitch`                       | float32 / angle / quantized       |                                                     |
+| `PlayerState.hunger`                                         | uint8                             | rounded up from server-only `hungerExact`           |
+| `PlayerState.xp` / `level`                                   | uint32 / uint8                    | level derived from xp                               |
+| `PlayerState.inventory`                                      | array&lt;ItemStack&gt; (10)       | first 5 = hotbar                                    |
 
 `.noSync()` fields (`hungerExact`, `stove.elapsedMs`, `stove.cookedBy`) stay on the server.
 Every primitive has an explicit `.default()`: schema-builder numbers otherwise start `undefined`
@@ -44,15 +46,17 @@ on the client (regression test in `HomeRoom.test.ts`).
 
 ## Messages (`packages/shared/src/protocol.ts`)
 
-| Direction | Name       | Payload                | Server checks                                                        |
-| --------- | ---------- | ---------------------- | -------------------------------------------------------------------- |
-| C→S       | `ready`    | `{ ready }`            | shape, lobby phase                                                   |
-| C→S       | `start`    | —                      | lobby phase; alone, or both ready + connected                        |
-| C→S       | `move`     | `{ x, z, yaw, pitch }` | shape, playing, not asleep, world bounds, walls/furniture, max speed |
-| C→S       | `interact` | `{ targetId }`         | known furniture, within reach, asleep → only the bed                 |
-| C→S       | `transfer` | `{ from: player        | chest, slot }`                                                       | next to the chest, not asleep; moves what fits |
-| C→S       | `use-item` | `{ slot }`             | slot holds food, not asleep                                          |
-| S→C       | `teleport` | `{ x, z }`             | rejected move, getting into / out of bed, new day                    |
+| Direction | Name                 | Payload                   | Server checks                                                        |
+| --------- | -------------------- | ------------------------- | -------------------------------------------------------------------- |
+| C→S       | `ready`              | `{ ready }`               | shape, lobby phase                                                   |
+| C→S       | `start`              | —                         | lobby phase; alone, or both ready + connected                        |
+| C→S       | `move`               | `{ x, z, yaw, pitch }`    | shape, playing, not asleep, world bounds, walls/furniture, max speed |
+| C→S       | `interact`           | `{ targetId }`            | known furniture, within reach, asleep → only the bed                 |
+| C→S       | `transfer`           | `{ from: player           | chest, slot }`                                                       | next to the chest, not asleep; moves what fits |
+| C→S       | `use-item`           | `{ slot }`                | slot holds food, not asleep                                          |
+| C→S       | `interact` on a node | `{ targetId: "tree-12" }` | within reach, charges > 0, 0.6 s cooldown, backpack space            |
+| C→S       | `dev:set-time`       | `{ timeOfDay }`           | **dev servers only** (`NODE_ENV !== production`)                     |
+| S→C       | `teleport`           | `{ x, z }`                | rejected move, getting into / out of bed, new day                    |
 
 Invalid messages are dropped (and too-fast moves logged); they never crash the room or kick
 the client. `maxMessagesPerSecond = 60` disconnects floods.

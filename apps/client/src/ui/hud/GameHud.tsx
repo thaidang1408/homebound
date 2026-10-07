@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { HOTBAR_SLOTS, HUNGER_MAX, NEW_DAY_DELAY_MS, levelForXp } from '@homebound/shared';
+import {
+  HOTBAR_SLOTS,
+  HUNGER_MAX,
+  NEW_DAY_DELAY_MS,
+  clockLabel,
+  dayPhase,
+  levelForXp,
+  type DayPhase,
+} from '@homebound/shared';
 import { promptFor } from '../../game/interaction/prompt';
 import { leaveRoom } from '../../networking/connection';
 import { useSession } from '../../state/session';
@@ -8,8 +16,16 @@ import { Button } from '../components/Button';
 import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
 import { InventoryPanel, StoragePanel } from '../panels/InventoryPanels';
+import { Compass } from './Compass';
 import styles from './GameHud.module.css';
 import { resumePlay, useGameKeys } from './useGameKeys';
+
+const PHASE_ICON: Record<DayPhase, string> = {
+  morning: '🌅',
+  day: '☀️',
+  evening: '🌇',
+  night: '🌙',
+};
 
 /** Below this, hunger shows a warning. */
 const HUNGRY_AT = 25;
@@ -84,9 +100,14 @@ export function GameHud() {
       </div>
 
       <div className={styles.topRight}>
-        <span className={styles.day}>☀️ Day {room.state.day}</span>
+        <span className={styles.day} data-phase={dayPhase(room.state.timeOfDay)}>
+          {PHASE_ICON[dayPhase(room.state.timeOfDay)]} Day {room.state.day}
+          <span className={styles.clock}>{clockLabel(room.state.timeOfDay)}</span>
+        </span>
         <span className={styles.pill}>Room {room.roomId}</span>
       </div>
+
+      <Compass room={room} />
 
       {connection === 'reconnecting' && (
         <div className={styles.banner} role="alert">

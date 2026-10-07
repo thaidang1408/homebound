@@ -1,6 +1,6 @@
 # Game design
 
-_Last updated: Phase 2 (2026-10-07). What exists in the build, not the full vision (see the master
+_Last updated: Phase 3 (2026-10-07). What exists in the build, not the full vision (see the master
 prompt summary in `development-phases.md`)._
 
 ## The home (Phase 2)
@@ -16,10 +16,29 @@ A 12 × 10 m low-poly house, front door facing the clearing (+Z):
 Players spawn in the living room. The house layout is data (`packages/shared/src/world/house.ts`) used
 for rendering, client collision, server validation and interaction reach.
 
+## The outdoors (Phase 3)
+
+```text
+                  north: dense forest behind the house
+  west: GROVE (rocks, berry bushes)   HOUSE   east: MEADOW (open; hunting ground in Phase 4)
+                  south: dirt ROAD from the front door to a forest CLEARING (z ≈ 42)
+```
+
+- World radius 58 m; flat yard (13 m) around the house, gentle hills beyond, the rim rises into
+  hills that frame the world. Compass at the top of the HUD shows N/E/S/W, 🏠 and your partner
+  (pinned to the edge when behind you).
+- **Resources** (110 trees, 26 rocks, 24 bushes): `[E]` chop wood, mine stone, pick berries; hold E
+  to keep going (one harvest per 0.6 s). Trees 4 chops, rocks 3, bushes 2 picks of 2 berries; then a
+  stump/rubble/bare bush that grows back after 3–6 min. +2 XP per harvest. Berries are food (+6).
+  Wood and stone have no use yet — crafting arrives later (workbench).
+- **Day and night:** a full day takes 12 minutes. Dawn and dusk tint the sky; at dusk a toast says
+  "head home before dark"; night is moonlit and foggy with stars — tense but readable. Beds only work
+  from early evening until dawn; sleeping together skips to dawn.
+
 ## Core loop available now
 
 ```text
-chest (raw meat) → stove (cook) → eat (hotbar click / backpack) → bed (sleep) → new day
+chest (raw meat) → stove (cook) → eat → go out: chop / mine / pick → dusk → home → bed → dawn
 ```
 
 - **Hunger** 0–100, starts at 80, drains over 20 min of play, paused while asleep. No penalty at 0
@@ -46,5 +65,5 @@ position. A player is recognised by an anonymous id stored in their browser (ADR
 
 ## Controls
 
-WASD move · Mouse look · Shift sprint · E interact · Left click eat held food · 1–5 / wheel hotbar ·
+WASD move · Mouse look · Shift sprint · E interact (hold to keep harvesting) · Left click eat held food · 1–5 / wheel hotbar ·
 Tab backpack · Esc pause.
