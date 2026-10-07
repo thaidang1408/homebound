@@ -60,7 +60,10 @@ src/
   networking/connection.ts  create/join/continue home, reconnect, friendly errors
   networking/identity.ts    anonymous playerId + last home code (localStorage)
   networking/roomWatcher.ts re-renders UI only when the low-frequency state slice changes; toasts
-  state/                    tiny external stores: session (room, screen), ui (panel, focus, hotbar, toasts)
+  state/                    tiny external stores: session (room, screen), ui (panel, focus, hotbar, toasts),
+                            settings (sensitivity, volume, mute; localStorage)
+  audio/                    WebAudio mixer (engine), synthesized sounds, ambience hook (ADR-019)
+  game/fx/                  pooled instanced particles (emitBurst)
   game/GameCanvas.tsx       R3F canvas: World + LocalPlayer + RemotePlayer(s) + Creatures + Arrows + HeldItem
   game/combat/              Arrows (pooled, extrapolated), HeldItem (first-person spear/bow/fist + swing)
   game/creatures/           Beast: one model for every kind from LOOKS data (boar, wolf) + mode animations, health bar
@@ -68,11 +71,14 @@ src/
                             House, Furniture, Stove (state-driven visuals), palette
   game/player/              controller (collision, sleep camera, dev autopilot), partner body, NameTag
   game/interaction/         focus (near + facing; creatures to strike/butcher), prompt text, floor focus marker
-  ui/screens/               Landing, Lobby
+  ui/screens/               Landing, Lobby, canvas loading/WebGL-error fallbacks
   ui/hud/                   HUD (health, hunger, level/XP, hurt flash, hitmarker, downed overlay, daily goals, morning summary, day, partner, prompt, hotbar, toasts, sleep, pause), keys
-  ui/panels/                backpack, shared storage, workbench (crafting)
+  ui/panels/                backpack + shared storage (drag and drop), workbench (crafting), settings
   ui/components/            Button, TextInput, ItemSlot, Panel styles (tokens only)
-  devtools.ts               dev-only window.__homebound hook for e2e
+  devtools.ts               dev-only window.__homebound hook for e2e (walk, time, hurt, give, perf)
+
+The R3F canvas is lazy-loaded (`App.tsx`): menus ship in a 137 kB gzip chunk, three.js/R3F in a
+separate 253 kB chunk.
 ```
 
 - React owns menus/HUD/lobby. The game loop (`useFrame`, refs) owns per-frame state: player poses are

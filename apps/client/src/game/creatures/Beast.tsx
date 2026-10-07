@@ -10,7 +10,9 @@ import {
   type HomeState,
 } from '@homebound/shared';
 import { MAX_FRAME_DT, REMOTE_SMOOTHING } from '../../config/controls';
+import { playGruntAt, playThudAt } from '../../audio/sounds';
 import { angleDelta } from '../angles';
+import { emitBurst } from '../fx/Particles';
 import { PALETTE } from '../world/palette';
 
 const FLASH_MS = 160;
@@ -133,10 +135,20 @@ export function Beast({
     const now = performance.now();
     const dt = Math.min(rawDt, MAX_FRAME_DT);
     if (c.mode !== a.mode) {
+      // Voice the moments that matter: it noticed you, it's about to strike, it fell.
+      if (a.mode && (c.mode === CreatureMode.Alert || c.mode === CreatureMode.Attack)) {
+        playGruntAt(kind, c.x, c.z);
+      } else if (a.mode && c.mode === CreatureMode.Dead) {
+        playThudAt(c.x, c.z);
+        emitBurst('dust', c.x, terrainHeight(c.x, c.z) + 0.2, c.z);
+      }
       a.mode = c.mode;
       a.modeAt = now;
     }
-    if (a.health >= 0 && c.health < a.health) a.flashAt = now;
+    if (a.health >= 0 && c.health < a.health) {
+      a.flashAt = now;
+      emitBurst('hit', g.position.x, g.position.y + look.bodyY, g.position.z);
+    }
     a.health = c.health;
     const inMode = now - a.modeAt;
 

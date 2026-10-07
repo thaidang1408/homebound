@@ -13,6 +13,7 @@ import {
   RESPAWN_MIN_HUNGER,
   REVIVE_HEALTH,
   REVIVE_MS,
+  REVIVE_PING_TIMEOUT_MS,
   SIMULATION_TICK_MS,
   SPAWN_POINTS,
   STARVING_DAMAGE_PER_SECOND,
@@ -100,6 +101,25 @@ describe('downed and revive', () => {
     expect(events).toEqual([{ type: 'revived', sessionId: 'p1', reviverId: 'p2' }]);
     expect(a.downed).toBe(false);
     expect(a.health).toBe(REVIVE_HEALTH);
+  });
+
+  test('letting go pauses the revive; holding again finishes it', () => {
+    const { state, a } = downedPair();
+    let now = 0;
+    const events: DownedEvent[] = [];
+    const tick = (ms: number, holding: boolean) => {
+      for (let t = 0; t < ms; t += SIMULATION_TICK_MS) {
+        if (holding) pingRevive(state, 'p2', 'p1', now);
+        events.push(...tickDowned(state, SIMULATION_TICK_MS, now));
+        now += SIMULATION_TICK_MS;
+      }
+    };
+    tick(REVIVE_MS / 2, true);
+    tick(REVIVE_PING_TIMEOUT_MS + 1000, false); // a long gap: lag, or E released
+    expect(a.downed).toBe(true);
+    expect(a.revive).toBeGreaterThan(0.4); // paused, not reset
+    tick(REVIVE_MS / 2 + 200, true);
+    expect(events).toContainEqual({ type: 'revived', sessionId: 'p1', reviverId: 'p2' });
   });
 
   test('reviving needs to be next to them', () => {

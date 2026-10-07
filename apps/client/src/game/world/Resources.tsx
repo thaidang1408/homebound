@@ -16,6 +16,8 @@ import {
   type ResourceNodeDefinition,
 } from '@homebound/shared';
 import { useSession } from '../../state/session';
+import { playHarvestAt } from '../../audio/sounds';
+import { emitBurst, type BurstKind } from '../fx/Particles';
 import { PALETTE } from './palette';
 
 /** One instanced part of a resource (a tree = trunk + two canopy cones). */
@@ -29,6 +31,7 @@ interface Part {
 }
 
 const HIDDEN = 0.0001;
+const BURST: Record<ResourceKind, BurstKind> = { tree: 'wood', rock: 'stone', bush: 'leaves' };
 const WOBBLE_MS = 350;
 const CHECK_INTERVAL = 0.15; // s between depletion checks
 
@@ -166,7 +169,11 @@ function KindInstances({ kind }: { kind: ResourceKind }) {
       const prev = charges.current[i] ?? -1;
       if (live === prev) return;
       charges.current[i] = live;
-      if (prev > live) wobbleStart.current[i] = now;
+      if (prev > live && prev >= 0) {
+        wobbleStart.current[i] = now;
+        playHarvestAt(kind, node.x, node.z);
+        emitBurst(BURST[kind], node.x, terrainHeight(node.x, node.z) + 1, node.z);
+      }
       placeNode(i, live === 0);
     });
   });

@@ -1,4 +1,4 @@
-/** Radians of look per pixel of mouse movement. Exposed in Settings later. */
+/** Radians of look per pixel of mouse movement, times the player's sensitivity setting. */
 export const MOUSE_SENSITIVITY = 0.0022;
 
 export const CAMERA_FOV = 75;

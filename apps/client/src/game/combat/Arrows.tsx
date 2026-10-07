@@ -3,6 +3,8 @@ import { useFrame } from '@react-three/fiber';
 import { Vector3, type Group } from 'three';
 import type { Room } from '@colyseus/sdk';
 import type { HomeState } from '@homebound/shared';
+import { playBowAt } from '../../audio/sounds';
+import { emitBurst } from '../fx/Particles';
 import { PALETTE } from '../world/palette';
 
 /** More arrows than two players can have in the air at once. */
@@ -35,7 +37,9 @@ export function Arrows({ room }: { room: Room<HomeState> }) {
 
     // Free slots whose arrow is gone; update the rest.
     slots.forEach((t, i) => {
-      if (t && !live.has(t.id)) slots[i] = null;
+      if (!t || live.has(t.id)) return;
+      emitBurst('dust', t.pos.x, t.pos.y, t.pos.z); // where it landed
+      slots[i] = null;
     });
     live.forEach((p, id) => {
       let t = slots.find((s) => s?.id === id);
@@ -44,6 +48,7 @@ export function Arrows({ room }: { room: Room<HomeState> }) {
         if (free < 0) return;
         t = { id, pos: new Vector3(p.x, p.y, p.z), vel: new Vector3(), at: now };
         slots[free] = t;
+        playBowAt(p.x, p.z);
       } else if (t.pos.x !== p.x || t.pos.y !== p.y || t.pos.z !== p.z) {
         const dt = Math.max(1e-3, now - t.at);
         t.vel.set(p.x - t.pos.x, p.y - t.pos.y, p.z - t.pos.z).divideScalar(dt);

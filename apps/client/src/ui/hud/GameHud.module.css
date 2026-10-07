@@ -280,6 +280,11 @@
   font-weight: var(--font-weight-bold);
 }
 
+.toastCount {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
 .toasts {
   position: absolute;
   top: 22%;

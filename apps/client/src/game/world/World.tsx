@@ -1,3 +1,4 @@
+import { Particles } from '../fx/Particles';
 import { FocusMarker } from '../interaction/FocusMarker';
 import { DayNight } from './DayNight';
 import { Decorations } from './Decorations';
@@ -15,6 +16,7 @@ export function World() {
       <Resources />
       <House />
       <FocusMarker />
+      <Particles />
     </>
   );
 }

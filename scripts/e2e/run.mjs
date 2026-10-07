@@ -7,6 +7,7 @@ import { createRun } from './lib.mjs';
 import homeLoop from './home-loop.mjs';
 import hunting from './hunting.mjs';
 import outdoors from './outdoors.mjs';
+import perf from './perf.mjs';
 import soloSave from './solo-save.mjs';
 import twoPlayers from './two-players.mjs';
 
@@ -19,6 +20,7 @@ const SCENARIOS = {
   combat,
   'game-loop': gameLoop,
   backpack,
+  perf,
 };
 
 const args = process.argv.slice(2);

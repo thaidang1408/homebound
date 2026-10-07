@@ -187,3 +187,26 @@ state is the core co-op moment ("go help!") of the MVP.
 **Why:** the MVP's success test is "chơi thêm ngày nữa đi": each day needs a direction (goals),
 a reason to be home by dark (wolves), and a moment of closure that invites the next day (summary).
 Levels still unlock nothing; they stay a score for now.
+
+## ADR-019: Polish without assets: synthesized audio, pooled particles, lazy 3D chunk (2026-10-08)
+
+**Decision:**
+
+- **Audio** is synthesized with WebAudio (`apps/client/src/audio/`): oscillators + one shared noise
+  buffer, a small mixer (master → sfx / ambience buses, levels in dB), ±8% pitch variation per play,
+  positional sounds with distance roll-off and stereo pan from the local player. Ambience follows
+  the clock (birds by day, crickets at night, wind). No audio files, no licences, zero bytes to
+  download. The context starts on the first click/key (browser rule).
+- **Particles:** one pooled instanced mesh (192 pieces) for wood chips, stone grit, leaves, hit
+  puffs and dust; game code calls `emitBurst()`; no per-frame allocation.
+- **Code splitting:** the R3F canvas is `React.lazy`-loaded: the menu shell is 137 kB gzip and works
+  while the 253 kB 3D chunk downloads ("Loading the world…"); an error boundary explains when WebGL
+  can't start.
+- **Settings** (mouse sensitivity, volume, mute) are per-viewer and live in `localStorage` with
+  safe fallbacks; they are preferences, not game state.
+- **Partner's held item:** `PlayerState.selectedSlot` is synced (cosmetic); attacks still read the
+  weapon from the server's own copy of the slot named in the attack.
+- **Fixes found by playtests:** the day closes at sunrise (waking up, or dawn without sleeping), so
+  staying up past midnight still ends with the morning summary; a revive pauses (never resets)
+  when the helper's pings lapse; clicking with food in hand while a creature is in your face
+  punches instead of eating; repeated toasts stack ("×4").

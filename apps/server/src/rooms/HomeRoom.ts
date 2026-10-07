@@ -22,6 +22,7 @@ import {
   RECONNECT_GRACE_SECONDS,
   SIMULATION_TICK_MS,
   STARTER_CHEST,
+  SUNRISE,
   getWeapon,
   isRecipeId,
   weaponOf,
@@ -166,6 +167,11 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.onMessage(ClientMessage.MoveSlot, (client, message: unknown) =>
       this.handleMoveSlot(client, message),
     );
+    this.onMessage(ClientMessage.SelectSlot, (client, message: unknown) => {
+      const payload = parseUseItemPayload(message);
+      const player = this.state.players.get(client.sessionId);
+      if (payload && player && payload.slot < HOTBAR_SLOTS) player.selectedSlot = payload.slot;
+    });
     this.onMessage(ClientMessage.UseItem, (client, message: unknown) => {
       const payload = parseUseItemPayload(message);
       const player = this.activePlayer(client);
@@ -330,7 +336,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private tick(dtMs: number) {
     if (this.state.phase !== GamePhase.Playing) return;
     tickClock(this.state, dtMs);
-    if (this.state.day !== this.goalDay) this.beginDay(); // stayed up past midnight
+    this.maybeBeginDay(); // stayed up all night: the day closes at sunrise
     for (const id of tickNeeds(this.state, dtMs / 1000)) this.fall(id);
     tickResources(this.state, dtMs);
     const cook = tickStove(this.state, dtMs);
@@ -398,7 +404,16 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     logger.info(`[room ${this.roomId}] goal done: ${kind}`);
   }
 
-  /** A new day number: tell everyone how yesterday went, then set today's goals. */
+  /**
+   * A day closes in the morning (waking up, or sunrise if nobody slept), not at midnight: staying
+   * up late still ends with the summary over breakfast.
+   */
+  private maybeBeginDay() {
+    if (this.state.day === this.goalDay || this.state.timeOfDay < SUNRISE) return;
+    this.beginDay();
+  }
+
+  /** Tell everyone how yesterday went, then set today's goals. */
   private beginDay() {
     const summary = closeDay(this.state, this.goalDay);
     this.broadcast(ServerMessage.DaySummary, summary);
@@ -603,7 +618,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         const client = this.clients.find((c) => this.state.players.get(c.sessionId) === player);
         if (client) this.teleport(client, target);
       }
-      if (this.state.day !== this.goalDay) this.beginDay();
+      this.maybeBeginDay();
       this.save();
       logger.info(`[room ${this.roomId}] day ${this.state.day} begins`);
     }, NEW_DAY_DELAY_MS);

@@ -20,6 +20,8 @@ import { Button } from '../components/Button';
 import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
 import { InventoryPanel, StoragePanel, WorkbenchPanel } from '../panels/InventoryPanels';
+import { useAmbience } from '../../audio/useAmbience';
+import { SettingsPanel } from '../panels/SettingsPanel';
 import { Compass } from './Compass';
 import { DaySummaryCard, GoalList } from './DayPanels';
 import styles from './GameHud.module.css';
@@ -55,6 +57,7 @@ const CONTROLS: readonly [string, string][] = [
   ['Click', 'Use held item (attack / shoot / eat)'],
   ['1–5', 'Hotbar'],
   ['Tab', 'Backpack'],
+  ['M', 'Mute'],
   ['Esc', 'Pause'],
 ];
 
@@ -73,6 +76,7 @@ export function GameHud() {
   } = useUi();
   const locked = usePointerLocked();
   useGameKeys();
+  useAmbience(room);
   if (!room) return null;
 
   const me = room.state.players.get(room.sessionId);
@@ -157,6 +161,7 @@ export function GameHud() {
         {toasts.map((t) => (
           <div key={t.id} className={styles.toast}>
             {t.text}
+            {t.count > 1 && <span className={styles.toastCount}> ×{t.count}</span>}
           </div>
         ))}
       </div>
@@ -261,6 +266,7 @@ export function GameHud() {
                 </li>
               ))}
             </ul>
+            <SettingsPanel />
             <Button
               variant="ghost"
               onClick={(e) => {

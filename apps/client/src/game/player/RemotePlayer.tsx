@@ -2,10 +2,11 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { MathUtils, type Group } from 'three';
 import type { Room } from '@colyseus/sdk';
-import { terrainHeight, type HomeState } from '@homebound/shared';
+import { terrainHeight, type HomeState, type WeaponId } from '@homebound/shared';
 import { MAX_FRAME_DT, REMOTE_SMOOTHING } from '../../config/controls';
 import { playerColor } from './playerColors';
 import { NameTag } from './NameTag';
+import { BowModel, SpearModel } from '../combat/WeaponModels';
 import { angleDelta } from '../angles';
 
 /** Lying in bed: body tipped back onto the mattress, head toward the headboard (−Z). */
@@ -27,6 +28,7 @@ interface Props {
   sleeping: boolean;
   downed: boolean;
   level: number;
+  holding: WeaponId;
 }
 
 /** The partner's body. Reads synced state every frame and smooths toward it. */
@@ -39,6 +41,7 @@ export function RemotePlayer({
   sleeping,
   downed,
   level,
+  holding,
 }: Props) {
   const body = useRef<Group>(null);
   const head = useRef<Group>(null);
@@ -103,6 +106,15 @@ export function RemotePlayer({
             opacity={connected ? 1 : 0.35}
           />
         </mesh>
+        {/* What they hold, in the right hand */}
+        <group position={[0.36, 1.0, -0.25]}>
+          {holding === 'spear' && <SpearModel />}
+          {holding === 'bow' && (
+            <group rotation-z={-0.3} scale={0.8}>
+              <BowModel />
+            </group>
+          )}
+        </group>
         <group ref={head} position={[0, 1.6, 0]}>
           <mesh>
             <boxGeometry args={[0.42, 0.38, 0.42]} />

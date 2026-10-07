@@ -58,6 +58,8 @@ export const PlayerState = schema(
     /** Lifetime XP; level is derived from it (progression.ts) and synced for the UI. */
     xp: t.uint32().default(0),
     level: t.uint8().default(1),
+    /** Selected hotbar slot, so the partner sees what you hold. */
+    selectedSlot: t.uint8().default(0),
     /** Fixed-length slot array; the first HOTBAR_SLOTS are the hotbar. */
     inventory: t.array(ItemStack),
   },

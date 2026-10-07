@@ -1,6 +1,6 @@
 # Game design
 
-_Last updated: Phase 6 (2026-10-07). What exists in the build, not the full vision (see the master
+_Last updated: Phase 7 (2026-10-08). What exists in the build, not the full vision (see the master
 prompt summary in `development-phases.md`)._
 
 ## The home (Phase 2)
@@ -63,7 +63,7 @@ for rendering, client collision, server validation and interaction reach.
   flash + health bar, red screen edge + camera shake when you're hit.
 - **Downed:** at 0 health you drop to the ground (view from the grass, red vignette, bleed-out
   bar, "Hang on — Binh can revive you"). Your partner sees "An is DOWN — go help!" and a toast;
-  next to you they get `[E] Hold — revive An`; 3 s of holding gets you up with 30 health (+15 XP
+  next to you they get `[E] Hold — revive An`; 3 s of holding gets you up with 30 health (letting go pauses, it doesn't start over) (+15 XP
   for them). Boars ignore downed players.
 - **Death:** bleeding out (30 s), going down alone, or both going down → you wake up at home with
   50 health, at least 30 hunger, and all your items.
@@ -80,7 +80,7 @@ for rendering, client collision, server validation and interaction reach.
 
 - **Two shared goals per day** under the clock (e.g. "Hunt 2 animals 0/2", "Cook 3 meals 1/3").
   Both of you count; finishing one gives each of you +25 XP ("✅ Goal done: …").
-- **Morning summary:** after sleeping, a card shows how the day went ("Day 3 survived · 🐗 2
+- **Morning summary:** in the morning (after sleeping, or at sunrise if you stayed up), a card shows how the day went ("Day 3 survived · 🐗 2
   hunted · 🍖 3 meals cooked · 🪵 14 gathered · Goals 2/2 — great teamwork!").
 - **Pressure that makes the loop:** hunger needs about two cooked meals per person per day, so
   two players need roughly two boars a day; nights are dangerous; beds only work from evening.
@@ -107,6 +107,19 @@ morning goals → chop / mine → workbench → hunt boar → butcher → home b
 - Moments this already creates: one cooks while the other waits; "Binh came home"; "An went to bed"
   → the other hurries to bed; whoever is closer collects the finished meal.
 
+## Feel (Phase 7, ADR-019)
+
+- **Sound:** swings, bow twangs, hits (deeper on a kill), boar grunts and wolf growls from where
+  they are (left/right), chopping/mining/picking, pickups, eating, the stove bell, fanfares for
+  goals and levels, a howl at nightfall, footsteps (wood indoors, grass outside), and ambience:
+  birds by day, crickets at night, wind. M mutes.
+- **Particles:** wood chips, stone grit and leaves when harvesting; a puff on every hit; dust when
+  a creature falls or an arrow lands.
+- **Movement:** gentle head bob while walking.
+- **Partner:** you see the spear or bow in their hand.
+- **Backpack / chest:** drag a stack onto another slot to move, swap or merge it.
+- **Settings** (pause menu): mouse sensitivity, volume, mute; remembered in this browser.
+
 ## Saving
 
 Homes save automatically (ADR-009). Closing the browser and coming back with **Continue home** (or
@@ -116,5 +129,5 @@ position. Creatures are not saved: a re-opened home has a fresh herd. A player i
 ## Controls
 
 WASD move · Mouse look · Shift sprint · E interact (hold to keep harvesting / reviving) · Left click
-use the held item (food: eat; spear/bow/fists: attack) · 1–5 / wheel hotbar ·
-Tab backpack · Esc pause.
+use the held item (food: eat; spear/bow/fists: attack; a creature in your face: punch) · 1–5 / wheel
+hotbar · Tab backpack (drag to rearrange) · M mute · Esc pause (settings).

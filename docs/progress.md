@@ -268,8 +268,7 @@
 
 ## Phase 6 — Game loop
 
-**Status:** Done on one machine (tests + all 7 e2e scenarios pass), awaiting the user's test +
-approval (2026-10-07)
+**Status:** Approved by the user (2026-10-07)
 
 **What was built** (ADR-018)
 
@@ -305,3 +304,51 @@ approval (2026-10-07)
 - Two-machine test still pending (on the user's side).
 
 **Next phase:** Phase 7 — polish.
+
+## Phase 7 — Polish
+
+**Status:** Done on one machine (tests + all 9 e2e scenarios pass), awaiting the user's test +
+approval (2026-10-08)
+
+**What was built** (ADR-019)
+
+- Audio, all synthesized (no files): mixer with buses, positional/stereo sounds, pitch variation;
+  combat, creatures, harvesting, pickups, eating, stove bell, fanfares, nightfall howl,
+  footsteps (wood/grass), ambience (birds, crickets, wind). M to mute.
+- Pooled particles: wood chips, stone grit, leaves, hit puffs, dust.
+- Settings in the pause menu: mouse sensitivity, volume, mute (remembered per browser).
+- Partners see what you hold (synced selected slot); weapon models shared with the view model.
+- Head bob; smaller fist; toasts merge loot + XP and stack repeats ("×4").
+- Loading: the 3D canvas is lazy-loaded (menu chunk 137 kB gzip, was 385 kB for everything),
+  "Loading the world…" backdrop, friendly WebGL error screen.
+- **User request:** drag and drop in the backpack and chest (move, swap, merge), server-validated.
+- Profiling (`npm run e2e -- perf`): 41–55 draw calls, ~47k triangles indoors/meadow/night;
+  budget 250 calls / 250k triangles. Software-rendered FPS in headless is 7–15 (a floor, not a
+  real GPU number; indoor lamps cost the most in software).
+
+**Fixed (found by playtests/e2e)**
+
+- The day now closes in the morning (waking up, or sunrise): staying up past midnight no longer
+  loses the summary (Phase 6 known issue).
+- A revive pauses instead of resetting when the helper's pings lapse (lag no longer undoes it).
+- Clicking with food in hand while a creature is in your face punches instead of eating (loot lands
+  in the selected slot mid-hunt).
+- Devtools no longer import three/R3F (kept the e2e hook loading before the 3D chunk).
+
+**Tests**
+
+- `npm test`: 143 passing. New: move/swap/merge within a container; drag in the backpack over the
+  network, chest only at the chest; revive pause + resume; staying up past midnight still sends
+  the summary on waking.
+- `npm run e2e`: 9 scenarios passing (new `backpack`: real mouse drag to an empty slot and onto
+  another stack; new `perf`: draw-call/triangle budget snapshots).
+
+**Known issues**
+
+- Sound can't be checked by the automated tests (headless has no speakers): please listen and tell
+  me what's too loud, too quiet or annoying.
+- Remote players don't animate attacks (only what they hold).
+- The fist is still a simple block; no hand/arm models.
+- Two-machine test still pending on the user's side.
+
+**Next phase:** Phase 8 — deployment.

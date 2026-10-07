@@ -37,6 +37,8 @@ export const ClientMessage = {
   MoveSlot: 'move-slot',
   /** Use the item in an inventory slot (eat food). */
   UseItem: 'use-item',
+  /** The hotbar slot you hold (cosmetic: the server reads attacks from their own slot). */
+  SelectSlot: 'select-slot',
   /** Use the weapon in a hotbar slot: strike the creature in the crosshair, or shoot. */
   Attack: 'attack',
   /** Craft a workbench recipe. */

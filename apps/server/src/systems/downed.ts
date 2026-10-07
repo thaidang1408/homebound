@@ -107,7 +107,7 @@ export function tickDowned(state: HomeState, dtMs: number, now: number): DownedE
         continue;
       }
     } else {
-      p.reviveMs = 0;
+      // A gap in the helper's pings (lag, letting go) pauses the revive; it doesn't start over.
       p.bleedMs -= dtMs;
     }
     p.revive = Math.min(1, p.reviveMs / REVIVE_MS);

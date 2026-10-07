@@ -23,9 +23,11 @@ import {
   type TeleportPayload,
 } from '@homebound/shared';
 import { MAX_FRAME_DT, MOUSE_SENSITIVITY, MOVE_EPSILON } from '../../config/controls';
+import { getSettings } from '../../state/settings';
 import { getUi, showToast, updateUi } from '../../state/ui';
 import { findCreature, findDownedPartner, findFocus, isAvailable } from '../interaction/focus';
 import { heldItem, heldWeaponId } from './held';
+import { playFootstep, playSwing } from '../../audio/sounds';
 import { autopilot, yawToward } from './autopilot';
 import { useHeldKeys } from './keyboard';
 import { localPose } from './localPose';
@@ -59,6 +61,13 @@ const SLEEP_PITCH = 1.25;
 /** A strike nods the view down a touch: you feel the swing even when it misses. */
 const SWING_MS = 160;
 const SWING_PITCH = 0.05;
+/** One footstep sound per this much ground covered (m). */
+const STEP_LENGTH = 1.7;
+/** Head bob: one up-down per step, this high (m). */
+const BOB_HEIGHT = 0.035;
+/** Inside these bounds you walk on floorboards (house footprint, see world/house.ts). */
+const HOUSE_HALF = { x: 6, z: 5 };
+
 /** Taking a hit shakes the view briefly. */
 const SHAKE_MS = 220;
 const SHAKE_ANGLE = 0.035;
@@ -80,6 +89,9 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
   const lastSent = useRef<MovePayload>({ x: 0, z: 0, yaw: 0, pitch: 0 });
   const sinceSend = useRef(0);
   const swingAt = useRef(-1e9);
+  const stride = useRef(0);
+  const bob = useRef({ phase: 0, amount: 0 });
+  const sentSlot = useRef(-1);
   const shake = useRef({ seen: 0, at: -1e9 });
 
   useEffect(() => {
@@ -100,11 +112,9 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     const look = (e: MouseEvent) => {
       if (document.pointerLockElement !== canvas) return;
       const p = pose.current;
-      p.yaw -= e.movementX * MOUSE_SENSITIVITY;
-      p.pitch = Math.max(
-        -MAX_PITCH,
-        Math.min(MAX_PITCH, p.pitch - e.movementY * MOUSE_SENSITIVITY),
-      );
+      const k = MOUSE_SENSITIVITY * getSettings().sensitivity;
+      p.yaw -= e.movementX * k;
+      p.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, p.pitch - e.movementY * k));
     };
     /**
      * Left click uses what you hold: food is eaten, anything else attacks with its weapon (fists
@@ -115,7 +125,9 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       const me = room.state.players.get(room.sessionId);
       if (!me || me.downed || me.sleeping) return;
       const h = heldItem(room);
-      if (isItemId(h.itemId) && getItem(h.itemId).hunger !== undefined) {
+      // Food is eaten, unless a creature is in your face: then you punch (loot lands in the
+      // selected slot mid-hunt, and eating it instead of fighting back gets you killed).
+      if (isItemId(h.itemId) && getItem(h.itemId).hunger !== undefined && !getUi().preyId) {
         room.send(ClientMessage.UseItem, { slot: h.slot });
         return;
       }
@@ -131,6 +143,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       }
       swingAt.current = now;
       localPose.attackAt = now;
+      if (weapon.kind === 'melee') playSwing();
       const p = pose.current;
       room.send(ClientMessage.Attack, {
         slot: h.slot,
@@ -170,6 +183,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       return; // no movement or move messages while in bed
     }
 
+    let walked = 0;
     let forward = 0;
     let strafe = 0;
     if (document.pointerLockElement === canvas) {
@@ -191,11 +205,22 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       );
       // Push out of walls/furniture: the player slides along them.
       const next = resolveCircle(wanted, PLAYER_RADIUS, WORLD_COLLIDERS);
+      walked = Math.hypot(next.x - p.x, next.z - p.z);
+      stride.current += walked;
+      if (stride.current > STEP_LENGTH) {
+        stride.current = 0;
+        playFootstep(Math.abs(next.x) < HOUSE_HALF.x && Math.abs(next.z) < HOUSE_HALF.z);
+      }
       p.x = next.x;
       p.z = next.z;
     }
 
-    camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT, p.z);
+    // Bob while walking, ease back to still when stopping.
+    const b = bob.current;
+    b.phase += (walked / STEP_LENGTH) * Math.PI;
+    b.amount += ((walked > 0 ? 1 : 0) - b.amount) * Math.min(1, dt * 8);
+    const bobY = Math.abs(Math.sin(b.phase)) * BOB_HEIGHT * b.amount;
+    camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT + bobY, p.z);
     const swing = (performance.now() - swingAt.current) / SWING_MS;
     const nod = swing < 1 ? -Math.sin(swing * Math.PI) * SWING_PITCH : 0;
     const { hurtCount } = getUi();
@@ -219,6 +244,12 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     const prey =
       weapon.kind === 'melee' ? findCreature(room, p.x, p.z, p.yaw, weapon.range, false) : null;
     if (prey !== getUi().preyId) updateUi({ preyId: prey });
+
+    const { selectedSlot } = getUi();
+    if (selectedSlot !== sentSlot.current) {
+      sentSlot.current = selectedSlot;
+      room.send(ClientMessage.SelectSlot, { slot: selectedSlot });
+    }
 
     sinceSend.current += dt * 1000;
     if (sinceSend.current < MOVE_SEND_INTERVAL_MS) return;

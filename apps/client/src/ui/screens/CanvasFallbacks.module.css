@@ -1,0 +1,36 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: var(--space-8);
+  background: linear-gradient(var(--color-night), var(--color-bg));
+}
+
+.loading {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.error {
+  max-width: 420px;
+  padding: var(--space-6);
+  margin-bottom: 30vh;
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-lg);
+  color: var(--color-text);
+  text-align: center;
+}
+
+.title {
+  font-weight: var(--font-weight-bold);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.4;
+  }
+}

@@ -6,7 +6,9 @@ import {
   findInteractable,
 } from '@homebound/shared';
 import { getSession } from '../../state/session';
-import { getUi, updateUi, type Panel } from '../../state/ui';
+import { applyVolume } from '../../audio/engine';
+import { getSettings, updateSettings } from '../../state/settings';
+import { getUi, showToast, updateUi, type Panel } from '../../state/ui';
 
 /** The canvas owns the mouse; panels release it. */
 export function resumePlay(): void {
@@ -23,7 +25,7 @@ export function closePanel(): void {
   resumePlay();
 }
 
-/** Holding [E] repeats at the harvest rhythm; also keeps a revive going (server timeout 900 ms). */
+/** Holding [E] repeats at the harvest rhythm; also keeps a revive going (well inside REVIVE_PING_TIMEOUT_MS). */
 const HOLD_REPEAT_MS = HARVEST_COOLDOWN_MS + 40;
 
 /** Returns true if holding [E] should repeat (harvesting a node, reviving a partner). */
@@ -88,6 +90,13 @@ export function useGameKeys(): void {
       }
       if (panel !== 'none' && (e.code === 'Escape' || e.code === 'KeyE')) {
         closePanel();
+        return;
+      }
+      if (e.code === 'KeyM') {
+        const muted = !getSettings().muted;
+        updateSettings({ muted });
+        applyVolume();
+        showToast(muted ? '🔇 Sound off (M)' : '🔊 Sound on (M)');
         return;
       }
       if (!locked) return;

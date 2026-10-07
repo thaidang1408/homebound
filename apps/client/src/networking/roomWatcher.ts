@@ -18,6 +18,17 @@ import {
   type HomeState,
 } from '@homebound/shared';
 import { getSession, updateSession } from '../state/session';
+import {
+  playBell,
+  playDowned,
+  playEat,
+  playFanfare,
+  playHit,
+  playHowl,
+  playHurt,
+  playPickup,
+  playRevived,
+} from '../audio/sounds';
 import { getUi, showToast, updateUi } from '../state/ui';
 
 /** The low-frequency slice of room state the React UI cares about. */
@@ -64,7 +75,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     slots(s.chest),
     ...players.map(
       ([id, p]) =>
-        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.downed}|${p.downed ? `${Math.round(p.bleedOut * 20)}/${Math.round(p.revive * 20)}` : ''}|${p.xp}|${p.level}|${slots(p.inventory)}`,
+        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.downed}|${p.downed ? `${Math.round(p.bleedOut * 20)}/${Math.round(p.revive * 20)}` : ''}|${p.xp}|${p.level}|${p.selectedSlot}|${slots(p.inventory)}`,
     ),
     // Health and presence change only in fights; patrol movement doesn't re-render the UI.
     ...[...s.creatures.entries()].map(([id, c]) => `${id}:${c.health}:${c.present}`),
@@ -96,31 +107,50 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   if (next.day > prev.day) showToast(`Day ${next.day} — good morning!`);
   if (next.stoveStatus === StoveStatus.Done && prev.stoveStatus !== StoveStatus.Done) {
     showToast('The food is ready!');
+    playBell();
   }
-  if (next.myHealth < prev.myHealth) updateUi({ hurtCount: getUi().hurtCount + 1 });
+  if (next.myHealth < prev.myHealth) {
+    updateUi({ hurtCount: getUi().hurtCount + 1 });
+    playHurt();
+  }
   for (const id of next.carcasses) {
     const kind = room.state.creatures.get(id)?.kind ?? '';
     if (prev.carcasses.has(id) || !isCreatureKind(kind)) continue;
     showToast(`${CREATURES[kind].name} down! Butcher it with E`);
   }
   const ate = next.myHunger - prev.myHunger;
-  if (ate > 0) showToast(`+${ate} hunger`);
+  if (ate > 0) {
+    showToast(`+${ate} hunger`);
+    playEat();
+  }
+  // Loot and XP from one action go in a single toast ("+1 🪵 Wood · +2 XP").
+  const gains: string[] = [];
   for (const [id, qty] of next.items) {
     const gained = qty - (prev.items.get(id) ?? 0);
-    if (gained > 0 && isItemId(id)) showToast(`+${gained} ${getItem(id).icon} ${getItem(id).name}`);
+    if (gained > 0 && isItemId(id))
+      gains.push(`+${gained} ${getItem(id).icon} ${getItem(id).name}`);
   }
+  if ([...next.items].some(([id, qty]) => qty > (prev.items.get(id) ?? 0))) playPickup();
   if (next.phase !== prev.phase) {
     if (next.phase === 'evening') showToast('The sun is setting — head home before dark.');
-    if (next.phase === 'night') showToast('Night has fallen — wolves are out. Stay close to home.');
+    if (next.phase === 'night') {
+      showToast('Night has fallen — wolves are out. Stay close to home.');
+      playHowl();
+    }
   }
   const earned = next.myXp - prev.myXp;
-  if (earned > 0) showToast(`+${earned} XP`);
-  if (next.myLevel > prev.myLevel) showToast(`⭐ Level ${next.myLevel}!`);
+  if (earned > 0) gains.push(`+${earned} XP`);
+  if (gains.length > 0) showToast(gains.join(' · '));
+  if (next.myLevel > prev.myLevel) {
+    showToast(`⭐ Level ${next.myLevel}!`);
+    playFanfare();
+  }
   if (next.day === prev.day) {
     for (const g of room.state.goals) {
       const key = `${g.kind}:${g.target}`;
       if (!next.goalsDone.has(key) || prev.goalsDone.has(key) || !isGoalKind(g.kind)) continue;
       showToast(`✅ Goal done: ${GOALS[g.kind].label(g.target)} (+${GOAL_XP} XP each)`);
+      playFanfare();
     }
   }
 
@@ -133,6 +163,8 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
     const was = prev.downed.get(id) ?? false;
     if (down === was) continue;
     const name = room.state.players.get(id)?.name ?? 'Your partner';
+    if (down) playDowned();
+    else playRevived();
     if (id === room.sessionId) {
       showToast(down ? 'You’re down! Hang on…' : 'Back on your feet!');
     } else {
@@ -168,8 +200,9 @@ export function watchRoom(room: Room<HomeState>): void {
     showToast('You didn’t make it… and woke up at home. Your items are safe.'),
   );
   room.onMessage(ServerMessage.DaySummary, (summary: DaySummaryPayload) => updateUi({ summary }));
-  room.onMessage(ServerMessage.HitConfirm, (p: HitConfirmPayload) =>
-    updateUi({ hitCount: getUi().hitCount + 1, lastHitKilled: p.killed }),
-  );
+  room.onMessage(ServerMessage.HitConfirm, (p: HitConfirmPayload) => {
+    updateUi({ hitCount: getUi().hitCount + 1, lastHitKilled: p.killed });
+    playHit(p.killed);
+  });
   apply();
 }

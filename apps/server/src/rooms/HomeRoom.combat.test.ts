@@ -33,6 +33,11 @@ afterEach(() => h.leaveAll());
 afterAll(() => h.stop());
 
 const TO_WORKBENCH = [{ x: 4.2, z: 3.0 }];
+const TO_BED = [
+  { x: 3.5, z: 1.8 },
+  { x: 3.5, z: -1.5 },
+  { x: 2.9, z: -3.2 },
+];
 const countIn = (slots: Iterable<{ itemId: string; qty: number }>, id: string) =>
   [...slots].filter((s) => s.itemId === id).reduce((n, s) => n + s.qty, 0);
 
@@ -120,6 +125,24 @@ describe('crafting and weapons', () => {
 });
 
 describe('the day loop', () => {
+  test(
+    'staying up past midnight still ends with the summary in the morning',
+    { timeout: 20_000 },
+    async () => {
+      const room = await soloGame();
+      let summary: DaySummaryPayload | undefined;
+      room.onMessage(ServerMessage.DaySummary, (p: DaySummaryPayload) => (summary = p));
+      await setTime(room, 0.997); // ~2 s before midnight
+      await waitFor(() => room.state.day === 2, 6000);
+      await sleep(300);
+      expect(summary).toBeUndefined(); // not at midnight…
+      await walk(room, TO_BED);
+      room.send(ClientMessage.Interact, { targetId: 'bed' });
+      await waitFor(() => summary !== undefined, 6000); // …but on waking up
+      expect(summary?.day).toBe(1);
+    },
+  );
+
   test('sleeping ends the day with a summary and brings new goals', async () => {
     const room = await soloGame();
     expect(room.state.goals.length).toBe(GOALS_PER_DAY);

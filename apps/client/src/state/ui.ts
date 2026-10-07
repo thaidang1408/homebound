@@ -6,6 +6,8 @@ export type Panel = 'none' | 'inventory' | 'storage' | 'workbench';
 export interface Toast {
   id: number;
   text: string;
+  /** Identical toasts in a row stack into one line ("… ×3"). */
+  count: number;
 }
 
 interface UiState {
@@ -46,8 +48,29 @@ const TOAST_MS = 2600;
 let nextToastId = 1;
 
 /** Short feedback message ("+35 hunger", "Day 2 — Good morning!"). */
+const timers = new Map<number, ReturnType<typeof setTimeout>>();
+
+function expire(id: number): void {
+  clearTimeout(timers.get(id));
+  timers.set(
+    id,
+    setTimeout(() => {
+      timers.delete(id);
+      updateUi({ toasts: getUi().toasts.filter((t) => t.id !== id) });
+    }, TOAST_MS),
+  );
+}
+
 export function showToast(text: string): void {
-  const toast = { id: nextToastId++, text };
-  updateUi({ toasts: [...getUi().toasts, toast].slice(-3) });
-  setTimeout(() => updateUi({ toasts: getUi().toasts.filter((t) => t.id !== toast.id) }), TOAST_MS);
+  const { toasts } = getUi();
+  const last = toasts.at(-1);
+  if (last?.text === text) {
+    // Same message again (holding E on a tree): count it up and keep it on screen.
+    updateUi({ toasts: [...toasts.slice(0, -1), { ...last, count: last.count + 1 }] });
+    expire(last.id);
+    return;
+  }
+  const toast = { id: nextToastId++, text, count: 1 };
+  updateUi({ toasts: [...toasts, toast].slice(-3) });
+  expire(toast.id);
 }
