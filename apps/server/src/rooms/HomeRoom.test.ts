@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
-import { Client, CloseCode, type Room } from '@colyseus/sdk';
+import { CloseCode } from '@colyseus/sdk';
 import {
   ClientMessage,
   GamePhase,
@@ -10,62 +10,14 @@ import {
   type HomeState,
   type TeleportPayload,
 } from '@homebound/shared';
-import { createGameServer } from '../app.js';
+import { createHarness, playerOf, startGame, waitFor } from '../test/harness.js';
 
-const TEST_PORT = 2598;
-const server = createGameServer();
-const sdk = new Client(`http://127.0.0.1:${TEST_PORT}`);
-const openRooms: Room<HomeState>[] = [];
+const h = createHarness(2598);
+const { sdk, track, createPair } = h;
 
-async function waitFor(check: () => boolean, timeoutMs = 2000): Promise<void> {
-  const start = Date.now();
-  while (!check()) {
-    if (Date.now() - start > timeoutMs) throw new Error('waitFor timed out');
-    await new Promise((r) => setTimeout(r, 10));
-  }
-}
-
-/** Synced player state as seen by `room`; throws if absent. */
-function playerOf(room: Room<HomeState>, sessionId: string) {
-  const player = room.state.players.get(sessionId);
-  if (!player) throw new Error(`player ${sessionId} not in state`);
-  return player;
-}
-
-async function track(promise: Promise<Room<HomeState>>): Promise<Room<HomeState>> {
-  const room = await promise;
-  openRooms.push(room);
-  return room;
-}
-
-/** Host creates a room, partner joins by code, both wait for the full state. */
-async function createPair() {
-  const host = await track(sdk.create<HomeState>(ROOM_NAME, { name: 'Host' }));
-  const partner = await track(sdk.joinById<HomeState>(host.roomId, { name: 'Partner' }));
-  await waitFor(() => host.state.players.size === 2 && partner.state.players.size === 2);
-  return { host, partner };
-}
-
-async function startGame(host: Room<HomeState>, partner: Room<HomeState>) {
-  host.send(ClientMessage.Ready, { ready: true });
-  partner.send(ClientMessage.Ready, { ready: true });
-  await waitFor(() => [...host.state.players.values()].every((p) => p.ready));
-  host.send(ClientMessage.Start);
-  await waitFor(() => partner.state.phase === GamePhase.Playing);
-}
-
-beforeAll(async () => {
-  await server.listen(TEST_PORT, '127.0.0.1');
-});
-
-afterEach(async () => {
-  const rooms = openRooms.splice(0).filter((r) => r.connection.isOpen);
-  await Promise.all(rooms.map((r) => r.leave().catch(() => undefined)));
-});
-
-afterAll(async () => {
-  await server.gracefullyShutdown(false);
-});
+beforeAll(() => h.start());
+afterEach(() => h.leaveAll());
+afterAll(() => h.stop());
 
 describe('room lifecycle', () => {
   test('create returns a valid human room code', async () => {
@@ -156,7 +108,10 @@ describe('movement sync', () => {
     );
     host.send(ClientMessage.Move, { x: start.x + 20, z: start.z, yaw: 0, pitch: 0 });
 
-    expect(await correction).toEqual({ x: start.x, z: start.z });
+    // State is float32 on the wire; the correction carries the exact server value.
+    const { x, z } = await correction;
+    expect(x).toBeCloseTo(start.x, 4);
+    expect(z).toBeCloseTo(start.z, 4);
     expect(playerOf(partner, host.sessionId).x).toBe(start.x);
   });
 

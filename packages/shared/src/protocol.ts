@@ -17,11 +17,17 @@ export const ClientMessage = {
   Start: 'start',
   /** Predicted position/look, validated by the server. */
   Move: 'move',
+  /** Use a piece of furniture (stove, bed). The server decides what happens. */
+  Interact: 'interact',
+  /** Move a whole stack between the player's inventory and the shared chest. */
+  Transfer: 'transfer',
+  /** Use the item in an inventory slot (eat food). */
+  UseItem: 'use-item',
 } as const;
 
 /** Server → client message names. */
 export const ServerMessage = {
-  /** Server rejected a move: snap the local player to this position. */
+  /** Server overrode the local player's position (rejected move, bed). Snap to it. */
   Teleport: 'teleport',
 } as const;
 
@@ -39,4 +45,19 @@ export interface MovePayload {
 export interface TeleportPayload {
   x: number;
   z: number;
+}
+
+export interface InteractPayload {
+  targetId: string;
+}
+
+export type Container = 'player' | 'chest';
+
+export interface TransferPayload {
+  from: Container;
+  slot: number;
+}
+
+export interface UseItemPayload {
+  slot: number;
 }

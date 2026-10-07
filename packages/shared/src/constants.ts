@@ -1,3 +1,5 @@
+import type { ItemId } from './items.js';
+
 /** MVP is strictly two-player co-op. */
 export const MAX_PLAYERS = 2;
 
@@ -30,6 +32,7 @@ export const MOVE_SEND_INTERVAL_MS = 50;
 export const PLAYER_WALK_SPEED = 4.5; // m/s
 export const PLAYER_SPRINT_SPEED = 7; // m/s
 export const PLAYER_EYE_HEIGHT = 1.6; // m
+export const PLAYER_RADIUS = 0.3; // m, collision circle
 
 /** Server accepts up to sprint speed × tolerance, plus a fixed slack for network jitter. */
 export const MOVE_SPEED_TOLERANCE = 1.5;
@@ -40,8 +43,47 @@ export const WORLD_RADIUS = 28; // m
 
 export const MAX_PITCH = Math.PI / 2 - 0.01;
 
-/** Spawn in front of the house, facing it (yaw 0 looks toward -Z). Indexed by slot - 1. */
+/** Spawn in the living room, facing the kitchen/bedroom doorways (yaw 0 looks toward -Z). By slot - 1. */
 export const SPAWN_POINTS: readonly { x: number; z: number; yaw: number }[] = [
-  { x: -1.5, z: 7, yaw: 0 },
-  { x: 1.5, z: 7, yaw: 0 },
+  { x: -1.2, z: 2.6, yaw: 0 },
+  { x: 1.2, z: 2.6, yaw: 0 },
 ];
+
+// --- Simulation ---
+
+/** Server fixed tick for needs and stations. */
+export const SIMULATION_TICK_MS = 100;
+
+// --- Interaction ---
+
+/** Max distance from a player to the edge of a piece of furniture to use it. */
+export const INTERACT_RANGE = 1.4; // m
+/** Extra distance the server allows on top of INTERACT_RANGE (latency between client and server poses). */
+export const INTERACT_TOLERANCE = 0.6; // m
+
+// --- Inventory ---
+
+export const PLAYER_INVENTORY_SLOTS = 10;
+/** The first HOTBAR_SLOTS of the player inventory are the hotbar (keys 1–5). */
+export const HOTBAR_SLOTS = 5;
+export const CHEST_SLOTS = 16;
+/** What the shared chest holds on day 1, until hunting exists (Phase 4). */
+export const STARTER_CHEST: readonly { itemId: ItemId; qty: number }[] = [
+  { itemId: 'raw_meat', qty: 6 },
+];
+
+// --- Needs ---
+
+export const HUNGER_MAX = 100;
+export const HUNGER_START = 80;
+/** Full to empty in 20 minutes of play; paused while sleeping. */
+export const HUNGER_DECAY_PER_SECOND = HUNGER_MAX / (20 * 60);
+
+// --- Cooking ---
+
+export const COOK_TIME_MS = 6000;
+
+// --- Sleep ---
+
+/** Once everyone is in bed, wait this long (fade to black) before the new day starts. */
+export const NEW_DAY_DELAY_MS = 2500;

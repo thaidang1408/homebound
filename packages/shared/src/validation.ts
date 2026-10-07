@@ -8,7 +8,13 @@ import {
   ROOM_CODE_LENGTH,
   WORLD_RADIUS,
 } from './constants.js';
-import type { MovePayload, ReadyPayload } from './protocol.js';
+import type {
+  InteractPayload,
+  MovePayload,
+  ReadyPayload,
+  TransferPayload,
+  UseItemPayload,
+} from './protocol.js';
 
 /** Uppercases and strips spaces/dashes so "ab c-12" matches "ABC12". */
 export function normalizeRoomCode(input: string): string {
@@ -54,6 +60,27 @@ export function parseMovePayload(value: unknown): MovePayload | null {
 export function parseReadyPayload(value: unknown): ReadyPayload | null {
   if (!isRecord(value) || typeof value.ready !== 'boolean') return null;
   return { ready: value.ready };
+}
+
+/** Slot index shape only; the server checks it against the actual container length. */
+function isSlotIndex(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0;
+}
+
+export function parseInteractPayload(value: unknown): InteractPayload | null {
+  if (!isRecord(value) || typeof value.targetId !== 'string') return null;
+  return { targetId: value.targetId };
+}
+
+export function parseTransferPayload(value: unknown): TransferPayload | null {
+  if (!isRecord(value) || !isSlotIndex(value.slot)) return null;
+  if (value.from !== 'player' && value.from !== 'chest') return null;
+  return { from: value.from, slot: value.slot };
+}
+
+export function parseUseItemPayload(value: unknown): UseItemPayload | null {
+  if (!isRecord(value) || !isSlotIndex(value.slot)) return null;
+  return { slot: value.slot };
 }
 
 /** Clamps a point into the playable circle. */

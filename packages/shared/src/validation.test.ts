@@ -6,7 +6,10 @@ import {
   isValidRoomCode,
   normalizeRoomCode,
   parseMovePayload,
+  parseInteractPayload,
   parseReadyPayload,
+  parseTransferPayload,
+  parseUseItemPayload,
   sanitizePlayerName,
 } from './validation.js';
 
@@ -40,6 +43,15 @@ describe('message parsing', () => {
 
   test('clamps pitch', () => {
     expect(parseMovePayload({ x: 1, z: 2, yaw: 0, pitch: 99 })?.pitch).toBe(MAX_PITCH);
+  });
+
+  test('interaction payloads need exact shapes', () => {
+    expect(parseInteractPayload({ targetId: 'stove' })).toEqual({ targetId: 'stove' });
+    expect(parseInteractPayload({ targetId: 3 })).toBeNull();
+    expect(parseTransferPayload({ from: 'chest', slot: 2 })).toEqual({ from: 'chest', slot: 2 });
+    expect(parseTransferPayload({ from: 'fridge', slot: 2 })).toBeNull();
+    expect(parseTransferPayload({ from: 'player', slot: 1.5 })).toBeNull();
+    expect(parseUseItemPayload({ slot: -1 })).toBeNull();
   });
 
   test('ready payload must carry a boolean', () => {
