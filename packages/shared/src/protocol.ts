@@ -35,6 +35,8 @@ export const ClientMessage = {
   Transfer: 'transfer',
   /** Use the item in an inventory slot (eat food). */
   UseItem: 'use-item',
+  /** Strike the creature in your crosshair (bare hands for now). Payload: InteractPayload. */
+  Attack: 'attack',
   /** Development servers only: jump the clock (playtests). Ignored in production. */
   DevSetTime: 'dev:set-time',
 } as const;
@@ -43,6 +45,8 @@ export const ClientMessage = {
 export const ServerMessage = {
   /** Server overrode the local player's position (rejected move, bed). Snap to it. */
   Teleport: 'teleport',
+  /** You ran out of health and woke up at home (Phase 4 stand-in for downed/revive). */
+  BlackedOut: 'blacked-out',
 } as const;
 
 export interface ReadyPayload {

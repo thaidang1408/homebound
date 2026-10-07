@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { logger } from '@colyseus/core';
 import {
   CHEST_SLOTS,
+  HEALTH_MAX,
   HUNGER_MAX,
   NEW_HOME_TIME,
   PLAYER_INVENTORY_SLOTS,
@@ -33,6 +34,8 @@ export type SavedSlots = (SavedStack | null)[];
 export interface SavedPlayer {
   name: string;
   hunger: number;
+  /** Missing in saves from before Phase 4 → full health. */
+  health: number;
   xp: number;
   x: number;
   z: number;
@@ -122,6 +125,8 @@ function parsePlayer(value: unknown): SavedPlayer | null {
   return {
     name: str(value.name).slice(0, 32),
     hunger: num(value.hunger, HUNGER_MAX, 0, HUNGER_MAX),
+    // Never load a 0-health player: they'd be stuck unconscious.
+    health: num(value.health, HEALTH_MAX, 1, HEALTH_MAX),
     xp: Math.floor(num(value.xp, 0, 0, 2 ** 31)),
     x: num(value.x, 0),
     z: num(value.z, 0),

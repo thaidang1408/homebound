@@ -93,3 +93,14 @@ export const COOK_TIME_MS = 6000;
 
 /** Once everyone is in bed, wait this long (fade to black) before the new day starts. */
 export const NEW_DAY_DELAY_MS = 2500;
+
+// --- Health ---
+
+export const HEALTH_MAX = 100;
+/** Slow natural healing while not starving (full in ~7 minutes). */
+export const HEALTH_REGEN_PER_SECOND = 0.25;
+/**
+ * Phase 4 stand-in for downed/revive (Phase 5): at 0 health you black out and wake up at home
+ * with this much health, keeping your items.
+ */
+export const BLACKOUT_HEALTH = 50;

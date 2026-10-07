@@ -35,6 +35,7 @@ export function snapshotPlayer(p: PlayerState): SavedPlayer {
   return {
     name: p.name,
     hunger: p.hungerExact,
+    health: Math.max(1, p.healthExact),
     xp: p.xp,
     x: p.x,
     z: p.z,
@@ -47,6 +48,8 @@ export function snapshotPlayer(p: PlayerState): SavedPlayer {
 export function applyPlayer(p: PlayerState, saved: SavedPlayer): void {
   p.hungerExact = saved.hunger;
   p.hunger = Math.ceil(saved.hunger);
+  p.healthExact = saved.health;
+  p.health = Math.ceil(saved.health);
   p.xp = saved.xp;
   p.level = levelForXp(saved.xp).level;
   p.x = saved.x;

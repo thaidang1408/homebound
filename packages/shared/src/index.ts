@@ -1,4 +1,5 @@
 export * from './constants.js';
+export * from './creatures.js';
 export * from './items.js';
 export * from './progression.js';
 export * from './protocol.js';

@@ -1,6 +1,8 @@
 import { Room, ServerError, logger, type Client, type Delayed } from '@colyseus/core';
 import {
   AUTOSAVE_INTERVAL_MS,
+  BLACKOUT_HEALTH,
+  CREATURES,
   CHEST_SLOTS,
   ClientMessage,
   GamePhase,
@@ -18,11 +20,14 @@ import {
   RECONNECT_GRACE_SECONDS,
   SIMULATION_TICK_MS,
   STARTER_CHEST,
+  UNARMED_ATTACK,
   SPAWN_POINTS,
   ServerMessage,
   WORLD_RADIUS,
   XP_REWARDS,
   clampToWorld,
+  createRandom,
+  isCreatureKind,
   collides,
   distanceToBox,
   findFurniture,
@@ -47,8 +52,15 @@ import { homeExists, loadHome, saveHome, type SavedPlayer } from '../persistence
 import { applyHome, applyPlayer, buildSave, snapshotPlayer } from '../persistence/homeState.js';
 import { env } from '../config/env.js';
 import { tickClock } from '../systems/clock.js';
+import {
+  butcherCreature,
+  creatureReach,
+  initCreatures,
+  strikeCreature,
+  tickCreatures,
+} from '../systems/creatures.js';
 import { harvest, initResources, tickResources } from '../systems/harvest.js';
-import { eatFromSlot, tickNeeds } from '../systems/needs.js';
+import { eatFromSlot, hurtPlayer, setHealth, tickNeeds } from '../systems/needs.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
@@ -82,6 +94,10 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private readonly lastMoveAt = new Map<string, number>();
   /** Server time of each player's last harvest (cooldown). */
   private readonly lastHarvestAt = new Map<string, number>();
+  /** Server time of each player's last strike (cooldown). */
+  private readonly lastAttackAt = new Map<string, number>();
+  /** Creature spawns, wandering and loot rolls. */
+  private readonly random = createRandom(Date.now());
   /** sessionId → stable playerId (what saves are keyed by). */
   private readonly playerIds = new Map<string, string>();
   /** Saved data for every player of this home, including those offline right now. */
@@ -115,6 +131,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.onMessage(ClientMessage.Interact, (client, message: unknown) =>
       this.handleInteract(client, message),
     );
+    this.onMessage(ClientMessage.Attack, (client, message: unknown) =>
+      this.handleAttack(client, message),
+    );
     this.onMessage(ClientMessage.Transfer, (client, message: unknown) =>
       this.handleTransfer(client, message),
     );
@@ -140,6 +159,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private startNewHome() {
     this.roomId = claimNewCode(homeExists);
     initResources(this.state);
+    initCreatures(this.state, this.random);
     this.state.chest = createSlots(CHEST_SLOTS);
     for (const { itemId, qty } of STARTER_CHEST) addItem(this.state.chest, itemId, qty);
   }
@@ -155,6 +175,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     }
     this.roomId = code;
     initResources(this.state);
+    initCreatures(this.state, this.random);
     this.state.chest = createSlots(CHEST_SLOTS);
     applyHome(this.state, save);
     this.savedPlayers = save.players;
@@ -231,6 +252,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.playerIds.delete(client.sessionId);
     this.lastMoveAt.delete(client.sessionId);
     this.lastHarvestAt.delete(client.sessionId);
+    this.lastAttackAt.delete(client.sessionId);
     this.save();
     this.scheduleNewDay(); // the one still in bed may now be the only player
     logger.info(`[room ${this.roomId}] leave ${client.sessionId}`);
@@ -264,6 +286,24 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     tickResources(this.state, dtMs);
     const cook = tickStove(this.state, dtMs);
     if (cook) this.rewardPlayer(cook, XP_REWARDS.cookMeal);
+    for (const hit of tickCreatures(this.state, dtMs, this.random)) {
+      const player = this.state.players.get(hit.sessionId);
+      if (player && hurtPlayer(player, hit.damage)) this.blackOut(hit.sessionId, player);
+    }
+  }
+
+  /** Out of health: wake up at home (Phase 5 replaces this with downed + revive). */
+  private blackOut(sessionId: string, player: PlayerState) {
+    const spawn = SPAWN_POINTS[player.slot - 1] ?? { x: 0, z: 0, yaw: 0 };
+    player.x = spawn.x;
+    player.z = spawn.z;
+    setHealth(player, BLACKOUT_HEALTH);
+    const client = this.clients.find((c) => c.sessionId === sessionId);
+    if (client) {
+      this.teleport(client, spawn);
+      client.send(ServerMessage.BlackedOut);
+    }
+    logger.info(`[room ${this.roomId}] ${sessionId} blacked out`);
   }
 
   /** XP for a playerId, whether they're in the room or offline (their save is updated). */
@@ -322,9 +362,38 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.lastMoveAt.set(client.sessionId, now);
   }
 
+  private handleAttack(client: Client, message: unknown) {
+    const payload = parseInteractPayload(message);
+    const player = this.activePlayer(client);
+    const playerId = this.playerIds.get(client.sessionId);
+    if (!payload || !player || !playerId || player.sleeping || player.health === 0) return;
+    const now = this.clock.currentTime;
+    if (now - (this.lastAttackAt.get(client.sessionId) ?? -Infinity) < UNARMED_ATTACK.cooldownMs) {
+      return;
+    }
+    const outcome = strikeCreature(this.state, payload.targetId, {
+      sessionId: client.sessionId,
+      player,
+    });
+    if (outcome === 'invalid' || outcome === 'out-of-reach') return;
+    this.lastAttackAt.set(client.sessionId, now);
+    const kind = this.state.creatures.get(payload.targetId)?.kind ?? '';
+    if (outcome === 'killed' && isCreatureKind(kind)) grantXp(player, CREATURES[kind].xp);
+  }
+
+  /** [E] on a carcass. Creatures are dynamic, so they aren't in the static interactable list. */
+  private handleButcher(player: PlayerState, creatureId: string) {
+    if (creatureReach(this.state, creatureId, player) > INTERACT_RANGE + INTERACT_TOLERANCE) return;
+    butcherCreature(this.state, creatureId, player, this.random);
+  }
+
   private handleInteract(client: Client, message: unknown) {
     const payload = parseInteractPayload(message);
     const player = this.activePlayer(client);
+    if (payload && player && !player.sleeping && this.state.creatures.has(payload.targetId)) {
+      this.handleButcher(player, payload.targetId);
+      return;
+    }
     const target = payload ? findInteractable(payload.targetId) : undefined;
     const playerId = this.playerIds.get(client.sessionId);
     if (!player || !playerId || !target || !this.isNear(player, target.box)) return;

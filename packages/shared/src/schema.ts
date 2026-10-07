@@ -1,5 +1,6 @@
 import { schema, t, type SchemaType } from '@colyseus/schema';
-import { HUNGER_START, MAX_PITCH } from './constants.js';
+import { HEALTH_MAX, HUNGER_START, MAX_PITCH } from './constants.js';
+import { CreatureMode } from './creatures.js';
 import { NEW_HOME_TIME } from './world/time.js';
 
 // Every primitive needs an explicit default: schema-builder numbers otherwise start as
@@ -38,6 +39,10 @@ export const PlayerState = schema(
     /** Exact value the server decays; never sent. */
     hungerExact: t.float64().noSync().default(HUNGER_START),
     sleeping: t.boolean().default(false),
+    /** Displayed health (rounded up). */
+    health: t.uint8().default(HEALTH_MAX),
+    /** Exact value (regen is fractional); never sent. */
+    healthExact: t.float64().noSync().default(HEALTH_MAX),
     /** Lifetime XP; level is derived from it (progression.ts) and synced for the UI. */
     xp: t.uint32().default(0),
     level: t.uint8().default(1),
@@ -83,6 +88,30 @@ export const ResourceState = schema(
 );
 export type ResourceState = SchemaType<typeof ResourceState>;
 
+/** A live creature. Kind data lives in creatures.ts; the AI runs on the server only. */
+export const CreatureState = schema(
+  {
+    kind: t.string().default(''),
+    mode: t.string().default(CreatureMode.Idle),
+    x: t.float32().default(0),
+    z: t.float32().default(0),
+    yaw: t.angle().default(0),
+    health: t.uint8().default(0),
+    /** Hidden while waiting to respawn (after being butchered). */
+    present: t.boolean().default(true),
+    // --- server-only AI memory ---
+    /** Time left in the current mode (idle pause, alert, wind-up, hurt, respawn). */
+    timerMs: t.float64().noSync().default(0),
+    /** sessionId being chased/attacked ('' = none). */
+    target: t.string().noSync().default(''),
+    /** Where a patrol is walking to. */
+    goalX: t.float32().noSync().default(0),
+    goalZ: t.float32().noSync().default(0),
+  },
+  'CreatureState',
+);
+export type CreatureState = SchemaType<typeof CreatureState>;
+
 export const HomeState = schema(
   {
     phase: t.string().default(GamePhase.Lobby),
@@ -96,6 +125,8 @@ export const HomeState = schema(
     stove: StoveState,
     /** Keyed by resource node id. */
     resources: t.map(ResourceState),
+    /** Keyed by creature id (`boar-0`…). Not saved: a re-opened home has fresh creatures. */
+    creatures: t.map(CreatureState),
   },
   'HomeState',
 );

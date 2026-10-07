@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, test } from 'vitest';
-import { HUNGER_MAX } from '@homebound/shared';
+import { HEALTH_MAX, HUNGER_MAX } from '@homebound/shared';
 import {
   SAVE_VERSION,
   homeExists,
@@ -36,6 +36,7 @@ function sample(code = 'ABC23'): HomeSave {
       [PLAYER]: {
         name: 'An',
         hunger: 42.5,
+        health: 64,
         xp: 130,
         x: 1,
         z: 2,
@@ -57,6 +58,7 @@ describe('home saves', () => {
     expect(loaded?.stove.status).toBe('cooking');
     expect(loaded?.timeOfDay).toBe(0.8);
     expect(loaded?.resources).toEqual({ 'tree-0': 1 }); // unknown node ids dropped
+    expect(loaded?.players[PLAYER]?.health).toBe(64);
   });
 
   test('unknown or invalid codes are simply missing', () => {
@@ -91,6 +93,7 @@ describe('home saves', () => {
     expect(parsed?.chest[1]?.qty).toBe(10); // maxStack
     expect(parsed?.players[PLAYER]?.hunger).toBe(HUNGER_MAX);
     expect(parsed?.players[PLAYER]?.xp).toBe(0);
+    expect(parsed?.players[PLAYER]?.health).toBe(HEALTH_MAX); // pre-Phase 4 saves: full health
     expect(Object.keys(parsed?.players ?? {})).toEqual([PLAYER]);
   });
 
