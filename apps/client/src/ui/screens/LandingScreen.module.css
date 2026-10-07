@@ -1,0 +1,40 @@
+.brand {
+  text-align: center;
+}
+
+.logo {
+  margin: 0;
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.02em;
+  color: var(--color-primary);
+}
+
+.tagline {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: var(--border-panel);
+}
+
+.codeInput {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-weight: var(--font-weight-bold);
+}

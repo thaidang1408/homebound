@@ -1,0 +1,91 @@
+.codeBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.codeLabel,
+.codeHint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.code {
+  padding: var(--space-2) var(--space-6);
+  background: var(--color-bg);
+  border: var(--border-panel);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.25em;
+  cursor: pointer;
+}
+
+.code:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.players {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-raised);
+  border: var(--border-panel);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.card[data-ready='true'] {
+  border-color: var(--color-success);
+}
+
+.card[data-ready='true'] .status {
+  color: var(--color-success);
+}
+
+.empty {
+  grid-template-columns: 1fr auto;
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.swatch {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  border-radius: var(--radius-pill);
+}
+
+.name {
+  font-weight: var(--font-weight-bold);
+}
+
+.you {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.status {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.grow {
+  flex: 1;
+}

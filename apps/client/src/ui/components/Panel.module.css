@@ -1,0 +1,56 @@
+/* Shared overlay + panel styles for menu screens. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: var(--color-scrim);
+}
+
+.panel {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(6px);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.error {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}

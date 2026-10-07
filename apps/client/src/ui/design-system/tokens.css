@@ -14,6 +14,8 @@
   --color-primary-hover: #f2b862;
   --color-success: #7fc47a;
   --color-danger: #e0625a;
+  --color-danger-soft: rgba(224, 98, 90, 0.15);
+  --color-scrim: rgba(29, 36, 33, 0.35);
   --color-warning: #e8c64b;
   --color-health: #e0625a;
   --color-hunger: #d99a4e;

@@ -1,0 +1,85 @@
+/* The HUD never blocks clicks to the canvas, except for its own interactive panels. */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.interactive {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.topLeft {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.pill {
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+}
+
+.pill[data-tone='ok'] {
+  border-color: var(--color-success);
+}
+
+.pill[data-tone='warn'] {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.banner {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-2) var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-pill);
+  color: var(--color-warning);
+  font-weight: var(--font-weight-bold);
+}
+
+.crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--space-2);
+  height: var(--space-2);
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-pill);
+  opacity: 0.85;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.key {
+  display: inline-block;
+  min-width: 3.5em;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-raised);
+  border: var(--border-panel);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
