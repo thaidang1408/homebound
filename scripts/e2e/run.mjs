@@ -1,5 +1,6 @@
 // Browser playtests against a running dev server (`npm run dev`).
 // Usage: npm run e2e [-- http://host:5173] [scenario...]. Screenshots: scripts/e2e/out/.
+import backpack from './backpack.mjs';
 import combat from './combat.mjs';
 import gameLoop from './game-loop.mjs';
 import { createRun } from './lib.mjs';
@@ -17,6 +18,7 @@ const SCENARIOS = {
   hunting,
   combat,
   'game-loop': gameLoop,
+  backpack,
 };
 
 const args = process.argv.slice(2);

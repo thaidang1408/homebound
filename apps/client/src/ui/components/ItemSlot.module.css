@@ -42,6 +42,16 @@ button.slot:focus-visible {
   opacity: 0.55;
 }
 
+/* A stack is being dragged over this slot. */
+.dropTarget {
+  border-color: var(--color-primary);
+  opacity: 1;
+}
+
+.slot[draggable='true'] {
+  cursor: grab;
+}
+
 .icon {
   font-size: var(--font-size-xl);
   line-height: 1;

@@ -6,6 +6,7 @@ import {
   createSlots,
   itemAt,
   moveStack,
+  moveWithin,
   removeItem,
   spaceFor,
   takeOne,
@@ -71,5 +72,47 @@ describe('inventory', () => {
     const to = createSlots(1);
     expect(moveStack(from, 0, to)).toBe(0);
     expect(moveStack(from, 5, to)).toBe(0);
+  });
+});
+
+describe('rearranging a container', () => {
+  const at = (slots: ReturnType<typeof createSlots>, i: number) => {
+    const s = slots.at(i);
+    return s && s.qty > 0 ? `${s.itemId}:${s.qty}` : 'empty';
+  };
+
+  test('moves onto an empty slot', () => {
+    const slots = createSlots(3);
+    addItem(slots, 'wood', 4);
+    expect(moveWithin(slots, 0, 2)).toBe(true);
+    expect([at(slots, 0), at(slots, 2)]).toEqual(['empty', 'wood:4']);
+  });
+
+  test('swaps different items', () => {
+    const slots = createSlots(2);
+    addItem(slots, 'wood', 4);
+    addItem(slots, 'stone', 2);
+    moveWithin(slots, 0, 1);
+    expect([at(slots, 0), at(slots, 1)]).toEqual(['stone:2', 'wood:4']);
+  });
+
+  test('merges the same item up to the stack limit, the rest stays', () => {
+    const slots = createSlots(2);
+    const meat = slots.at(0);
+    const more = slots.at(1);
+    if (!meat || !more) throw new Error('slots');
+    Object.assign(meat, { itemId: 'raw_meat', qty: 4 });
+    Object.assign(more, { itemId: 'raw_meat', qty: MAX - 1 });
+    moveWithin(slots, 0, 1);
+    expect([at(slots, 0), at(slots, 1)]).toEqual(['raw_meat:3', `raw_meat:${MAX}`]);
+  });
+
+  test('ignores empty sources, the same slot and out-of-range slots', () => {
+    const slots = createSlots(2);
+    addItem(slots, 'wood', 1);
+    expect(moveWithin(slots, 1, 0)).toBe(false);
+    expect(moveWithin(slots, 0, 0)).toBe(false);
+    expect(moveWithin(slots, 0, 9)).toBe(false);
+    expect(at(slots, 0)).toBe('wood:1');
   });
 });

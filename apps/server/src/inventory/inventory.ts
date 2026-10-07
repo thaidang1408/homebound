@@ -105,3 +105,29 @@ export function moveStack(from: Slots, index: number, to: Slots): number {
   else stack.qty = leftover;
   return moved;
 }
+
+/**
+ * Rearranges one container: the stack at `from` goes onto `to`. Empty target → moved; same item
+ * → merged up to the stack limit (the rest stays put); different item → swapped.
+ */
+export function moveWithin(slots: Slots, from: number, to: number): boolean {
+  const source = slots.at(from);
+  const target = slots.at(to);
+  const id = source ? stackItem(source) : null;
+  if (!source || !target || from === to || id === null) return false;
+  const targetId = stackItem(target);
+  if (targetId === id) {
+    const move = Math.min(source.qty, getItem(id).maxStack - target.qty);
+    if (move === 0) return false;
+    target.qty += move;
+    source.qty -= move;
+    if (source.qty === 0) clear(source);
+    return true;
+  }
+  const { itemId, qty } = target;
+  target.itemId = source.itemId;
+  target.qty = source.qty;
+  source.itemId = targetId === null ? '' : itemId;
+  source.qty = targetId === null ? 0 : qty;
+  return true;
+}

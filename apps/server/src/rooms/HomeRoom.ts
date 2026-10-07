@@ -45,6 +45,7 @@ import {
   parseAttackPayload,
   parseCraftPayload,
   parseInteractPayload,
+  parseMoveSlotPayload,
   parseMovePayload,
   parseReadyPayload,
   parseTransferPayload,
@@ -56,7 +57,14 @@ import {
   type HitConfirmPayload,
   type TeleportPayload,
 } from '@homebound/shared';
-import { addItem, createSlots, itemAt, moveStack, removeItem } from '../inventory/inventory.js';
+import {
+  addItem,
+  createSlots,
+  itemAt,
+  moveStack,
+  moveWithin,
+  removeItem,
+} from '../inventory/inventory.js';
 import { homeExists, loadHome, saveHome, type SavedPlayer } from '../persistence/homeSaves.js';
 import { applyHome, applyPlayer, buildSave, snapshotPlayer } from '../persistence/homeState.js';
 import { env } from '../config/env.js';
@@ -154,6 +162,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     );
     this.onMessage(ClientMessage.Transfer, (client, message: unknown) =>
       this.handleTransfer(client, message),
+    );
+    this.onMessage(ClientMessage.MoveSlot, (client, message: unknown) =>
+      this.handleMoveSlot(client, message),
     );
     this.onMessage(ClientMessage.UseItem, (client, message: unknown) => {
       const payload = parseUseItemPayload(message);
@@ -562,6 +573,20 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         ? [player.inventory, this.state.chest]
         : [this.state.chest, player.inventory];
     moveStack(from, payload.slot, to);
+  }
+
+  /** Drag and drop inside the backpack, or inside the chest (only while standing at it). */
+  private handleMoveSlot(client: Client, message: unknown) {
+    const payload = parseMoveSlotPayload(message);
+    const player = this.activePlayer(client);
+    if (!payload || !player || player.sleeping || player.downed) return;
+    if (payload.container === 'player') {
+      moveWithin(player.inventory, payload.from, payload.to);
+      return;
+    }
+    const chest = findFurniture('chest');
+    if (chest && this.isNear(player, chest.box))
+      moveWithin(this.state.chest, payload.from, payload.to);
   }
 
   /** Everyone in bed → short fade, then morning (cancelled if someone gets up meanwhile). */

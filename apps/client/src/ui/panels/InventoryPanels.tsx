@@ -7,7 +7,7 @@ import {
   type Container,
   type RecipeId,
 } from '@homebound/shared';
-import { useSession } from '../../state/session';
+import { getSession, useSession } from '../../state/session';
 import { Button } from '../components/Button';
 import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
@@ -16,13 +16,28 @@ import styles from './InventoryPanels.module.css';
 
 type Stack = { itemId: string; qty: number };
 
+/** Drag and drop: inside one container rearranges it; onto the other one moves the stack across. */
+function dropOnto(container: Container, to: number, fromId: string): void {
+  const room = getSession().room;
+  const [fromContainer, rawIndex] = fromId.split(':');
+  const from = Number(rawIndex);
+  if (!room || !Number.isInteger(from)) return;
+  if (fromContainer === container) {
+    room.send(ClientMessage.MoveSlot, { container, from, to });
+  } else if (fromContainer === 'player' || fromContainer === 'chest') {
+    room.send(ClientMessage.Transfer, { from: fromContainer, slot: from });
+  }
+}
+
 function Grid({
   title,
+  container,
   stacks,
   onSlot,
   hotbar = false,
 }: {
   title: string;
+  container: Container;
   stacks: readonly Stack[];
   onSlot: (index: number) => void;
   hotbar?: boolean;
@@ -39,6 +54,8 @@ function Grid({
             label={title}
             {...(hotbar && i < HOTBAR_SLOTS ? { hint: String(i + 1) } : {})}
             onClick={() => onSlot(i)}
+            dragId={`${container}:${i}`}
+            onDropItem={(from) => dropOnto(container, i, from)}
           />
         ))}
       </div>
@@ -82,8 +99,11 @@ export function InventoryPanel() {
   };
 
   return (
-    <Shell title="Backpack" hint="Click food to eat it. Slots 1–5 are your hotbar. [Tab] to close.">
-      <Grid title="Your items" stacks={[...me.inventory]} onSlot={eat} hotbar />
+    <Shell
+      title="Backpack"
+      hint="Drag items to rearrange. Click food to eat it. Slots 1–5 are your hotbar. [Tab] to close."
+    >
+      <Grid title="Your items" container="player" stacks={[...me.inventory]} onSlot={eat} hotbar />
     </Shell>
   );
 }
@@ -98,9 +118,18 @@ export function StoragePanel() {
     room.send(ClientMessage.Transfer, { from, slot });
 
   return (
-    <Shell title="Shared storage" hint="Click a stack to move it. Both of you can use this chest.">
-      <Grid title="Chest" stacks={[...room.state.chest]} onSlot={move('chest')} />
-      <Grid title="Your items" stacks={[...me.inventory]} onSlot={move('player')} hotbar />
+    <Shell
+      title="Shared storage"
+      hint="Click a stack to move it across, or drag it where you want. Both of you can use this chest."
+    >
+      <Grid title="Chest" container="chest" stacks={[...room.state.chest]} onSlot={move('chest')} />
+      <Grid
+        title="Your items"
+        container="player"
+        stacks={[...me.inventory]}
+        onSlot={move('player')}
+        hotbar
+      />
     </Shell>
   );
 }

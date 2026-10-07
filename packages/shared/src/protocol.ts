@@ -33,6 +33,8 @@ export const ClientMessage = {
   Interact: 'interact',
   /** Move a whole stack between the player's inventory and the shared chest. */
   Transfer: 'transfer',
+  /** Rearrange one container: move/swap/merge the stack in `from` onto slot `to`. */
+  MoveSlot: 'move-slot',
   /** Use the item in an inventory slot (eat food). */
   UseItem: 'use-item',
   /** Use the weapon in a hotbar slot: strike the creature in the crosshair, or shoot. */
@@ -84,6 +86,12 @@ export type Container = 'player' | 'chest';
 export interface TransferPayload {
   from: Container;
   slot: number;
+}
+
+export interface MoveSlotPayload {
+  container: Container;
+  from: number;
+  to: number;
 }
 
 export interface DevSetTimePayload {

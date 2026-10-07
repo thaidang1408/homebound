@@ -14,6 +14,7 @@ import type {
   CraftPayload,
   InteractPayload,
   MovePayload,
+  MoveSlotPayload,
   ReadyPayload,
   TransferPayload,
   UseItemPayload,
@@ -96,6 +97,12 @@ export function parseAttackPayload(value: unknown): AttackPayload | null {
 export function parseCraftPayload(value: unknown): CraftPayload | null {
   if (!isRecord(value) || typeof value.recipeId !== 'string') return null;
   return { recipeId: value.recipeId };
+}
+
+export function parseMoveSlotPayload(value: unknown): MoveSlotPayload | null {
+  if (!isRecord(value) || !isSlotIndex(value.from) || !isSlotIndex(value.to)) return null;
+  if (value.container !== 'player' && value.container !== 'chest') return null;
+  return { container: value.container, from: value.from, to: value.to };
 }
 
 export function parseTransferPayload(value: unknown): TransferPayload | null {

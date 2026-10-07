@@ -140,3 +140,18 @@ describe('the day loop', () => {
     expect([...room.state.goals].every((g) => g.progress === 0)).toBe(true);
   });
 });
+
+describe('backpack', () => {
+  test('drag a stack to another slot', async () => {
+    const room = await soloGame();
+    room.send(ClientMessage.DevGive, { itemId: 'wood', qty: 3 }); // slot 0
+    await waitFor(() => self(room).inventory.at(0)?.itemId === 'wood');
+    room.send(ClientMessage.MoveSlot, { container: 'player', from: 0, to: 7 });
+    await waitFor(() => self(room).inventory.at(7)?.itemId === 'wood');
+    expect(self(room).inventory.at(0)?.qty).toBe(0);
+    // The chest can only be rearranged while standing at it.
+    room.send(ClientMessage.MoveSlot, { container: 'chest', from: 0, to: 5 });
+    await sleep(150);
+    expect(room.state.chest.at(5)?.qty).toBe(0);
+  });
+});
