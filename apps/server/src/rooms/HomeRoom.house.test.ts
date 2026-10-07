@@ -69,16 +69,6 @@ describe('shared chest', () => {
     host.send(ClientMessage.Transfer, { from: 'player', slot: 0 });
     await waitFor(() => countIn(partner.state.chest, 'raw_meat') === inChest);
   });
-
-  test('a leaving player returns their items to the chest', async () => {
-    const { host, partner } = await playingPair();
-    const inChest = countIn(host.state.chest, 'raw_meat');
-    await walk(partner, [{ x: -1.2, z: 3.6 }, ...TO_CHEST]);
-    partner.send(ClientMessage.Transfer, { from: 'chest', slot: 0 });
-    await waitFor(() => countIn(host.state.chest, 'raw_meat') === 0);
-    await partner.leave();
-    await waitFor(() => countIn(host.state.chest, 'raw_meat') === inChest);
-  });
 });
 
 describe('eating and cooking', () => {

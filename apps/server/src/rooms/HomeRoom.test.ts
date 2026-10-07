@@ -10,7 +10,7 @@ import {
   type HomeState,
   type TeleportPayload,
 } from '@homebound/shared';
-import { createHarness, playerOf, startGame, waitFor } from '../test/harness.js';
+import { createHarness, newPlayerId, playerOf, startGame, waitFor } from '../test/harness.js';
 
 const h = createHarness(2598);
 const { sdk, track, createPair } = h;
@@ -21,13 +21,15 @@ afterAll(() => h.stop());
 
 describe('room lifecycle', () => {
   test('create returns a valid human room code', async () => {
-    const host = await track(sdk.create<HomeState>(ROOM_NAME, { name: 'Host' }));
+    const host = await track(
+      sdk.create<HomeState>(ROOM_NAME, { name: 'Host', playerId: newPlayerId() }),
+    );
     expect(host.roomId).toHaveLength(ROOM_CODE_LENGTH);
     expect(isValidRoomCode(host.roomId)).toBe(true);
   });
 
   test('rooms are private: matchmaking without a code finds nothing', async () => {
-    await track(sdk.create<HomeState>(ROOM_NAME, { name: 'Host' }));
+    await track(sdk.create<HomeState>(ROOM_NAME, { name: 'Host', playerId: newPlayerId() }));
     await expect(sdk.join(ROOM_NAME)).rejects.toThrow();
   });
 
@@ -48,15 +50,21 @@ describe('room lifecycle', () => {
 
   test('a third player is rejected', async () => {
     const { host } = await createPair();
-    await expect(sdk.joinById(host.roomId, { name: 'Third' })).rejects.toThrow();
+    await expect(
+      sdk.joinById(host.roomId, { name: 'Third', playerId: newPlayerId() }),
+    ).rejects.toThrow();
   });
 
   test('unknown room code is rejected', async () => {
-    await expect(sdk.joinById('ZZZZZ', { name: 'Lost' })).rejects.toThrow();
+    await expect(
+      sdk.joinById('ZZZZZ', { name: 'Lost', playerId: newPlayerId() }),
+    ).rejects.toThrow();
   });
 
   test('names are sanitized and defaulted', async () => {
-    const host = await track(sdk.create<HomeState>(ROOM_NAME, { name: '   ' }));
+    const host = await track(
+      sdk.create<HomeState>(ROOM_NAME, { name: '   ', playerId: newPlayerId() }),
+    );
     await waitFor(() => host.state?.players?.size === 1);
     expect([...host.state.players.values()][0]?.name).toBe('Player 1');
   });

@@ -8,3 +8,6 @@ dist/
 .DS_Store
 coverage/
 scripts/e2e/out/
+
+# Saved homes (server runtime data)
+data/

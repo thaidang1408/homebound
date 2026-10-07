@@ -7,7 +7,19 @@ export interface HealthResponse {
 /** Options sent with create/join. */
 export interface JoinOptions {
   name: string;
+  /** Stable anonymous id kept in the browser; links a player to their saved items and XP. */
+  playerId: string;
+  /** Re-open a saved home by its code (only when it isn't already running). */
+  restoreCode?: string;
 }
+
+/** Error messages the server uses to refuse a join; the client maps them to friendly text. */
+export const JoinError = {
+  HomeNotFound: 'home-not-found',
+  HomeAlreadyOpen: 'home-already-open',
+  AlreadyInHome: 'already-in-home',
+  InvalidPlayer: 'invalid-player',
+} as const;
 
 /** Client → server message names. Clients send intent; the server decides. */
 export const ClientMessage = {

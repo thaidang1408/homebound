@@ -37,6 +37,9 @@ export const PlayerState = schema(
     /** Exact value the server decays; never sent. */
     hungerExact: t.float64().noSync().default(HUNGER_START),
     sleeping: t.boolean().default(false),
+    /** Lifetime XP; level is derived from it (progression.ts) and synced for the UI. */
+    xp: t.uint32().default(0),
+    level: t.uint8().default(1),
     /** Fixed-length slot array; the first HOTBAR_SLOTS are the hotbar. */
     inventory: t.array(ItemStack),
   },
@@ -61,6 +64,8 @@ export const StoveState = schema(
     progress: t.quantized({ min: 0, max: 1, bits: 8 }).default(0),
     /** Server-side cooking clock; never sent. */
     elapsedMs: t.float64().noSync().default(0),
+    /** playerId of whoever started cooking (gets the XP); never sent. */
+    cookedBy: t.string().noSync().default(''),
   },
   'StoveState',
 );

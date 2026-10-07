@@ -1,10 +1,18 @@
 import { Client, type Room } from '@colyseus/sdk';
 import { ClientMessage, GamePhase, ROOM_NAME, type HomeState, type Point } from '@homebound/shared';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createGameServer } from '../app.js';
+
+let playerCounter = 0;
+/** A fresh valid anonymous player id per call (or a fixed one to simulate a returning player). */
+export const newPlayerId = () => `test-player-${process.pid}-${++playerCounter}-xxxxxxxx`;
 
 /** Real server + real SDK clients on a test port. One harness per test file. */
 export function createHarness(port: number) {
-  const server = createGameServer();
+  const saveDir = mkdtempSync(join(tmpdir(), 'homebound-saves-'));
+  const server = createGameServer({ saveDir });
   const sdk = new Client(`http://127.0.0.1:${port}`);
   const openRooms: Room<HomeState>[] = [];
 
@@ -16,6 +24,7 @@ export function createHarness(port: number) {
 
   return {
     sdk,
+    saveDir,
     track,
     start: () => server.listen(port, '127.0.0.1'),
     stop: () => server.gracefullyShutdown(false),
@@ -25,8 +34,12 @@ export function createHarness(port: number) {
     },
     /** Host creates a room, partner joins by code, both wait for the full state. */
     async createPair() {
-      const host = await track(sdk.create<HomeState>(ROOM_NAME, { name: 'Host' }));
-      const partner = await track(sdk.joinById<HomeState>(host.roomId, { name: 'Partner' }));
+      const host = await track(
+        sdk.create<HomeState>(ROOM_NAME, { name: 'Host', playerId: newPlayerId() }),
+      );
+      const partner = await track(
+        sdk.joinById<HomeState>(host.roomId, { name: 'Partner', playerId: newPlayerId() }),
+      );
       await waitFor(() => host.state.players.size === 2 && partner.state.players.size === 2);
       return { host, partner };
     },

@@ -1,9 +1,13 @@
 import { randomInt } from 'node:crypto';
-import type { Presence } from '@colyseus/core';
 import { ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from '@homebound/shared';
 
-/** Presence set holding every room code in use (works unchanged with RedisPresence later). */
-const ROOM_CODES_KEY = '$homebound:room-codes';
+/**
+ * Codes of homes that have a running room. Claim/release are synchronous, so two players opening
+ * the same saved home at the same instant can't both create a room for it.
+ * ponytail: single-process only; move to Redis presence (SADD return value) if we ever run
+ * several server processes.
+ */
+const openCodes = new Set<string>();
 
 function randomCode(): string {
   let code = '';
@@ -13,17 +17,23 @@ function randomCode(): string {
   return code;
 }
 
-/** Generates a code not used by any live room and reserves it. */
-export async function reserveRoomCode(presence: Presence): Promise<string> {
-  const used = new Set<string>(await presence.smembers(ROOM_CODES_KEY));
+/** Claims `code` for a running room. False if a room for it is already open. */
+export function claimCode(code: string): boolean {
+  if (openCodes.has(code)) return false;
+  openCodes.add(code);
+  return true;
+}
+
+/** Generates and claims a code that is neither running nor taken by a saved home. */
+export function claimNewCode(isSaved: (code: string) => boolean): string {
   let code: string;
   do {
     code = randomCode();
-  } while (used.has(code));
-  await presence.sadd(ROOM_CODES_KEY, code);
+  } while (openCodes.has(code) || isSaved(code));
+  openCodes.add(code);
   return code;
 }
 
-export async function releaseRoomCode(presence: Presence, code: string): Promise<void> {
-  await presence.srem(ROOM_CODES_KEY, code);
+export function releaseCode(code: string): void {
+  openCodes.delete(code);
 }

@@ -2,6 +2,7 @@ import {
   MAX_PITCH,
   MOVE_DISTANCE_SLACK,
   MOVE_SPEED_TOLERANCE,
+  PLAYER_ID_PATTERN,
   PLAYER_NAME_MAX_LENGTH,
   PLAYER_SPRINT_SPEED,
   ROOM_CODE_ALPHABET,
@@ -25,6 +26,10 @@ export function isValidRoomCode(code: string): boolean {
   return (
     code.length === ROOM_CODE_LENGTH && [...code].every((ch) => ROOM_CODE_ALPHABET.includes(ch))
   );
+}
+
+export function isValidPlayerId(value: unknown): value is string {
+  return typeof value === 'string' && PLAYER_ID_PATTERN.test(value);
 }
 
 /** Trims, removes control characters, caps length. Empty result means "use a default". */

@@ -66,16 +66,16 @@ describe('stove', () => {
     const { state, a, b } = setup();
     addItem(a.inventory, 'raw_meat', 2);
 
-    expect(useStove(state, a)).toBe('started');
+    expect(useStove(state, a, 'player-a')).toBe('started');
     expect(countItem(a.inventory, 'raw_meat')).toBe(1);
-    expect(useStove(state, b)).toBe('busy');
+    expect(useStove(state, b, 'player-b')).toBe('busy');
 
     tickStove(state, COOK_TIME_MS / 2);
     expect(state.stove.progress).toBeCloseTo(0.5, 1);
-    tickStove(state, COOK_TIME_MS / 2);
+    expect(tickStove(state, COOK_TIME_MS / 2)).toBe('player-a'); // the cook gets the XP
     expect(state.stove.status).toBe(StoveStatus.Done);
 
-    expect(useStove(state, b)).toBe('collected');
+    expect(useStove(state, b, 'player-b')).toBe('collected');
     expect(countItem(b.inventory, 'cooked_meat')).toBe(1);
     expect(state.stove.status).toBe(StoveStatus.Idle);
   });
@@ -83,16 +83,16 @@ describe('stove', () => {
   test('needs something cookable', () => {
     const { state, a } = setup();
     addItem(a.inventory, 'cooked_meat', 1);
-    expect(useStove(state, a)).toBe('nothing-to-cook');
+    expect(useStove(state, a, 'player-a')).toBe('nothing-to-cook');
   });
 
   test('a full inventory leaves the food on the stove', () => {
     const { state, a, b } = setup();
     addItem(a.inventory, 'raw_meat', 1);
-    useStove(state, a);
+    useStove(state, a, 'player-a');
     tickStove(state, COOK_TIME_MS);
     for (let i = 0; i < 5; i++) addItem(b.inventory, 'raw_meat', 10);
-    expect(useStove(state, b)).toBe('inventory-full');
+    expect(useStove(state, b, 'player-b')).toBe('inventory-full');
     expect(state.stove.status).toBe(StoveStatus.Done);
   });
 });

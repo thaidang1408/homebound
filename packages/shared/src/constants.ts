@@ -24,6 +24,12 @@ export const MAX_MESSAGES_PER_SECOND = 60;
 
 export const PLAYER_NAME_MAX_LENGTH = 16;
 
+/** Anonymous player ids: 16–64 url-safe characters. */
+export const PLAYER_ID_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;
+
+/** Running homes are saved this often (and on leave, new day and shutdown). */
+export const AUTOSAVE_INTERVAL_MS = 30_000;
+
 // --- Movement ---
 
 /** Client → server position updates. Matches Colyseus' default 50 ms patch rate. */

@@ -24,7 +24,7 @@ function findCookable(player: PlayerState): number {
  * One button: idle + cookable item → put it on the pan; done → take the result.
  * Either player can collect what the other cooked.
  */
-export function useStove(state: HomeState, player: PlayerState): StoveOutcome {
+export function useStove(state: HomeState, player: PlayerState, playerId: string): StoveOutcome {
   const stove = state.stove;
 
   if (stove.status === StoveStatus.Done) {
@@ -44,16 +44,19 @@ export function useStove(state: HomeState, player: PlayerState): StoveOutcome {
   stove.itemId = raw;
   stove.progress = 0;
   stove.elapsedMs = 0;
+  stove.cookedBy = playerId;
   return 'started';
 }
 
-export function tickStove(state: HomeState, dtMs: number): void {
+/** Advances cooking. Returns the cook's playerId on the tick the food finishes, else null. */
+export function tickStove(state: HomeState, dtMs: number): string | null {
   const stove = state.stove;
-  if (stove.status !== StoveStatus.Cooking || !isItemId(stove.itemId)) return;
+  if (stove.status !== StoveStatus.Cooking || !isItemId(stove.itemId)) return null;
   stove.elapsedMs += dtMs;
   stove.progress = Math.min(1, stove.elapsedMs / COOK_TIME_MS);
-  if (stove.elapsedMs < COOK_TIME_MS) return;
+  if (stove.elapsedMs < COOK_TIME_MS) return null;
   const cooked: ItemId = cookResult(stove.itemId) ?? stove.itemId;
   stove.itemId = cooked;
   stove.status = StoveStatus.Done;
+  return stove.cookedBy || null;
 }

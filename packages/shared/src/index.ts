@@ -1,5 +1,6 @@
 export * from './constants.js';
 export * from './items.js';
+export * from './progression.js';
 export * from './protocol.js';
 export * from './schema.js';
 export * from './validation.js';
