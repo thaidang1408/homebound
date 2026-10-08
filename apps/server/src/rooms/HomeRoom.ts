@@ -6,6 +6,8 @@ import {
   HOTBAR_SLOTS,
   RESOURCE_KINDS,
   CHAT_COOLDOWN_MS,
+  RECIPES,
+  armorOf,
   EMOTE_COOLDOWN_MS,
   PING_COOLDOWN_MS,
   PING_MAX_DISTANCE,
@@ -94,6 +96,7 @@ import {
 import { harvest, initResources, tickResources } from '../systems/harvest.js';
 import { eatFromSlot, hurtPlayer, tickNeeds } from '../systems/needs.js';
 import { act, drainSprint, isDodging, tickStamina, tryDodge } from '../systems/stamina.js';
+import { pickUpTrap, placeTrap, tickTraps } from '../systems/traps.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
@@ -116,6 +119,7 @@ const HARVEST_ACTION: Record<ResourceKind, PlayerAction> = {
   tree: 'chop',
   rock: 'mine',
   bush: 'pick',
+  mushroom: 'pick',
 };
 
 function option(options: unknown, key: string): unknown {
@@ -141,6 +145,8 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   /** Server time of each player's last strike (cooldown). */
   private readonly lastAttackAt = new Map<string, number>();
   private readonly lastChatAt = new Map<string, number>();
+  /** Next free `trap-<n>` id (continues after saved traps). */
+  private nextTrapId = 0;
   /** Creature spawns, wandering and loot rolls. */
   private readonly random = createRandom(Date.now());
   /** sessionId → stable playerId (what saves are keyed by). */
@@ -216,6 +222,17 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.onMessage(ClientMessage.Ping, (client, message: unknown) =>
       this.handlePing(client, message),
     );
+    this.onMessage(ClientMessage.PlaceTrap, (client, message: unknown) => {
+      const payload = parseUseItemPayload(message);
+      const player = this.activePlayer(client);
+      const playerId = this.playerIds.get(client.sessionId);
+      if (!payload || !player || !playerId || player.sleeping || player.downed) return;
+      if (payload.slot >= HOTBAR_SLOTS) return;
+      const id = `trap-${this.nextTrapId}`;
+      if (placeTrap(this.state, player, payload.slot, playerId, id) !== 'placed') return;
+      this.nextTrapId += 1;
+      act(player, 'pick'); // kneels to set it
+    });
 
     if (env.devCommands) {
       this.onMessage(ClientMessage.DevSetTime, (_client, message: unknown) => {
@@ -240,7 +257,13 @@ export class HomeRoom extends Room<{ state: HomeState }> {
               Math.hypot(b.x - player.x, b.z - player.z),
           )[0];
         if (!near) return;
-        const spot = clampToWorld(player.x + SUMMON_OFFSET.x, player.z + SUMMON_OFFSET.z);
+        // An exact spot (`{ x, z }`) or the default 12 m ahead-and-aside.
+        const x = option(message, 'x');
+        const z = option(message, 'z');
+        const exact = typeof x === 'number' && typeof z === 'number' && Number.isFinite(x + z);
+        const spot = exact
+          ? clampToWorld(x, z)
+          : clampToWorld(player.x + SUMMON_OFFSET.x, player.z + SUMMON_OFFSET.z);
         near.x = spot.x;
         near.z = spot.z;
       });
@@ -285,6 +308,10 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     applyHome(this.state, save);
     if (this.state.goals.length === 0) setGoals(this.state, goalSeed(code)); // pre-Phase 6 save
     this.goalDay = this.state.day;
+    // New traps continue after the highest saved id.
+    for (const id of this.state.traps.keys()) {
+      this.nextTrapId = Math.max(this.nextTrapId, Number(id.slice('trap-'.length)) + 1);
+    }
     this.savedPlayers = save.players;
     this.createdAt = save.createdAt;
     // A saved home was already started: players walk straight in.
@@ -461,10 +488,18 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     }
     const now = this.clock.currentTime;
     for (const player of this.state.players.values()) tickStamina(player, dtMs, now);
-    for (const hit of tickCreatures(this.state, dtMs, this.random)) {
+    for (const hit of tickCreatures(this.state, dtMs, this.random, now)) {
       const player = this.state.players.get(hit.sessionId);
       if (!player || isDodging(player, now)) continue; // rolled out of the way
-      if (hurtPlayer(player, hit.damage)) this.fall(hit.sessionId);
+      const damage = hit.damage * (1 - armorOf(player.inventory)); // worn armor softens it
+      if (hurtPlayer(player, damage)) this.fall(hit.sessionId);
+    }
+    for (const event of tickTraps(this.state, (playerId) => this.sessionOf(playerId))) {
+      if (event.outcome !== 'killed') continue;
+      const kind = this.state.creatures.get(event.creatureId)?.kind ?? '';
+      if (isCreatureKind(kind)) this.rewardPlayer(event.owner, CREATURES[kind].xp);
+      this.state.today.hunted += 1;
+      this.advanceGoal('hunt');
     }
     for (const hit of tickProjectiles(this.state, dtMs)) {
       this.confirmHit(hit.owner, hit.creatureId, hit.outcome);
@@ -539,8 +574,13 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   }
 
   /** XP for a playerId, whether they're in the room or offline (their save is updated). */
+  /** The sessionId of a player who's in the home right now ('' when offline). */
+  private sessionOf(playerId: string): string {
+    return [...this.playerIds].find(([, id]) => id === playerId)?.[0] ?? '';
+  }
+
   private rewardPlayer(playerId: string, xp: number) {
-    const sessionId = [...this.playerIds].find(([, id]) => id === playerId)?.[0];
+    const sessionId = this.sessionOf(playerId);
     const player = sessionId ? this.state.players.get(sessionId) : undefined;
     if (player) grantXp(player, xp);
     else if (this.savedPlayers[playerId]) this.savedPlayers[playerId].xp += xp;
@@ -589,7 +629,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
 
     if (move.sprint && Math.hypot(target.x - player.x, target.z - player.z) > 0) {
       drainSprint(player, elapsed, now);
+      player.noisyAt = now; // creatures hear you coming (stealthOf)
     }
+    player.crouching = move.crouch === true && !move.sprint;
     player.x = target.x;
     player.z = target.z;
     player.yaw = move.yaw;
@@ -629,9 +671,11 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private handleCraft(client: Client, message: unknown) {
     const payload = parseCraftPayload(message);
     const player = this.activePlayer(client);
-    const bench = findFurniture('workbench');
-    if (!payload || !player || !bench || player.sleeping || player.downed) return;
-    if (!isRecipeId(payload.recipeId) || !this.isNear(player, bench.box)) return;
+    if (!payload || !player || player.sleeping || player.downed) return;
+    if (!isRecipeId(payload.recipeId)) return;
+    // Workbench recipes at the workbench, combination dishes at the stove.
+    const station = findFurniture(RECIPES[payload.recipeId].station);
+    if (!station || !this.isNear(player, station.box)) return;
     if (craft(player.inventory, payload.recipeId) !== 'crafted') return;
     grantXp(player, XP_REWARDS.craft);
     this.state.today.crafted += 1;
@@ -650,6 +694,15 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     if (!payload || !player || player.downed) return;
     if (!player.sleeping && this.state.creatures.has(payload.targetId)) {
       this.handleButcher(player, payload.targetId);
+      return;
+    }
+    // [E] on a trap: pick it back up (to reset it, or move it).
+    const trap = this.state.traps.get(payload.targetId);
+    if (trap) {
+      const near = Math.hypot(trap.x - player.x, trap.z - player.z);
+      if (!player.sleeping && near <= INTERACT_RANGE + INTERACT_TOLERANCE) {
+        pickUpTrap(this.state, payload.targetId, player);
+      }
       return;
     }
     // [E] held on a downed partner (their sessionId).

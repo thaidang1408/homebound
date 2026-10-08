@@ -76,6 +76,14 @@ export const PlayerState = schema(
      */
     action: t.string().default(''),
     actionSeq: t.uint8().default(0),
+    /** Sneaking (C): creatures notice you from half as far. */
+    crouching: t.boolean().default(false),
+    /** When they last sprinted (noise). */
+    noisyAt: t.float64().noSync().default(-1e9),
+    /** Active food buff (buffs.ts, '' = none) and whole seconds left, for the HUD. */
+    buff: t.string().default(''),
+    buffLeft: t.uint16().default(0),
+    buffMs: t.float64().noSync().default(0),
     /** Fixed-length slot array; the first HOTBAR_SLOTS are the hotbar. */
     inventory: t.array(ItemStack),
   },
@@ -142,6 +150,21 @@ export const CreatureState = schema(
 );
 export type CreatureState = SchemaType<typeof CreatureState>;
 
+/** A trap on the ground (snare or spike), set by a player. Saved with the home. */
+export const TrapState = schema(
+  {
+    kind: t.string().default(''),
+    x: t.float32().default(0),
+    z: t.float32().default(0),
+    /** Went off (caught or hurt something); [E] picks it back up to reset it. */
+    sprung: t.boolean().default(false),
+    /** playerId of whoever set it (XP and hit credit); server-only. */
+    owner: t.string().noSync().default(''),
+  },
+  'TrapState',
+);
+export type TrapState = SchemaType<typeof TrapState>;
+
 /** An arrow in flight. Simulated on the server; clients interpolate and orient it. */
 export const ProjectileState = schema(
   {
@@ -202,6 +225,8 @@ export const HomeState = schema(
     creatures: t.map(CreatureState),
     /** Arrows in flight, keyed by a per-room counter. */
     projectiles: t.map(ProjectileState),
+    /** Traps on the ground, keyed `trap-<n>`. */
+    traps: t.map(TrapState),
     /** Today's shared goals (ADR-018). */
     goals: t.array(GoalState),
     today: DayStats,

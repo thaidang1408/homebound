@@ -72,6 +72,22 @@ export const PING_MAX_DISTANCE = 60; // m
 export const PING_MS = 8000;
 export const PING_COOLDOWN_MS = 1000;
 
+// --- Hunting 2.0 (Phase 10) ---
+
+/** Crouching (C): slower, lower, and creatures notice you from half as far. */
+export const CROUCH_SPEED = 2.4; // m/s
+export const CROUCH_EYE_HEIGHT = 1.05; // m
+/** Detection range multipliers: sneaking, and just after sprinting (noise). */
+export const STEALTH_CROUCH = 0.5;
+export const STEALTH_NOISY = 1.35;
+/** Sprinting counts as noise for this long after the last sprinting step. */
+export const NOISE_MS = 1500;
+/** Traps: how many a home may have out, how far ahead they're set, their trigger radius. */
+export const MAX_TRAPS = 8;
+export const TRAP_PLACE_DISTANCE = 1.6; // m
+export const TRAP_RADIUS = 0.55; // m
+export const SPIKE_TRAP_DAMAGE = 25;
+
 /** The playable world is a circle around the house; the terrain rim rises at its edge. */
 export const WORLD_RADIUS = 58; // m
 

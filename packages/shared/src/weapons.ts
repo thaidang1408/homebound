@@ -29,6 +29,7 @@ export type WeaponDefinition = MeleeWeapon | RangedWeapon;
 export const WEAPONS = {
   fists: { kind: 'melee', name: 'Fists', damage: 8, range: 1.8, cooldownMs: 450 },
   spear: { kind: 'melee', name: 'Spear', damage: 20, range: 2.6, cooldownMs: 700 },
+  antler_spear: { kind: 'melee', name: 'Antler spear', damage: 30, range: 2.7, cooldownMs: 650 },
   bow: { kind: 'ranged', name: 'Bow', damage: 16, cooldownMs: 800, ammo: 'arrow', speed: 34 },
 } as const satisfies Record<string, WeaponDefinition>;
 

@@ -46,6 +46,8 @@ Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `al
 | `PlayerState.selectedSlot`                                   | uint8                             | held hotbar slot (cosmetic)                         |
 | `PlayerState.stamina` / `winded`                             | uint8 / boolean                   | from server-only `staminaExact` (ADR-022)           |
 | `PlayerState.action` / `actionSeq`                           | string / uint8 (wraps)            | last visible action; the counter replays repeats    |
+| `PlayerState.crouching` / `buff` / `buffLeft`                | boolean / string / uint16 s       | sneaking; food buff and seconds left (ADR-023)      |
+| `HomeState.traps`                                            | map&lt;id, TrapState&gt;          | kind, x, z, sprung (owner is server-only); saved    |
 | `PlayerState.xp` / `level`                                   | uint32 / uint8                    | level derived from xp                               |
 | `PlayerState.inventory`                                      | array&lt;ItemStack&gt; (10)       | first 5 = hotbar                                    |
 
@@ -56,33 +58,35 @@ on the client (regression test in `HomeRoom.test.ts`).
 
 ## Messages (`packages/shared/src/protocol.ts`)
 
-| Direction | Name                    | Payload                          | Server checks                                                                                                                               |
-| --------- | ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| C→S       | `ready`                 | `{ ready }`                      | shape, lobby phase                                                                                                                          |
-| C→S       | `start`                 | —                                | lobby phase; alone, or both ready + connected                                                                                               |
-| C→S       | `move`                  | `{ x, z, yaw, pitch, sprint? }`  | shape, playing, not asleep, world bounds, walls/furniture, max speed                                                                        |
-| C→S       | `interact`              | `{ targetId }`                   | known furniture, within reach, asleep → only the bed                                                                                        |
-| C→S       | `transfer`              | `{ from: player                  | chest, slot }`                                                                                                                              | next to the chest, not asleep; moves what fits |
-| C→S       | `move-slot`             | `{ container, from, to }`        | slot indices in range; chest only while at it; move / swap / merge                                                                          |
-| C→S       | `select-slot`           | `{ slot }`                       | hotbar index; cosmetic (partner sees what you hold)                                                                                         |
-| C→S       | `use-item`              | `{ slot }`                       | slot holds food, not asleep                                                                                                                 |
-| C→S       | `interact` on a node    | `{ targetId: "tree-12" }`        | within reach, charges > 0, 0.6 s cooldown, backpack space                                                                                   |
-| C→S       | `attack`                | `{ slot, targetId, yaw, pitch }` | weapon from the server's copy of that hotbar slot, cooldown, not downed/asleep; melee: body in reach; bow: one arrow used, flight simulated |
-| C→S       | `craft`                 | `{ recipeId }`                   | known recipe, next to the workbench, has the materials, room for the output                                                                 |
-| C→S       | `interact` on a player  | `{ targetId: sessionId }`        | held [E] on a downed partner in reach; pings at least every 0.9 s (a gap pauses the revive)                                                 |
-| C→S       | `interact` on a carcass | `{ targetId: "boar-2" }`         | dead + present, within reach, backpack fits all the loot                                                                                    |
-| C→S       | `dodge`                 | —                                | not asleep/downed, stamina ≥ 30, not winded, 650 ms cooldown; creature strikes miss for 340 ms                                              |
-| C→S       | `emote`                 | `{ kind: 'jump' \| 'wave' }`     | known kind, not asleep/downed, one per 300 ms (cosmetic)                                                                                    |
-| C→S       | `ping`                  | `{ x, z }`                       | within 60 m of the player, one per second; broadcast as `ping { from, x, z }`                                                               |
-| C→S       | `chat`                  | `{ text }`                       | any player in the home; cleaned (control chars, whitespace), ≤ 120 chars, one per 0.4 s; not saved                                          |
-| C→S       | `dev:hurt` / `dev:give` | `{ amount }` / `{ itemId, qty }` | **dev servers only**                                                                                                                        |
-| C→S       | `dev:summon`            | `{ kind }`                       | **dev servers only**: moves the nearest live creature of that kind 12 m from you (e2e)                                                      |
-| C→S       | `dev:set-time`          | `{ timeOfDay }`                  | **dev servers only** (`NODE_ENV !== production`)                                                                                            |
-| S→C       | `teleport`              | `{ x, z }`                       | rejected move, getting into / out of bed, new day, death                                                                                    |
-| S→C       | `hit-confirm`           | `{ killed }`                     | your strike or arrow landed (hitmarker)                                                                                                     |
-| S→C       | `died`                  | —                                | you bled out / went down alone and woke up at home                                                                                          |
-| S→C       | `chat`                  | `{ from, name, text }`           | broadcast to everyone (sender included) after the server's checks                                                                           |
-| S→C       | `day-summary`           | `{ day, hunted, meals, … }`      | morning after a new day number (waking up, or sunrise): yesterday's stats and goals                                                         |
+| Direction | Name                    | Payload                                  | Server checks                                                                                                                               |
+| --------- | ----------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| C→S       | `ready`                 | `{ ready }`                              | shape, lobby phase                                                                                                                          |
+| C→S       | `start`                 | —                                        | lobby phase; alone, or both ready + connected                                                                                               |
+| C→S       | `move`                  | `{ x, z, yaw, pitch, sprint?, crouch? }` | shape, playing, not asleep, world bounds, walls/furniture, max speed                                                                        |
+| C→S       | `interact`              | `{ targetId }`                           | known furniture, within reach, asleep → only the bed                                                                                        |
+| C→S       | `transfer`              | `{ from: player                          | chest, slot }`                                                                                                                              | next to the chest, not asleep; moves what fits |
+| C→S       | `move-slot`             | `{ container, from, to }`                | slot indices in range; chest only while at it; move / swap / merge                                                                          |
+| C→S       | `select-slot`           | `{ slot }`                               | hotbar index; cosmetic (partner sees what you hold)                                                                                         |
+| C→S       | `use-item`              | `{ slot }`                               | slot holds food, not asleep                                                                                                                 |
+| C→S       | `interact` on a node    | `{ targetId: "tree-12" }`                | within reach, charges > 0, 0.6 s cooldown, backpack space                                                                                   |
+| C→S       | `attack`                | `{ slot, targetId, yaw, pitch }`         | weapon from the server's copy of that hotbar slot, cooldown, not downed/asleep; melee: body in reach; bow: one arrow used, flight simulated |
+| C→S       | `craft`                 | `{ recipeId }`                           | known recipe, next to the workbench, has the materials, room for the output                                                                 |
+| C→S       | `interact` on a player  | `{ targetId: sessionId }`                | held [E] on a downed partner in reach; pings at least every 0.9 s (a gap pauses the revive)                                                 |
+| C→S       | `interact` on a carcass | `{ targetId: "boar-2" }`                 | dead + present, within reach, backpack fits all the loot                                                                                    |
+| C→S       | `dodge`                 | —                                        | not asleep/downed, stamina ≥ 30, not winded, 650 ms cooldown; creature strikes miss for 340 ms                                              |
+| C→S       | `emote`                 | `{ kind: 'jump' \| 'wave' }`             | known kind, not asleep/downed, one per 300 ms (cosmetic)                                                                                    |
+| C→S       | `ping`                  | `{ x, z }`                               | within 60 m of the player, one per second; broadcast as `ping { from, x, z }`                                                               |
+| C→S       | `place-trap`            | `{ slot }`                               | hotbar trap item, not asleep/downed, ≤ 8 traps, 1.6 m ahead: outside the yard, inside the world, not in a tree                              |
+| C→S       | `interact` on a trap    | `{ targetId: "trap-3" }`                 | within reach: picks it back up (backpack space)                                                                                             |
+| C→S       | `chat`                  | `{ text }`                               | any player in the home; cleaned (control chars, whitespace), ≤ 120 chars, one per 0.4 s; not saved                                          |
+| C→S       | `dev:hurt` / `dev:give` | `{ amount }` / `{ itemId, qty }`         | **dev servers only**                                                                                                                        |
+| C→S       | `dev:summon`            | `{ kind, x?, z? }`                       | **dev servers only**: moves the nearest live creature of that kind 12 m from you, or to x/z (e2e)                                           |
+| C→S       | `dev:set-time`          | `{ timeOfDay }`                          | **dev servers only** (`NODE_ENV !== production`)                                                                                            |
+| S→C       | `teleport`              | `{ x, z }`                               | rejected move, getting into / out of bed, new day, death                                                                                    |
+| S→C       | `hit-confirm`           | `{ killed }`                             | your strike or arrow landed (hitmarker)                                                                                                     |
+| S→C       | `died`                  | —                                        | you bled out / went down alone and woke up at home                                                                                          |
+| S→C       | `chat`                  | `{ from, name, text }`                   | broadcast to everyone (sender included) after the server's checks                                                                           |
+| S→C       | `day-summary`           | `{ day, hunted, meals, … }`              | morning after a new day number (waking up, or sunrise): yesterday's stats and goals                                                         |
 
 In production, matchmaking and `/health` answer CORS only for `ALLOWED_ORIGINS` (the Pages URL).
 

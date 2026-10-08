@@ -20,6 +20,8 @@ export const ZONES = {
   clearing: { center: { x: 0, z: 42 }, radius: 7 },
   /** Deep woods behind the house, where wolves den (spawning only; trees are generated as usual). */
   forest: { center: { x: 0, z: -38 }, radius: 12 },
+  /** North-west deep woods: the bear's den (spawning only, like the forest). */
+  den: { center: { x: -30, z: -30 }, radius: 7 },
 } as const satisfies Record<string, { center: Point; radius: number }>;
 
 /** The dirt road from the front door south to the clearing. */
@@ -39,7 +41,7 @@ export interface ResourceNodeDefinition {
   collider: Box | null;
 }
 
-const CAPS: Record<ResourceKind, number> = { tree: 110, rock: 26, bush: 24 };
+const CAPS: Record<ResourceKind, number> = { tree: 110, rock: 26, bush: 24, mushroom: 0 };
 const MIN_SPACING = 2.4;
 const INNER = ZONES.yard.radius;
 const OUTER = WORLD_RADIUS - 4;
@@ -65,7 +67,7 @@ function square(c: Point, half: number): Box {
 function generate(): ResourceNodeDefinition[] {
   const random = createRandom(WORLD_SEED);
   const nodes: ResourceNodeDefinition[] = [];
-  const counts: Record<ResourceKind, number> = { tree: 0, rock: 0, bush: 0 };
+  const counts: Record<ResourceKind, number> = { tree: 0, rock: 0, bush: 0, mushroom: 0 };
 
   for (let attempt = 0; attempt < 4000; attempt++) {
     // Uniform over the ring between the yard and the rim.
@@ -94,7 +96,37 @@ function generate(): ResourceNodeDefinition[] {
   return nodes;
 }
 
-export const RESOURCE_NODES: readonly ResourceNodeDefinition[] = generate();
+/** Mushroom patches under the northern trees. A separate seed, so trees and rocks stay put. */
+const MUSHROOM_SEED = WORLD_SEED + 1;
+const MUSHROOM_COUNT = 14;
+function generateMushrooms(existing: ResourceNodeDefinition[]): ResourceNodeDefinition[] {
+  const random = createRandom(MUSHROOM_SEED);
+  const out: ResourceNodeDefinition[] = [];
+  const def = RESOURCE_KINDS.mushroom;
+  for (let attempt = 0; attempt < 2000 && out.length < MUSHROOM_COUNT; attempt++) {
+    const angle = Math.PI + random() * Math.PI; // the northern half (−Z)
+    const r = INNER + 6 + random() * (OUTER - INNER - 8);
+    const p = { x: Math.cos(angle) * r, z: Math.sin(angle) * r };
+    if ([...existing, ...out].some((n) => Math.hypot(n.x - p.x, n.z - p.z) < MIN_SPACING)) continue;
+    out.push({
+      id: `mushroom-${out.length}`,
+      kind: 'mushroom',
+      x: p.x,
+      z: p.z,
+      scale: 0.85 + random() * 0.3,
+      rotation: random() * Math.PI * 2,
+      reach: square(p, def.reachHalf),
+      collider: null,
+    });
+  }
+  return out;
+}
+
+const MAIN_NODES = generate();
+export const RESOURCE_NODES: readonly ResourceNodeDefinition[] = [
+  ...MAIN_NODES,
+  ...generateMushrooms(MAIN_NODES),
+];
 
 const nodesById = new Map(RESOURCE_NODES.map((n) => [n.id, n]));
 

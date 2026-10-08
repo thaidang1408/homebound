@@ -52,8 +52,12 @@ interface Look {
   headAt: readonly [number, number];
   snout: Vec3;
   tusks: boolean;
-  ears: 'flap' | 'point';
+  ears: 'flap' | 'point' | 'long' | 'round';
+  /** Branching antlers on the head (deer). */
+  antlers: boolean;
+  /** A long tail (wolf) or a white puff (deer, rabbit). */
   tail: boolean;
+  puffTail: boolean;
   /** Eyes that catch the light at night. */
   glowEyes: boolean;
   barY: number;
@@ -76,7 +80,9 @@ const LOOKS: Record<CreatureKind, Look> = {
     snout: [0.28, 0.22, 0.16],
     tusks: true,
     ears: 'flap',
+    antlers: false,
     tail: false,
+    puffTail: false,
     glowEyes: false,
     barY: 1.35,
   },
@@ -96,9 +102,77 @@ const LOOKS: Record<CreatureKind, Look> = {
     snout: [0.18, 0.15, 0.26],
     tusks: false,
     ears: 'point',
+    antlers: false,
     tail: true,
+    puffTail: false,
     glowEyes: true,
     barY: 1.45,
+  },
+  deer: {
+    fur: PALETTE.deer,
+    dark: PALETTE.deerDark,
+    snoutColor: PALETTE.deerNose,
+    body: [0.42, 0.48, 1.0],
+    bodyY: 0.98,
+    ridge: false,
+    hip: 0.78,
+    legWidth: 0.08,
+    legX: 0.14,
+    legZ: 0.36,
+    head: [0.26, 0.28, 0.34],
+    headAt: [1.38, -0.55],
+    snout: [0.14, 0.13, 0.18],
+    tusks: false,
+    ears: 'point',
+    antlers: true,
+    tail: false,
+    puffTail: true,
+    glowEyes: false,
+    barY: 2.05,
+  },
+  rabbit: {
+    fur: PALETTE.rabbit,
+    dark: PALETTE.rabbitDark,
+    snoutColor: PALETTE.rabbitNose,
+    body: [0.24, 0.22, 0.36],
+    bodyY: 0.22,
+    ridge: false,
+    hip: 0.12,
+    legWidth: 0.07,
+    legX: 0.08,
+    legZ: 0.12,
+    head: [0.18, 0.17, 0.18],
+    headAt: [0.34, -0.2],
+    snout: [0.06, 0.05, 0.04],
+    tusks: false,
+    ears: 'long',
+    antlers: false,
+    tail: false,
+    puffTail: true,
+    glowEyes: false,
+    barY: 0.75,
+  },
+  bear: {
+    fur: PALETTE.bear,
+    dark: PALETTE.bearDark,
+    snoutColor: PALETTE.bearSnout,
+    body: [0.95, 0.85, 1.6],
+    bodyY: 0.98,
+    ridge: true,
+    hip: 0.6,
+    legWidth: 0.26,
+    legX: 0.33,
+    legZ: 0.55,
+    head: [0.6, 0.55, 0.55],
+    headAt: [1.1, -0.85],
+    snout: [0.3, 0.24, 0.22],
+    tusks: false,
+    ears: 'round',
+    antlers: false,
+    tail: false,
+    puffTail: false,
+    glowEyes: false,
+    barY: 2.1,
   },
 };
 
@@ -267,6 +341,12 @@ export function Beast({
             <meshStandardMaterial color={look.dark} flatShading />
           </mesh>
         )}
+        {look.puffTail && (
+          <mesh position={[0, look.bodyY + bh * 0.2, bl / 2 + 0.04]}>
+            <icosahedronGeometry args={[Math.max(0.06, bw * 0.22), 0]} />
+            <meshStandardMaterial color={PALETTE.puffTail} flatShading />
+          </mesh>
+        )}
         {look.tail && (
           <mesh position={[0, look.bodyY + 0.08, bl / 2 + 0.2]} rotation-x={-0.9}>
             <coneGeometry args={[0.07, 0.5, 4]} />
@@ -305,16 +385,45 @@ export function Beast({
                   <meshStandardMaterial color={PALETTE.eye} />
                 )}
               </mesh>
-              {look.ears === 'flap' ? (
+              {look.ears === 'flap' && (
                 <mesh position={[side * 0.19, 0.26, -0.08]} rotation={[0.3, 0, side * 0.4]}>
                   <boxGeometry args={[0.1, 0.16, 0.05]} />
                   <meshStandardMaterial color={look.dark} flatShading />
                 </mesh>
-              ) : (
+              )}
+              {look.ears === 'point' && (
                 <mesh position={[side * hw * 0.32, hh / 2 + 0.08, -0.06]}>
                   <coneGeometry args={[0.06, 0.18, 4]} />
                   <meshStandardMaterial color={look.dark} flatShading />
                 </mesh>
+              )}
+              {look.ears === 'long' && (
+                <mesh position={[side * hw * 0.22, hh / 2 + 0.13, 0]} rotation-z={side * -0.15}>
+                  <boxGeometry args={[0.045, 0.26, 0.035]} />
+                  <meshStandardMaterial color={look.fur} flatShading />
+                </mesh>
+              )}
+              {look.ears === 'round' && (
+                <mesh position={[side * hw * 0.38, hh / 2, -0.05]}>
+                  <boxGeometry args={[0.13, 0.13, 0.07]} />
+                  <meshStandardMaterial color={look.dark} flatShading />
+                </mesh>
+              )}
+              {look.antlers && (
+                <group position={[side * hw * 0.25, hh / 2, -0.1]} rotation-z={side * -0.35}>
+                  <mesh position-y={0.2}>
+                    <cylinderGeometry args={[0.018, 0.025, 0.4, 4]} />
+                    <meshStandardMaterial color={PALETTE.antler} flatShading />
+                  </mesh>
+                  <mesh position={[side * 0.07, 0.3, -0.06]} rotation={[-0.6, 0, side * -0.7]}>
+                    <coneGeometry args={[0.018, 0.2, 4]} />
+                    <meshStandardMaterial color={PALETTE.antler} flatShading />
+                  </mesh>
+                  <mesh position={[0, 0.42, 0.04]} rotation-x={0.5}>
+                    <coneGeometry args={[0.016, 0.16, 4]} />
+                    <meshStandardMaterial color={PALETTE.antler} flatShading />
+                  </mesh>
+                </group>
               )}
             </group>
           ))}

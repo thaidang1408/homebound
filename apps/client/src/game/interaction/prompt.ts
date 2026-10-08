@@ -17,7 +17,12 @@ export interface Prompt {
   /** Shown as "[E] text" when actionable, plain hint text otherwise. */
   text: string;
   actionable: boolean;
+  /** A second key that works here too ("[R] Recipes" at the stove). */
+  secondary?: { key: string; text: string };
 }
+
+const STOVE_RECIPES = { key: 'R', text: 'Recipes' } as const;
+const TRAP_NAMES: Record<string, string> = { snare: 'snare', spike: 'spike trap' };
 
 function itemName(id: string): string {
   return isItemId(id) ? getItem(id).name.toLowerCase() : 'food';
@@ -48,6 +53,14 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
       ? { text: `Butcher ${def.name.toLowerCase()}`, actionable: true }
       : { text: 'Backpack full', actionable: false };
   }
+  const trap = state.traps.get(focusId);
+  if (trap && me) {
+    const name = TRAP_NAMES[trap.kind] ?? 'trap';
+    return {
+      text: trap.sprung ? `Pick up the sprung ${name}` : `Pick up ${name}`,
+      actionable: true,
+    };
+  }
   const target = findInteractable(focusId);
   if (!target || !me) return null;
 
@@ -55,13 +68,19 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
     case 'stove': {
       const stove = state.stove;
       if (stove.status === StoveStatus.Done) {
-        return { text: `Take ${itemName(stove.itemId)}`, actionable: true };
+        return {
+          text: `Take ${itemName(stove.itemId)}`,
+          actionable: true,
+          secondary: STOVE_RECIPES,
+        };
       }
-      if (stove.status === StoveStatus.Cooking) return { text: 'Cooking…', actionable: false };
+      if (stove.status === StoveStatus.Cooking) {
+        return { text: 'Cooking…', actionable: false, secondary: STOVE_RECIPES };
+      }
       const raw = [...me.inventory].find((s) => isItemId(s.itemId) && cookResult(s.itemId));
       return raw
-        ? { text: `Cook ${itemName(raw.itemId)}`, actionable: true }
-        : { text: 'Bring raw meat to cook', actionable: false };
+        ? { text: `Cook ${itemName(raw.itemId)}`, actionable: true, secondary: STOVE_RECIPES }
+        : { text: 'Bring raw meat to cook', actionable: false, secondary: STOVE_RECIPES };
     }
     case 'chest':
       return { text: 'Open storage', actionable: true };
@@ -78,7 +97,8 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
       return { text: 'Craft', actionable: true };
     case 'tree':
     case 'rock':
-    case 'bush': {
+    case 'bush':
+    case 'mushroom': {
       const def = RESOURCE_KINDS[target.kind];
       if (!hasSpaceFor(me, def.drop)) return { text: 'Backpack full', actionable: false };
       return { text: `${def.verb} ${itemName(def.drop)}`, actionable: true };

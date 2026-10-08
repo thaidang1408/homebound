@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import type { Room } from '@colyseus/sdk';
 import {
+  CROUCH_EYE_HEIGHT,
+  CROUCH_SPEED,
   ClientMessage,
   DODGE_COOLDOWN_MS,
   DODGE_COST,
@@ -10,6 +12,8 @@ import {
   GRAVITY,
   INTERACT_RANGE,
   JUMP_SPEED,
+  TRAP_PLACE_DISTANCE,
+  ZONES,
   WORLD_COLLIDERS,
   MAX_PITCH,
   MOVE_SEND_INTERVAL_MS,
@@ -31,7 +35,13 @@ import {
 import { MAX_FRAME_DT, MOUSE_SENSITIVITY, MOVE_EPSILON } from '../../config/controls';
 import { getSettings } from '../../state/settings';
 import { getUi, showToast, updateUi } from '../../state/ui';
-import { findCreature, findDownedPartner, findFocus, isAvailable } from '../interaction/focus';
+import {
+  findCreature,
+  findDownedPartner,
+  findFocus,
+  findTrap,
+  isAvailable,
+} from '../interaction/focus';
 import { heldItem, heldWeaponId } from './held';
 import { playDodge, playFootstep, playJump, playLand, playSwing } from '../../audio/sounds';
 import { emitBurst } from '../fx/Particles';
@@ -110,6 +120,8 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
   const shake = useRef({ seen: 0, at: -1e9 });
   const jump = useRef({ y: 0, vy: 0, landedAt: -1e9 });
   const sprintSent = useRef(false);
+  /** Sneaking (C toggles; sprinting or jumping stands you up). Eye height eases between. */
+  const crouch = useRef({ on: false, sent: false, eye: PLAYER_EYE_HEIGHT });
   const dodge = useRef({ active: false, at: -1e9, dx: 0, dz: 0, done: 0, lean: 0 });
   /**
    * When Space / Q were last pressed. Taken from key events, not the held-key set: a quick tap can
@@ -149,6 +161,21 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       const me = room.state.players.get(room.sessionId);
       if (!me || me.downed || me.sleeping) return;
       const h = heldItem(room);
+      // A trap in hand is set on the ground ahead (outside the yard: nothing comes there).
+      if (isItemId(h.itemId) && getItem(h.itemId).trap) {
+        const p = pose.current;
+        const at = {
+          x: p.x - Math.sin(p.yaw) * TRAP_PLACE_DISTANCE,
+          z: p.z - Math.cos(p.yaw) * TRAP_PLACE_DISTANCE,
+        };
+        if (Math.hypot(at.x, at.z) < ZONES.yard.radius) {
+          showToast('Set traps outside the yard — animals never come this close to home.');
+          return;
+        }
+        room.send(ClientMessage.PlaceTrap, { slot: h.slot });
+        localAction('pick');
+        return;
+      }
       // Food is eaten, unless a creature is in your face: then you punch (loot lands in the
       // selected slot mid-hunt, and eating it instead of fighting back gets you killed).
       if (isItemId(h.itemId) && getItem(h.itemId).hunger !== undefined && !getUi().preyId) {
@@ -181,6 +208,10 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       if (e.repeat || isTyping(e) || document.pointerLockElement !== canvas) return;
       if (e.code === 'Space') pressed.current.jump = performance.now();
       if (e.code === 'KeyQ') pressed.current.dodge = performance.now();
+      if (e.code === 'KeyC') {
+        crouch.current.on = !crouch.current.on;
+        updateUi({ crouching: crouch.current.on });
+      }
     };
     canvas.addEventListener('click', lock);
     document.addEventListener('mousemove', look);
@@ -254,6 +285,10 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     const wantsDodge = now - pressed.current.dodge < buffer;
     if (wantsJump && j.y === 0 && j.vy === 0 && !d.active) {
       pressed.current.jump = -1e9;
+      if (crouch.current.on) {
+        crouch.current.on = false; // jumping stands you up
+        updateUi({ crouching: false });
+      }
       j.vy = JUMP_SPEED;
       room.send(ClientMessage.Emote, { kind: 'jump' });
       localAction('jump');
@@ -301,7 +336,16 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       d.done = covered;
       if (t >= 1) d.active = false;
     } else if (length > 0) {
-      const step = ((sprinting ? PLAYER_SPRINT_SPEED : PLAYER_WALK_SPEED) * dt) / length;
+      if (sprinting && crouch.current.on) {
+        crouch.current.on = false; // sprinting stands you up
+        updateUi({ crouching: false });
+      }
+      const speed = sprinting
+        ? PLAYER_SPRINT_SPEED
+        : crouch.current.on
+          ? CROUCH_SPEED
+          : PLAYER_WALK_SPEED;
+      const step = (speed * dt) / length;
       walked = stepBy(
         (-sin * forward + cos * strafe) * step,
         (-cos * forward - sin * strafe) * step,
@@ -326,7 +370,9 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     const duck =
       (landing < 1 ? Math.sin(landing * Math.PI) * LAND_DIP : 0) +
       (dodgeT < 1 ? Math.sin(dodgeT * Math.PI) * DODGE_DUCK : 0);
-    camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT + bobY + j.y - duck, p.z);
+    const c = crouch.current;
+    c.eye += ((c.on ? CROUCH_EYE_HEIGHT : PLAYER_EYE_HEIGHT) - c.eye) * Math.min(1, dt * 10);
+    camera.position.set(p.x, terrainHeight(p.x, p.z) + c.eye + bobY + j.y - duck, p.z);
     const lean = dodgeT < 1 ? Math.sin(dodgeT * Math.PI) * DODGE_LEAN * d.lean : 0;
     const swing = (performance.now() - swingAt.current) / SWING_MS;
     const nod = swing < 1 ? -Math.sin(swing * Math.PI) * SWING_PITCH : 0;
@@ -348,6 +394,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     const focus =
       findDownedPartner(room, p.x, p.z) ??
       findCreature(room, p.x, p.z, p.yaw, INTERACT_RANGE, true) ??
+      findTrap(room, p.x, p.z, p.yaw) ??
       findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
     if (focus !== getUi().focusId) updateUi({ focusId: focus });
     const weapon = getWeapon(heldWeaponId(room));
@@ -366,12 +413,14 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     sinceSend.current = 0;
     const s = lastSent.current;
     const changed =
+      crouch.current.on !== crouch.current.sent || // tell the server right away
       Math.abs(p.x - s.x) > MOVE_EPSILON ||
       Math.abs(p.z - s.z) > MOVE_EPSILON ||
       Math.abs(p.yaw - s.yaw) > MOVE_EPSILON ||
       Math.abs(p.pitch - s.pitch) > MOVE_EPSILON;
     if (!changed) return;
-    room.send(ClientMessage.Move, { ...p, sprint: sprintSent.current });
+    room.send(ClientMessage.Move, { ...p, sprint: sprintSent.current, crouch: crouch.current.on });
+    crouch.current.sent = crouch.current.on;
     s.x = p.x;
     s.z = p.z;
     s.yaw = p.yaw;

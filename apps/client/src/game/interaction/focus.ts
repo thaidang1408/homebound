@@ -88,6 +88,24 @@ export function findCreature(
   return best;
 }
 
+/** The nearest trap in front of the player, within reach (to pick it up). */
+export function findTrap(room: Room<HomeState>, x: number, z: number, yaw: number): string | null {
+  const lookX = -Math.sin(yaw);
+  const lookZ = -Math.cos(yaw);
+  let best: string | null = null;
+  let bestDistance = Infinity;
+  room.state.traps.forEach((t, id) => {
+    const toX = t.x - x;
+    const toZ = t.z - z;
+    const d = Math.hypot(toX, toZ) || 1;
+    if (d > INTERACT_RANGE || d >= bestDistance) return;
+    if (d > ALWAYS_FOCUS_DISTANCE && (toX * lookX + toZ * lookZ) / d < FACING_COS) return;
+    best = id;
+    bestDistance = d;
+  });
+  return best;
+}
+
 /** A downed partner close enough to revive (no aiming needed: you kneel next to them). */
 export function findDownedPartner(room: Room<HomeState>, x: number, z: number): string | null {
   let found: string | null = null;

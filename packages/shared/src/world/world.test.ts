@@ -19,8 +19,16 @@ describe('random', () => {
 describe('world layout', () => {
   test('has every resource kind with unique ids', () => {
     const kinds = new Set(RESOURCE_NODES.map((n) => n.kind));
-    expect(kinds).toEqual(new Set(['tree', 'rock', 'bush']));
+    expect(kinds).toEqual(new Set(['tree', 'rock', 'bush', 'mushroom']));
     expect(new Set(RESOURCE_NODES.map((n) => n.id)).size).toBe(RESOURCE_NODES.length);
+  });
+
+  test('mushrooms are an extra pass: the original layout is unchanged', () => {
+    const count = (kind: string) => RESOURCE_NODES.filter((n) => n.kind === kind).length;
+    expect([count('tree'), count('rock'), count('bush')]).toEqual([110, 26, 24]);
+    const mushrooms = RESOURCE_NODES.filter((n) => n.kind === 'mushroom');
+    expect(mushrooms).toHaveLength(14);
+    for (const m of mushrooms) expect(m.z, m.id).toBeLessThan(0); // the northern woods
   });
 
   test('keeps the yard, the road and the clearing free', () => {

@@ -5,7 +5,9 @@ import {
   getItem,
   isItemId,
   type Container,
-  type RecipeId,
+  recipesAt,
+  type CraftStation,
+  type RecipeDefinition,
 } from '@homebound/shared';
 import { getSession, useSession } from '../../state/session';
 import { Button } from '../components/Button';
@@ -135,7 +137,21 @@ export function StoragePanel() {
 }
 
 /** Workbench: turn wood and stone into weapons and arrows (from your backpack). */
-export function WorkbenchPanel() {
+const STATIONS: Record<CraftStation, { title: string; hint: string; verb: string }> = {
+  workbench: {
+    title: 'Workbench',
+    hint: 'Crafting uses materials from your backpack.',
+    verb: 'Craft',
+  },
+  stove: {
+    title: 'Stove — recipes',
+    hint: 'Dishes with a bonus. Plain raw meat still cooks with [E].',
+    verb: 'Cook',
+  },
+};
+
+/** The recipes of one station (workbench or stove). */
+export function CraftPanel({ station }: { station: CraftStation }) {
   const { room } = useSession();
   const me = room?.state.players.get(room.sessionId);
   if (!room || !me) return null;
@@ -144,9 +160,10 @@ export function WorkbenchPanel() {
     [...me.inventory].filter((s) => s.itemId === id).reduce((n, s) => n + s.qty, 0);
 
   return (
-    <Shell title="Workbench" hint="Crafting uses materials from your backpack.">
+    <Shell title={STATIONS[station].title} hint={STATIONS[station].hint}>
       <ul className={styles.recipes}>
-        {(Object.entries(RECIPES) as [RecipeId, (typeof RECIPES)[RecipeId]][]).map(([id, r]) => {
+        {recipesAt(station).map((id) => {
+          const r: RecipeDefinition = RECIPES[id];
           const out = getItem(r.output);
           const ready = r.inputs.every((i) => have(i.itemId) >= i.qty);
           return (
@@ -172,7 +189,7 @@ export function WorkbenchPanel() {
                 disabled={!ready}
                 onClick={() => room.send(ClientMessage.Craft, { recipeId: id })}
               >
-                Craft
+                {STATIONS[station].verb}
               </Button>
             </li>
           );

@@ -1,6 +1,11 @@
 import {
+  BUFFS,
   CREATURES,
   CreatureMode,
+  NOISE_MS,
+  STEALTH_CROUCH,
+  STEALTH_NOISY,
+  isBuffId,
   CreatureState,
   CREATURE_HIT_HEIGHT,
   INTERACT_TOLERANCE,
@@ -136,6 +141,16 @@ function reach(c: CreatureState, def: CreatureDefinition, p: Point): number {
   return Math.hypot(p.x - c.x, p.z - c.z) - def.radius;
 }
 
+/**
+ * How far away a creature notices this player, relative to its detect range: sneaking halves it,
+ * having just sprinted makes you louder, the "light-footed" buff helps (Phase 10).
+ */
+export function stealthOf(p: PlayerState, now: number): number {
+  const movement = p.crouching ? STEALTH_CROUCH : now - p.noisyAt < NOISE_MS ? STEALTH_NOISY : 1;
+  const buff = isBuffId(p.buff) ? BUFFS[p.buff] : undefined;
+  return movement * (buff && 'stealth' in buff ? buff.stealth : 1);
+}
+
 const HUNTING: readonly string[] = [
   CreatureMode.Alert,
   CreatureMode.Chase,
@@ -152,20 +167,23 @@ function huntersOf(state: HomeState, kind: string, sessionId: string): number {
   return n;
 }
 
-function spot(state: HomeState, c: CreatureState, def: CreatureDefinition): string {
+function spot(state: HomeState, c: CreatureState, def: CreatureDefinition, now: number): string {
   const night = dayPhase(state.timeOfDay) === 'night';
   const range = def.detectRange * (night ? def.nightDetectMultiplier : 1);
+  const skittish = def.temperament === 'skittish';
   const maxHunters = def.maxAttackers[night ? 1 : 0];
   const zone = ZONES[def.zone].center;
   let best = '';
-  let bestDistance = range;
+  let bestShare = 1; // distance / own detection range: the most noticeable player wins
   for (const [id, p] of state.players) {
-    if (!isPrey(p) || Math.hypot(p.x - zone.x, p.z - zone.z) > def.leashRadius) continue;
-    if (huntersOf(state, c.kind, id) >= maxHunters) continue;
-    const d = Math.hypot(p.x - c.x, p.z - c.z);
-    if (d <= bestDistance) {
+    if (!isPrey(p)) continue;
+    // Hunters keep to their territory; anything that spooks prey counts, wherever it stands.
+    if (!skittish && Math.hypot(p.x - zone.x, p.z - zone.z) > def.leashRadius) continue;
+    if (!skittish && huntersOf(state, c.kind, id) >= maxHunters) continue;
+    const share = Math.hypot(p.x - c.x, p.z - c.z) / (range * stealthOf(p, now));
+    if (share <= bestShare) {
       best = id;
-      bestDistance = d;
+      bestShare = share;
     }
   }
   return best;
@@ -246,8 +264,21 @@ export interface CreatureHit {
   damage: number;
 }
 
-/** Advances every creature by one server tick. Returns the hits on players (the room applies them). */
-export function tickCreatures(state: HomeState, dtMs: number, random: Random): CreatureHit[] {
+/** Run straight away from `from` (the feelers steer around trees). */
+function bolt(c: CreatureState, def: CreatureDefinition, from: Point, dt: number): void {
+  moveToward(c, def, { x: c.x + (c.x - from.x), z: c.z + (c.z - from.z) }, def.runSpeed * dt);
+}
+
+/**
+ * Advances every creature by one server tick. Returns the hits on players (the room applies them).
+ * `now` is the room clock (players' noise is timestamped with it).
+ */
+export function tickCreatures(
+  state: HomeState,
+  dtMs: number,
+  random: Random,
+  now = 0,
+): CreatureHit[] {
   const hits: CreatureHit[] = [];
   for (const c of state.creatures.values()) {
     const def = defOf(c);
@@ -273,7 +304,9 @@ export function tickCreatures(state: HomeState, dtMs: number, random: Random): C
       !target ||
       !isPrey(target) ||
       Math.hypot(target.x - c.x, target.z - c.z) > def.giveUpRange ||
-      Math.hypot(target.x - zone.x, target.z - zone.z) > def.leashRadius;
+      // Hunters give up at the edge of their territory; prey keeps running from the scare.
+      (def.temperament === 'hostile' &&
+        Math.hypot(target.x - zone.x, target.z - zone.z) > def.leashRadius);
 
     switch (c.mode) {
       case CreatureMode.Dead:
@@ -281,7 +314,7 @@ export function tickCreatures(state: HomeState, dtMs: number, random: Random): C
 
       case CreatureMode.Idle:
       case CreatureMode.Patrol: {
-        const seen = spot(state, c, def);
+        const seen = spot(state, c, def, now);
         if (seen) {
           c.target = seen;
           const p = state.players.get(seen);
@@ -302,16 +335,21 @@ export function tickCreatures(state: HomeState, dtMs: number, random: Random): C
       case CreatureMode.Alert:
         if (lost) startPatrol(c, def, random);
         else {
-          face(c, target);
-          if (expired) setMode(c, CreatureMode.Chase);
+          face(c, target); // ears up, staring: the moment to freeze or shoot
+          if (expired) setMode(c, onTheMove(def));
         }
         break;
 
       case CreatureMode.Hurt:
         if (expired) {
           if (lost) startPatrol(c, def, random);
-          else setMode(c, CreatureMode.Chase);
+          else setMode(c, onTheMove(def));
         }
+        break;
+
+      case CreatureMode.Flee:
+        if (lost) startPatrol(c, def, random);
+        else bolt(c, def, target, dt);
         break;
 
       case CreatureMode.Chase:
@@ -339,6 +377,33 @@ export function tickCreatures(state: HomeState, dtMs: number, random: Random): C
     }
   }
   return hits;
+}
+
+/** After a scare or a hit: hunters chase, prey runs. */
+function onTheMove(def: CreatureDefinition): CreatureMode {
+  return def.temperament === 'skittish' ? CreatureMode.Flee : CreatureMode.Chase;
+}
+
+/** A snare closes on a creature that can be snared: it's caught (a carcass to butcher). */
+export function snareCreature(state: HomeState, creatureId: string): boolean {
+  const c = state.creatures.get(creatureId);
+  const def = c ? defOf(c) : undefined;
+  if (!c || !def?.snareable || !c.present || c.mode === CreatureMode.Dead) return false;
+  c.health = 0;
+  c.target = '';
+  setMode(c, CreatureMode.Dead);
+  return true;
+}
+
+/** Live creatures whose body overlaps a circle (traps). */
+export function creaturesWithin(state: HomeState, p: Point, radius: number): string[] {
+  const out: string[] = [];
+  for (const [id, c] of state.creatures) {
+    const def = defOf(c);
+    if (!def || !c.present || c.mode === CreatureMode.Dead) continue;
+    if (Math.hypot(p.x - c.x, p.z - c.z) <= radius + def.radius) out.push(id);
+  }
+  return out;
 }
 
 export type HitOutcome = 'hit' | 'killed' | 'invalid';

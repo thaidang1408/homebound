@@ -44,6 +44,15 @@ export const RESOURCE_KINDS = {
     colliderHalf: 0,
     reachHalf: 0.6,
   },
+  mushroom: {
+    drop: 'mushroom',
+    qty: 1,
+    charges: 2,
+    respawnMs: 4 * 60_000,
+    verb: 'Pick',
+    colliderHalf: 0,
+    reachHalf: 0.45,
+  },
 } as const satisfies Record<string, ResourceKindDefinition>;
 
 export type ResourceKind = keyof typeof RESOURCE_KINDS;

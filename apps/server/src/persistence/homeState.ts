@@ -2,6 +2,7 @@ import {
   GoalState,
   RESOURCE_KINDS,
   StoveStatus,
+  TrapState,
   findResourceNode,
   isItemId,
   levelForXp,
@@ -94,6 +95,18 @@ export function buildSave(
       crafted: state.today.crafted,
       revives: state.today.revives,
     },
+    traps: Object.fromEntries(
+      [...state.traps.entries()].map(([id, t]) => [
+        id,
+        {
+          kind: t.kind === 'spike' ? 'spike' : 'snare',
+          x: t.x,
+          z: t.z,
+          sprung: t.sprung,
+          owner: t.owner,
+        },
+      ]),
+    ),
   };
 }
 
@@ -125,4 +138,10 @@ export function applyHome(state: HomeState, save: HomeSave): void {
     state.goals.push(g);
   }
   Object.assign(state.today, save.today);
+  state.traps.clear();
+  for (const [id, saved] of Object.entries(save.traps)) {
+    const trap = new TrapState();
+    Object.assign(trap, saved);
+    state.traps.set(id, trap);
+  }
 }

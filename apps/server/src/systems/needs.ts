@@ -1,10 +1,12 @@
 import {
+  BUFFS,
   HEALTH_MAX,
   HEALTH_REGEN_PER_SECOND,
   HUNGER_DECAY_PER_SECOND,
   STARVING_DAMAGE_PER_SECOND,
   HUNGER_MAX,
   getItem,
+  isBuffId,
   type HomeState,
   type PlayerState,
 } from '@homebound/shared';
@@ -34,9 +36,12 @@ export function hurtPlayer(player: PlayerState, damage: number): boolean {
 export function tickNeeds(state: HomeState, dtSeconds: number): string[] {
   const fell: string[] = [];
   for (const [id, player] of state.players) {
+    tickBuff(player, dtSeconds * 1000);
     if (player.downed) continue;
     if (player.hungerExact > 0) {
-      setHealth(player, player.healthExact + HEALTH_REGEN_PER_SECOND * dtSeconds);
+      const buff = isBuffId(player.buff) ? BUFFS[player.buff] : undefined;
+      const regen = buff && 'regen' in buff ? buff.regen : 1;
+      setHealth(player, player.healthExact + HEALTH_REGEN_PER_SECOND * regen * dtSeconds);
     } else if (hurtPlayer(player, STARVING_DAMAGE_PER_SECOND * dtSeconds)) {
       fell.push(id);
     }
@@ -46,12 +51,26 @@ export function tickNeeds(state: HomeState, dtSeconds: number): string[] {
   return fell;
 }
 
+/** A food buff runs down in real time (asleep or not); `buffLeft` is what the HUD shows. */
+function tickBuff(player: PlayerState, dtMs: number): void {
+  if (!player.buff) return;
+  player.buffMs = Math.max(0, player.buffMs - dtMs);
+  player.buffLeft = Math.ceil(player.buffMs / 1000);
+  if (player.buffMs === 0) player.buff = '';
+}
+
 /** Eats one item from an inventory slot. Returns false if the slot isn't edible food. */
 export function eatFromSlot(player: PlayerState, slot: number): boolean {
   const id = itemAt(player.inventory, slot);
-  const hunger = id ? getItem(id).hunger : undefined;
-  if (hunger === undefined) return false;
+  const def = id ? getItem(id) : undefined;
+  if (def?.hunger === undefined) return false;
   takeOne(player.inventory, slot);
-  setHunger(player, player.hungerExact + hunger);
+  setHunger(player, player.hungerExact + def.hunger);
+  // A dish with a buff replaces whatever buff you had.
+  if (def.buff && isBuffId(def.buff)) {
+    player.buff = def.buff;
+    player.buffMs = BUFFS[def.buff].durationMs;
+    player.buffLeft = Math.ceil(player.buffMs / 1000);
+  }
   return true;
 }

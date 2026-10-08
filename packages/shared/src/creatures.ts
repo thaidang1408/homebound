@@ -15,6 +15,8 @@ export const CreatureMode = {
   /** Wind-up then strike; the wind-up is the player's window to back off. */
   Attack: 'attack',
   Hurt: 'hurt',
+  /** Skittish animals bolt away from whoever startled them. */
+  Flee: 'flee',
   /** A carcass to butcher with [E]; disappears when looted, respawns later. */
   Dead: 'dead',
 } as const;
@@ -28,6 +30,13 @@ export interface LootEntry {
 
 export interface CreatureDefinition {
   name: string;
+  /**
+   * 'hostile' hunts players; 'skittish' bolts away when it notices one (or gets hit) and never
+   * attacks: you sneak up (crouch), shoot from afar, or trap it.
+   */
+  temperament: 'hostile' | 'skittish';
+  /** Caught by a snare it walks into. */
+  snareable: boolean;
   maxHealth: number;
   /** Collision circle and focus size (m). */
   radius: number;
@@ -75,6 +84,8 @@ export interface CreatureDefinition {
 export const CREATURES = {
   boar: {
     name: 'Boar',
+    temperament: 'hostile',
+    snareable: false,
     maxHealth: 40,
     radius: 0.55,
     walkSpeed: 1.4,
@@ -103,6 +114,8 @@ export const CREATURES = {
   /** Night hunter: comes out of the north woods in a pair; faster than walking, slower than sprinting. */
   wolf: {
     name: 'Wolf',
+    temperament: 'hostile',
+    snareable: false,
     maxHealth: 30,
     radius: 0.45,
     walkSpeed: 1.8,
@@ -128,6 +141,111 @@ export const CREATURES = {
     respawnMs: 90_000,
     zone: 'forest',
     count: 3,
+  },
+  /** Grazes the east meadow; bolts faster than you can sprint. Sneak up or use the bow. */
+  deer: {
+    name: 'Deer',
+    temperament: 'skittish',
+    snareable: false,
+    maxHealth: 35,
+    radius: 0.5,
+    walkSpeed: 1.3,
+    runSpeed: 7.8,
+    detectRange: 15,
+    nightDetectMultiplier: 0.8,
+    maxAttackers: [0, 0],
+    /** Runs until the scare is this far behind it. */
+    giveUpRange: 26,
+    roamRadius: 16,
+    leashRadius: 30,
+    idleMs: [2500, 6000],
+    alertMs: 350,
+    attackRange: 0,
+    attackWindupMs: 0,
+    attackRecoverMs: 0,
+    attackDamage: 0,
+    hurtMs: 200,
+    knockback: 0.3,
+    loot: [
+      { itemId: 'raw_meat', min: 2, max: 3 },
+      { itemId: 'hide', min: 1, max: 2 },
+      { itemId: 'antler', min: 0, max: 1 },
+    ],
+    xp: 25,
+    activeAt: 'always',
+    respawnMs: 4 * 60_000,
+    zone: 'meadow',
+    count: 3,
+  },
+  /** Small and quick among the west grove's bushes; the snare's favorite. */
+  rabbit: {
+    name: 'Rabbit',
+    temperament: 'skittish',
+    snareable: true,
+    maxHealth: 8,
+    radius: 0.25,
+    walkSpeed: 1,
+    runSpeed: 6.4,
+    detectRange: 6,
+    nightDetectMultiplier: 1,
+    maxAttackers: [0, 0],
+    giveUpRange: 14,
+    roamRadius: 14,
+    leashRadius: 22,
+    idleMs: [1500, 4000],
+    alertMs: 250,
+    attackRange: 0,
+    attackWindupMs: 0,
+    attackRecoverMs: 0,
+    attackDamage: 0,
+    hurtMs: 150,
+    knockback: 0.4,
+    loot: [
+      { itemId: 'raw_meat', min: 1, max: 1 },
+      { itemId: 'hide', min: 0, max: 1 },
+    ],
+    xp: 8,
+    activeAt: 'always',
+    respawnMs: 2 * 60_000,
+    zone: 'grove',
+    count: 4,
+  },
+  /**
+   * The forest's mini-boss: slow, huge wind-up (dodge it!), hits hard. Slower than a sprint, so
+   * stamina is your escape.
+   */
+  bear: {
+    name: 'Bear',
+    temperament: 'hostile',
+    snareable: false,
+    maxHealth: 160,
+    radius: 0.9,
+    walkSpeed: 1.1,
+    runSpeed: 5.6,
+    detectRange: 9,
+    nightDetectMultiplier: 1.3,
+    maxAttackers: [1, 1],
+    giveUpRange: 20,
+    roamRadius: 9,
+    leashRadius: 20,
+    idleMs: [3000, 7000],
+    alertMs: 1000,
+    attackRange: 1.2,
+    attackWindupMs: 900,
+    attackRecoverMs: 1200,
+    attackDamage: 30,
+    hurtMs: 150,
+    knockback: 0.15,
+    loot: [
+      { itemId: 'raw_meat', min: 3, max: 4 },
+      { itemId: 'hide', min: 2, max: 3 },
+      { itemId: 'bear_claw', min: 1, max: 1 },
+    ],
+    xp: 80,
+    activeAt: 'always',
+    respawnMs: 8 * 60_000,
+    zone: 'den',
+    count: 1,
   },
 } as const satisfies Record<string, CreatureDefinition>;
 

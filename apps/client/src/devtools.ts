@@ -37,8 +37,8 @@ function give(itemId: string, qty: number): void {
 }
 
 /** Bring the nearest creature of a kind close (dev servers only): makes AI tests deterministic. */
-function summon(kind: string): void {
-  getSession().room?.send(ClientMessage.DevSummon, { kind });
+function summon(kind: string, at?: { x: number; z: number }): void {
+  getSession().room?.send(ClientMessage.DevSummon, { kind, ...at });
 }
 
 /** Draw calls, triangles and frames per second over one second (for profiling). */

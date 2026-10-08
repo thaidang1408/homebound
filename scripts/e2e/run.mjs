@@ -8,6 +8,7 @@ import gameLoop from './game-loop.mjs';
 import { createRun } from './lib.mjs';
 import homeLoop from './home-loop.mjs';
 import hunting from './hunting.mjs';
+import hunting2 from './hunting2.mjs';
 import outdoors from './outdoors.mjs';
 import perf from './perf.mjs';
 import soloSave from './solo-save.mjs';
@@ -19,6 +20,7 @@ const SCENARIOS = {
   'solo-save': soloSave,
   outdoors,
   hunting,
+  hunting2,
   combat,
   'game-loop': gameLoop,
   backpack,

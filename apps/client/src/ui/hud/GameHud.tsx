@@ -3,6 +3,10 @@ import {
   CREATURES,
   HEALTH_MAX,
   HOTBAR_SLOTS,
+  armorOf,
+  findResourceNode,
+  getBuff,
+  isBuffId,
   HUNGER_MAX,
   NEW_DAY_DELAY_MS,
   clockLabel,
@@ -19,7 +23,7 @@ import { useUi } from '../../state/ui';
 import { Button } from '../components/Button';
 import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
-import { InventoryPanel, StoragePanel, WorkbenchPanel } from '../panels/InventoryPanels';
+import { CraftPanel, InventoryPanel, StoragePanel } from '../panels/InventoryPanels';
 import { useAmbience } from '../../audio/useAmbience';
 import { SettingsPanel } from '../panels/SettingsPanel';
 import { Compass } from './Compass';
@@ -57,11 +61,13 @@ const CONTROLS: readonly [string, string][] = [
   ['Shift', 'Sprint (uses stamina)'],
   ['Space', 'Jump'],
   ['Q', 'Dodge roll'],
+  ['C', 'Sneak (animals notice you later)'],
   ['E', 'Interact'],
   ['Click', 'Use held item (attack / shoot / eat)'],
   ['1–5', 'Hotbar'],
   ['Tab', 'Backpack'],
   ['F', 'Mark a spot for your partner'],
+  ['R', 'Stove recipes (at the stove)'],
   ['G', 'Wave'],
   ['Enter', 'Chat'],
   ['M', 'Mute'],
@@ -80,6 +86,7 @@ export function GameHud() {
     panel: openPanel,
     selectedSlot,
     toasts,
+    crouching,
   } = useUi();
   const locked = usePointerLocked();
   useGameKeys();
@@ -98,12 +105,15 @@ export function GameHud() {
           ? `${partner.name} is in bed`
           : `${partner.name} is here`;
   const prompt = focusId && locked ? promptFor(focusId, room.state, room.sessionId) : null;
+  const armor = me ? armorOf(me.inventory) : 0;
   const hunger = me?.hunger ?? HUNGER_MAX;
   const health = me?.health ?? HEALTH_MAX;
   const prey = preyId ? room.state.creatures.get(preyId) : undefined;
   const preyDef = prey && isCreatureKind(prey.kind) ? CREATURES[prey.kind] : undefined;
   const preyName = preyDef?.name;
   const preyHealth = prey && preyDef ? prey.health / preyDef.maxHealth : 1;
+  // A creature in your face outranks a bush or a mushroom at your feet (not a partner or a carcass).
+  const showPrey = locked && !!preyName && (!prompt || (!!focusId && !!findResourceNode(focusId)));
   const bothAsleep = !!me?.sleeping && !!partner?.sleeping;
   const progress = levelForXp(me?.xp ?? 0);
   const xpShare = progress.needed ? progress.intoLevel / progress.needed : 1;
@@ -146,6 +156,14 @@ export function GameHud() {
         >
           {partnerStatus}
         </span>
+        {crouching && <span className={styles.pill}>🤫 Sneaking (C)</span>}
+        {me && isBuffId(me.buff) && (
+          <span className={styles.pill} data-tone="ok">
+            {getBuff(me.buff).icon} {getBuff(me.buff).name} {Math.floor(me.buffLeft / 60)}:
+            {String(me.buffLeft % 60).padStart(2, '0')}
+          </span>
+        )}
+        {armor > 0 && <span className={styles.pill}>🛡️ Armor −{Math.round(armor * 100)}%</span>}
       </div>
 
       <div className={styles.topRight}>
@@ -189,7 +207,7 @@ export function GameHud() {
           aria-hidden
         />
       )}
-      {locked && preyName && !prompt && (
+      {showPrey && (
         <div className={styles.prompt} data-actionable>
           <kbd className={styles.key}>Click</kbd>
           {heldWeaponId(room) === 'spear' ? 'Stab' : 'Punch'} {preyName.toLowerCase()}
@@ -198,10 +216,16 @@ export function GameHud() {
           </span>
         </div>
       )}
-      {prompt && !summary && (
+      {prompt && !summary && !showPrey && (
         <div className={styles.prompt} data-actionable={prompt.actionable}>
           {prompt.actionable && <kbd className={styles.key}>E</kbd>}
           {prompt.text}
+          {prompt.secondary && (
+            <>
+              <kbd className={styles.key}>{prompt.secondary.key}</kbd>
+              {prompt.secondary.text}
+            </>
+          )}
         </div>
       )}
 
@@ -262,7 +286,8 @@ export function GameHud() {
 
       {openPanel === 'inventory' && <InventoryPanel />}
       {openPanel === 'storage' && <StoragePanel />}
-      {openPanel === 'workbench' && <WorkbenchPanel />}
+      {openPanel === 'workbench' && <CraftPanel station="workbench" />}
+      {openPanel === 'stove' && <CraftPanel station="stove" />}
 
       {!locked && openPanel === 'none' && (
         <div className={`${panel.overlay} ${styles.interactive}`} onClick={resumePlay}>

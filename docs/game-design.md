@@ -49,6 +49,25 @@ for rendering, client collision, server validation and interaction reach.
   They also give up when you get 18 m away or leave their territory.
 - **Health** 0–100 (HUD), heals 0.25/s while fed, drains 0.55/s while starving.
 
+## Hunting 2.0 (Phase 10, ADR-023)
+
+- **Prey vs hunters:** deer (east meadow, faster than a sprint) and rabbits (west grove) are
+  _skittish_: they notice you, freeze for a beat, then bolt; they never attack. Boars, wolves and
+  the **bear** (north-west den, 160 health, a huge 0.9 s wind-up worth dodging, slower than a
+  sprint) hunt you.
+- **Sneaking (C):** slower and lower; animals notice you from half as far. Sprinting makes you loud
+  for 1.5 s (×1.35). The "light-footed" buff helps more.
+- **Tracks:** every animal leaves footprints; fresh ones glow faintly and they fade in 90 s.
+- **Traps** (workbench): a snare catches a rabbit that steps in; a spike trap hurts the first
+  creature over it (25) and it turns on whoever set it. Left click with a trap in hand sets it 1.6 m
+  ahead, outside the yard only; [E] picks it back up. Traps are saved; up to 8 per home.
+- **Materials → gear:** hide (deer, rabbit, bear), antler (deer, sometimes), bear claw. Leather
+  armor (3 hide, −25% damage), bear-hide coat (3 hide + claw, −45%), antler spear (30 damage).
+  Armor works while it's in your backpack; the partner sees a vest.
+- **Stove recipes ([R] at the stove):** hunter's stew (meat + 2 berries + mushroom: heal 6× faster
+  for 2 min), mushroom skewer (2 mushrooms + wood: light-footed for 3 min). Mushrooms grow under the
+  northern trees. One buff at a time, shown in the HUD.
+
 ## Combat and survival (Phase 5, ADR-017)
 
 | Weapon   | How                   | Damage | Reach / speed       | Every  | Boar (40 HP) |
@@ -129,6 +148,6 @@ position. Creatures are not saved: a re-opened home has a fresh herd. A player i
 ## Controls
 
 WASD move · Mouse look · Shift sprint (uses stamina) · Space jump · Q dodge roll (stamina; strikes
-miss you for a moment) · F mark a spot for your partner · G wave · Enter chat · E interact (hold to keep harvesting / reviving) · Left click
+miss you for a moment) · F mark a spot for your partner · G wave · C sneak · R stove recipes · Enter chat · E interact (hold to keep harvesting / reviving) · Left click
 use the held item (food: eat; spear/bow/fists: attack; a creature in your face: punch) · 1–5 / wheel
 hotbar · Tab backpack (drag to rearrange) · M mute · Esc pause (settings).

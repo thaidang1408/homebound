@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { weaponOf } from '@homebound/shared';
+import { armorOf, weaponOf } from '@homebound/shared';
 import { CAMERA_FOV } from '../config/controls';
 import { useSession } from '../state/session';
 import { Arrows } from './combat/Arrows';
 import { HeldItem } from './combat/HeldItem';
 import { PingMarkers } from './fx/PingMarkers';
+import { Tracks } from './world/Tracks';
+import { Traps } from './world/Traps';
 import { Creatures } from './creatures/Creatures';
 import { LocalPlayer } from './player/LocalPlayer';
 import { RemotePlayer } from './player/RemotePlayer';
@@ -46,6 +48,8 @@ function Players() {
       <Arrows room={room} />
       <HeldItem room={room} />
       <PingMarkers room={room} />
+      <Traps room={room} />
+      <Tracks room={room} />
       {partners.map(([id, p]) => (
         <RemotePlayer
           key={id}
@@ -57,6 +61,7 @@ function Players() {
           sleeping={p.sleeping}
           downed={p.downed}
           holding={weaponOf(p.inventory.at(p.selectedSlot)?.itemId ?? '')}
+          armored={armorOf(p.inventory) > 0}
           level={p.level}
         />
       ))}

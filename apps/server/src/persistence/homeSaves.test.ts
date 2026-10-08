@@ -48,6 +48,7 @@ function sample(code = 'ABC23'): HomeSave {
     },
     goals: [{ kind: 'hunt', target: 2, progress: 1 }],
     today: { hunted: 1, meals: 2, gathered: 9, crafted: 0, revives: 0 },
+    traps: { 'trap-3': { kind: 'snare', x: 20, z: -4, sprung: true, owner: PLAYER } },
   };
 }
 
@@ -65,6 +66,28 @@ describe('home saves', () => {
     expect(loaded?.players[PLAYER]?.health).toBe(64);
     expect(loaded?.goals).toEqual([{ kind: 'hunt', target: 2, progress: 1 }]);
     expect(loaded?.today.meals).toBe(2);
+    expect(loaded?.traps).toEqual({
+      'trap-3': { kind: 'snare', x: 20, z: -4, sprung: true, owner: PLAYER },
+    });
+  });
+
+  test('tampered traps are dropped or cleaned', () => {
+    const raw = sample() as unknown as Record<string, unknown>;
+    const parsed = parseSave(
+      {
+        ...raw,
+        traps: {
+          'trap-1': { kind: 'bomb', x: 1, z: 1 },
+          '../x': { kind: 'snare', x: 1, z: 1 },
+          'trap-2': { kind: 'spike', x: 'far', z: 1 },
+          'trap-4': { kind: 'spike', x: 500, z: 2, owner: 'nope' },
+        },
+      },
+      'ABC23',
+    );
+    expect(parsed?.traps).toEqual({
+      'trap-4': { kind: 'spike', x: 58, z: 2, sprung: false, owner: '' },
+    });
   });
 
   test('unknown or invalid codes are simply missing', () => {

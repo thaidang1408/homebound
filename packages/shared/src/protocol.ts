@@ -64,13 +64,15 @@ export const ClientMessage = {
   Emote: 'emote',
   /** Mark a spot for the partner: `{ x, z }`. */
   Ping: 'ping',
+  /** Set the trap held in a hotbar slot on the ground ahead: `{ slot }`. */
+  PlaceTrap: 'place-trap',
   /** Development servers only: jump the clock (playtests). Ignored in production. */
   DevSetTime: 'dev:set-time',
   /** Development servers only: lose health (test downed/revive). Payload `{ amount }`. */
   DevHurt: 'dev:hurt',
   /** Development servers only: get items (test weapons/crafting). Payload `{ itemId, qty }`. */
   DevGive: 'dev:give',
-  /** Development servers only: bring the nearest creature of `{ kind }` 12 m from you (e2e). */
+  /** Dev servers only: bring the nearest `{ kind }` 12 m from you, or to `{ x, z }` (e2e). */
   DevSummon: 'dev:summon',
 } as const;
 
@@ -143,6 +145,8 @@ export interface MovePayload {
   pitch: number;
   /** Shift held while moving: the server drains stamina for it. */
   sprint?: boolean;
+  /** Sneaking (C). */
+  crouch?: boolean;
 }
 
 export interface TeleportPayload {

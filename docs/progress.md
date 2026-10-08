@@ -442,3 +442,54 @@ approval (2026-10-08).
 - Sprint speed is not enforced on the server while winded (see ADR-022).
 - Arms and partner poses are tuned from screenshots in headless Chrome; please judge them in a real
   browser.
+
+## Phase 10 — Hunting 2.0
+
+**Status:** Done on one machine (tests + e2e pass), awaiting the user's test + approval
+(2026-10-08).
+
+**What was built**
+
+- Creatures: deer (east meadow, bolts faster than a sprint), rabbit (west grove, snareable), bear
+  (north-west den, mini-boss with a big wind-up). Skittish animals freeze, then flee; they never
+  attack. Models: antlers and white tail (deer), long ears (rabbit), round ears (bear).
+- Sneaking (C): slower, lower view, half detection range; sprinting is loud; the partner sees you
+  crouch. HUD shows "Sneaking".
+- Tracks: footprints for every animal, fresh ones glow, fade in 90 s (one draw call).
+- Traps: snare (catches rabbits) and spike trap (25 damage, the creature turns on the setter); set
+  with left click outside the yard, picked up with [E]; saved with the home; toast when one goes off.
+- Materials and gear: hide, antler, bear claw → leather armor (−25%), bear-hide coat (−45%),
+  antler spear (30 damage), snares, spike traps. Armor works while carried; the partner sees a vest.
+- Mushrooms (14 patches in the north) and stove recipes with [R]: hunter's stew (heal 6× for
+  2 min) and mushroom skewer (light-footed for 3 min). Buff shown in the HUD with the time left.
+
+**Tests**
+
+- `npm test`: 168 passing + 1 skipped. New: prey bolts and never attacks, sneaking halves detection,
+  noise and buffs, a hit rabbit runs; snares catch rabbits but not boars, spike traps hit once, no
+  traps in the yard; best armor counts; stew buff speeds up healing and wears off; mushrooms leave
+  the original layout untouched; traps saved and tampered ones cleaned; over the network: stew only
+  at the stove, set/pick up a snare, a set trap survives a re-open.
+- `npm run e2e`: new `hunting2` scenario (sneak, set a snare, a rabbit is caught and butchered, a
+  deer bolts; screenshots `p10-snare`, `p10-deer-bear`, `p10-bear`). The other scenarios were re-run
+  one by one after the fixes below and pass (`feel` failed once under load, then passed).
+
+**Bugs found and fixed**
+
+- Prey stopped fleeing when the player stood outside the animal's territory (the hunters' give-up
+  rule) — prey now runs from the scare wherever it is.
+- A mushroom at your feet hid the "Click Punch boar" prompt mid-fight — a creature in your face now
+  outranks a harvest prompt (found by the `hunting` e2e).
+- `combat` e2e matched "Antler spear" when looking for "Spear" — exact match.
+- My own `npm test` during an e2e run rebuilt `shared`, restarting my dev server mid-run (process
+  lesson, not a game bug).
+
+**Not done (roadmap items cut)**
+
+- Pheasant and feather arrows, backpack upgrade, honey cake, fish (ADR-023). Can return with
+  Phase 12's biomes.
+
+**Known issues**
+
+- Armor is "carried = worn" (no equipment slot).
+- Tracks only show where animals walked while you were in the home.

@@ -8,7 +8,9 @@ import {
   StoveStatus,
   clockLabel,
   dayPhase,
+  getBuff,
   getItem,
+  isBuffId,
   isCreatureKind,
   isGoalKind,
   isItemId,
@@ -55,6 +57,9 @@ interface Snapshot {
   phase: DayPhase;
   /** My backpack totals per item id. */
   items: Map<string, number>;
+  /** Traps that have gone off. */
+  sprung: Set<string>;
+  myBuff: string;
 }
 
 function slots(list: Iterable<{ itemId: string; qty: number }>): string {
@@ -81,10 +86,11 @@ function snapshot(room: Room<HomeState>): Snapshot {
     slots(s.chest),
     ...players.map(
       ([id, p]) =>
-        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.downed}|${p.downed ? `${Math.round(p.bleedOut * 20)}/${Math.round(p.revive * 20)}` : ''}|${p.xp}|${p.level}|${p.selectedSlot}|${slots(p.inventory)}`,
+        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.downed}|${p.downed ? `${Math.round(p.bleedOut * 20)}/${Math.round(p.revive * 20)}` : ''}|${p.xp}|${p.level}|${p.selectedSlot}|${slots(p.inventory)}|${p.crouching}|${p.buff}:${p.buffLeft}`,
     ),
     // Health and presence change only in fights; patrol movement doesn't re-render the UI.
     ...[...s.creatures.entries()].map(([id, c]) => `${id}:${c.health}:${c.present}`),
+    ...[...s.traps.entries()].map(([id, t]) => `${id}:${t.kind}:${t.sprung}`),
   ].join(';');
   return {
     key,
@@ -104,6 +110,8 @@ function snapshot(room: Room<HomeState>): Snapshot {
     downed: new Map(players.map(([id, p]) => [id, p.downed])),
     phase: dayPhase(s.timeOfDay),
     items: totals(s.players.get(room.sessionId)?.inventory ?? []),
+    sprung: new Set([...s.traps.entries()].filter(([, t]) => t.sprung).map(([id]) => id)),
+    myBuff: s.players.get(room.sessionId)?.buff ?? '',
   };
 }
 
@@ -123,6 +131,16 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
     const kind = room.state.creatures.get(id)?.kind ?? '';
     if (prev.carcasses.has(id) || !isCreatureKind(kind)) continue;
     showToast(`${CREATURES[kind].name} down! Butcher it with E`);
+  }
+  for (const id of next.sprung) {
+    if (prev.sprung.has(id)) continue;
+    const kind = room.state.traps.get(id)?.kind;
+    showToast(kind === 'snare' ? '🪢 A snare caught something!' : '🔺 A spike trap hit something!');
+  }
+  if (next.myBuff && next.myBuff !== prev.myBuff && isBuffId(next.myBuff)) {
+    const buff = getBuff(next.myBuff);
+    const what = 'regen' in buff ? 'you heal much faster' : 'animals notice you later';
+    showToast(`${buff.icon} ${buff.name}: ${what} for ${Math.round(buff.durationMs / 60_000)} min`);
   }
   const ate = next.myHunger - prev.myHunger;
   if (ate > 0) {

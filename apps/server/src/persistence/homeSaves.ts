@@ -5,11 +5,13 @@ import {
   CHEST_SLOTS,
   HEALTH_MAX,
   HUNGER_MAX,
+  MAX_TRAPS,
   NEW_HOME_TIME,
   PLAYER_INVENTORY_SLOTS,
   RESOURCE_KINDS,
   findResourceNode,
   StoveStatus,
+  WORLD_RADIUS,
   getItem,
   isGoalKind,
   isItemId,
@@ -61,6 +63,17 @@ export interface HomeSave {
   /** Today's goals and stats; missing in pre-Phase 6 saves (new goals are picked). */
   goals: SavedGoal[];
   today: SavedDayStats;
+  /** Traps on the ground by id; missing in pre-Phase 10 saves. */
+  traps: Record<string, SavedTrap>;
+}
+
+export interface SavedTrap {
+  kind: 'snare' | 'spike';
+  x: number;
+  z: number;
+  sprung: boolean;
+  /** playerId, or '' if it's gone. */
+  owner: string;
 }
 
 export interface SavedGoal {
@@ -207,7 +220,32 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
     players,
     goals: parseGoals(value.goals),
     today: parseToday(value.today),
+    traps: parseTraps(value.traps),
   };
+}
+
+const TRAP_ID = /^trap-\d{1,6}$/;
+
+function parseTraps(value: unknown): Record<string, SavedTrap> {
+  const out: Record<string, SavedTrap> = {};
+  if (!isObject(value)) return out;
+  for (const [id, raw] of Object.entries(value)) {
+    if (Object.keys(out).length >= MAX_TRAPS) break;
+    if (!TRAP_ID.test(id) || !isObject(raw)) continue;
+    const kind = raw.kind === 'snare' || raw.kind === 'spike' ? raw.kind : null;
+    const x = num(raw.x, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+    const z = num(raw.z, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+    if (!kind || Number.isNaN(x) || Number.isNaN(z)) continue;
+    const owner = str(raw.owner);
+    out[id] = {
+      kind,
+      x,
+      z,
+      sprung: raw.sprung === true,
+      owner: isValidPlayerId(owner) ? owner : '',
+    };
+  }
+  return out;
 }
 
 const UINT8 = 255;

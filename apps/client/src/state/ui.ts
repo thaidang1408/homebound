@@ -1,7 +1,7 @@
 import type { DaySummaryPayload } from '@homebound/shared';
 import { createStore } from './createStore';
 
-export type Panel = 'none' | 'inventory' | 'storage' | 'workbench' | 'chat';
+export type Panel = 'none' | 'inventory' | 'storage' | 'workbench' | 'stove' | 'chat';
 
 export interface Toast {
   id: number;
@@ -25,6 +25,8 @@ interface UiState {
   lastHitKilled: boolean;
   /** The morning card about the day that just ended (null = hidden). */
   summary: DaySummaryPayload | null;
+  /** Sneaking (C), shown in the HUD. */
+  crouching: boolean;
   toasts: Toast[];
 }
 
@@ -37,6 +39,7 @@ const store = createStore<UiState>({
   hitCount: 0,
   lastHitKilled: false,
   summary: null,
+  crouching: false,
   toasts: [],
 });
 

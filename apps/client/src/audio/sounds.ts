@@ -114,7 +114,7 @@ export function playFootstep(onWood: boolean): void {
 
 // --- World ---
 
-export function playHarvestAt(kind: 'tree' | 'rock' | 'bush', x: number, z: number): void {
+export function playHarvestAt(kind: string, x: number, z: number): void {
   const b = sfxAt(x, z);
   if (kind === 'tree') {
     tone(b, { from: 160 * vary(), to: 90, length: 0.12, gain: 0.7 });

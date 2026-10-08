@@ -75,8 +75,10 @@ export function parseMovePayload(value: unknown): MovePayload | null {
   if (!isFiniteNumber(x) || !isFiniteNumber(z) || !isFiniteNumber(yaw) || !isFiniteNumber(pitch)) {
     return null;
   }
-  const pose = { x, z, yaw, pitch: Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch)) };
-  return value.sprint === true ? { ...pose, sprint: true } : pose;
+  const pose: MovePayload = { x, z, yaw, pitch: Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch)) };
+  if (value.sprint === true) pose.sprint = true;
+  if (value.crouch === true) pose.crouch = true;
+  return pose;
 }
 
 export function parseEmotePayload(value: unknown): EmotePayload | null {

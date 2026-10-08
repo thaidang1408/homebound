@@ -38,6 +38,9 @@ const LEG = 0.86;
 const STRIDE = 4.2;
 const LEG_SWING = 0.6;
 const ARM_SWING = 0.45;
+/** Sneaking: hips this much lower, leaning this far forward. */
+const CROUCH_DROP = 0.32;
+const CROUCH_LEAN = 0.3;
 
 /** How long each action plays on the partner's body. */
 const ACTION_MS: Record<PlayerAction, number> = {
@@ -111,6 +114,8 @@ interface Props {
   downed: boolean;
   level: number;
   holding: WeaponId;
+  /** Wearing leather or a bear coat: drawn as a vest. */
+  armored: boolean;
 }
 
 /**
@@ -128,6 +133,7 @@ export function RemotePlayer({
   downed,
   level,
   holding,
+  armored,
 }: Props) {
   const body = useRef<Group>(null);
   const pose = useRef<Group>(null);
@@ -135,7 +141,15 @@ export function RemotePlayer({
   const arms = useRef<(Group | null)[]>([]);
   const legs = useRef<(Group | null)[]>([]);
   const tag = useRef<Group>(null);
-  const anim = useRef({ placed: false, phase: 0, walk: 0, seq: -1, action: '', at: -1e9 });
+  const anim = useRef({
+    placed: false,
+    phase: 0,
+    walk: 0,
+    crouch: 0,
+    seq: -1,
+    action: '',
+    at: -1e9,
+  });
   const color = playerColor(slot);
 
   // One material per part, shared by both sides; fades out while they reconnect.
@@ -144,6 +158,7 @@ export function RemotePlayer({
       cloth: new MeshStandardMaterial({ color, flatShading: true }),
       skin: new MeshStandardMaterial({ color: PALETTE.skin, flatShading: true }),
       pants: new MeshStandardMaterial({ color: PALETTE.pants, flatShading: true }),
+      vest: new MeshStandardMaterial({ color: PALETTE.deerDark, flatShading: true }),
     }),
     [color],
   );
@@ -234,8 +249,9 @@ export function RemotePlayer({
     const tuck = action === 'jump' && playing ? 0.5 : 0;
     if (legL) legL.rotation.x = swing * LEG_SWING * a.walk + tuck;
     if (legR) legR.rotation.x = -swing * LEG_SWING * a.walk - tuck;
-    pose.current.rotation.x = p.roll - p.lean;
-    pose.current.position.y = HIP + p.lift;
+    a.crouch = MathUtils.damp(a.crouch, state.crouching && !still ? 1 : 0, 10, dt);
+    pose.current.rotation.x = p.roll - p.lean - a.crouch * CROUCH_LEAN;
+    pose.current.position.y = HIP + p.lift - a.crouch * CROUCH_DROP;
   });
 
   return (
@@ -246,6 +262,11 @@ export function RemotePlayer({
           <mesh position-y={0.33} material={mats.cloth}>
             <boxGeometry args={[0.5, 0.66, 0.3]} />
           </mesh>
+          {armored && (
+            <mesh position-y={0.36} material={mats.vest}>
+              <boxGeometry args={[0.54, 0.5, 0.34]} />
+            </mesh>
+          )}
           {[-1, 1].map((side, i) => (
             <group
               key={`arm${side}`}

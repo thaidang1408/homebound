@@ -267,3 +267,30 @@ for a private two-person game). Two saved characters with the same name: the fir
   on the compass. For a child who types slowly, F does what a sentence would.
 - First-person arms and the partner's limbs are keyframed procedurally from data tables (no
   skeletal assets).
+
+## ADR-023: Hunting 2.0 — prey, stealth, traps, gear and recipes as data (2026-10-08)
+
+**Decision:**
+
+- **Temperament in the creature definition** (`hostile` | `skittish`) and a `Flee` mode in the one
+  shared state machine: prey spots you, freezes for `alertMs`, then bolts until the scare is
+  `giveUpRange` behind it. Prey ignores the pack limit and the leash when spotting or fleeing (only
+  hunters give up at the edge of their territory). New kinds are entries in `creatures.ts`: deer,
+  rabbit (`snareable`), bear (new `den` zone).
+- **Stealth on the server:** `crouch` rides on move messages; detection range × 0.5 crouched,
+  × 1.35 for 1.5 s after sprinting, × buff. The most noticeable player wins (distance / own range).
+- **Traps are synced, saved state** (`HomeState.traps`, ADR-009 save + validation). The server
+  checks them every tick against creature bodies; players never trigger them. Owner credit is by
+  playerId, so a trap set by someone offline still counts.
+- **Armor is carried, not equipped:** the best `armor` item anywhere in the backpack reduces
+  creature damage. No equipment slots or UI for one stat; revisit if more slots appear.
+- **Recipes have a station** (`workbench` | `stove`); stove recipes are instant dishes with a
+  `buff`. Plain raw meat keeps its timed cook on [E]; [R] opens the recipes (no change to the old
+  loop). Buffs are data (`buffs.ts`): one at a time, server-timed, shown in the HUD.
+- **Mushrooms are generated in a separate pass with their own seed**, so adding them didn't move a
+  single existing tree or rock (test).
+- **Tracks are client-only**: footprints are drawn from the synced creature positions in one
+  instanced mesh; no extra network or server work.
+
+**Not done (from the roadmap):** pheasant and feather arrows, backpack upgrade, honey cake and fish.
+They can come back with Phase 12's biomes.

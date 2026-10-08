@@ -28,7 +28,7 @@ export function closePanel(): void {
   resumePlay();
 }
 
-const HARVEST_ACTION = { tree: 'chop', rock: 'mine', bush: 'pick' } as const;
+const HARVEST_ACTION = { tree: 'chop', rock: 'mine', bush: 'pick', mushroom: 'pick' } as const;
 
 /** [F]: mark where the crosshair meets the ground for the partner. */
 function ping(): void {
@@ -57,6 +57,10 @@ function interact(): boolean {
     room.send(ClientMessage.Interact, { targetId: focusId }); // butcher a carcass
     return false;
   }
+  if (focusId && room.state.traps.has(focusId)) {
+    room.send(ClientMessage.Interact, { targetId: focusId }); // pick the trap back up
+    return false;
+  }
   if (focusId && room.state.players.has(focusId)) {
     room.send(ClientMessage.Interact, { targetId: focusId }); // reviving: keep holding E
     return true;
@@ -78,6 +82,7 @@ function interact(): boolean {
     case 'tree':
     case 'rock':
     case 'bush':
+    case 'mushroom':
       room.send(ClientMessage.Interact, { targetId: target.id });
       localAction(HARVEST_ACTION[target.kind]);
       return true;
@@ -128,6 +133,10 @@ export function useGameKeys(): void {
       if (!locked) return;
       if (e.code === 'Space') e.preventDefault(); // jump (LocalPlayer), never "click" a button
       if (e.code === 'KeyF') ping();
+      // [R] at the stove: the combination dishes.
+      if (e.code === 'KeyR' && findInteractable(getUi().focusId ?? '')?.kind === 'stove') {
+        openPanel('stove');
+      }
       if (e.code === 'KeyG') {
         getSession().room?.send(ClientMessage.Emote, { kind: 'wave' });
         localAction('wave');

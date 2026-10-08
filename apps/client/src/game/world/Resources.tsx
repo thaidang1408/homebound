@@ -31,7 +31,18 @@ interface Part {
 }
 
 const HIDDEN = 0.0001;
-const BURST: Record<ResourceKind, BurstKind> = { tree: 'wood', rock: 'stone', bush: 'leaves' };
+const BURST: Record<ResourceKind, BurstKind> = {
+  tree: 'wood',
+  rock: 'stone',
+  bush: 'leaves',
+  mushroom: 'leaves',
+};
+/** Mushrooms grow in little clusters of three. */
+const CLUSTER = [
+  { dx: 0, dz: 0, s: 1 },
+  { dx: 0.2, dz: 0.1, s: 0.7 },
+  { dx: -0.12, dz: 0.18, s: 0.55 },
+];
 const WOBBLE_MS = 350;
 const CHECK_INTERVAL = 0.15; // s between depletion checks
 
@@ -108,6 +119,30 @@ const PARTS: Record<ResourceKind, Part[]> = {
         );
         o.rotation.set(0, 0, 0);
         o.scale.setScalar(depleted ? HIDDEN : 1);
+      },
+    },
+  ],
+  mushroom: [
+    {
+      geometry: new CylinderGeometry(0.035, 0.045, 0.18, 5),
+      color: PALETTE.mushroomStem,
+      perNode: CLUSTER.length,
+      place(o, n, i, depleted) {
+        const c = CLUSTER[i] ?? { dx: 0, dz: 0, s: 1 };
+        o.position.set(n.x + c.dx, terrainHeight(n.x, n.z) + 0.09 * c.s, n.z + c.dz);
+        o.rotation.set(0, n.rotation, 0);
+        o.scale.setScalar(depleted ? HIDDEN : c.s * n.scale);
+      },
+    },
+    {
+      geometry: new ConeGeometry(0.13, 0.1, 6),
+      color: PALETTE.mushroomCap,
+      perNode: CLUSTER.length,
+      place(o, n, i, depleted) {
+        const c = CLUSTER[i] ?? { dx: 0, dz: 0, s: 1 };
+        o.position.set(n.x + c.dx, terrainHeight(n.x, n.z) + 0.2 * c.s, n.z + c.dz);
+        o.rotation.set(0, n.rotation, 0);
+        o.scale.setScalar(depleted ? HIDDEN : c.s * n.scale);
       },
     },
   ],
@@ -196,13 +231,14 @@ function KindInstances({ kind }: { kind: ResourceKind }) {
   );
 }
 
-/** All trees, rocks and bushes: a handful of draw calls for ~160 nodes. */
+/** All trees, rocks, bushes and mushrooms: a handful of draw calls for ~175 nodes. */
 export function Resources() {
   return (
     <>
       <KindInstances kind="tree" />
       <KindInstances kind="rock" />
       <KindInstances kind="bush" />
+      <KindInstances kind="mushroom" />
     </>
   );
 }

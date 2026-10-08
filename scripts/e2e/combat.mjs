@@ -27,7 +27,11 @@ export default async function combat(t) {
   await a.keyboard.press('KeyE');
   await a.getByText('Workbench').waitFor();
   for (const name of ['Spear', 'Bow', 'Arrow ×5']) {
-    await a.getByRole('listitem').filter({ hasText: name }).getByRole('button').click();
+    await a
+      .getByRole('listitem')
+      .filter({ has: a.getByText(name, { exact: true }) })
+      .getByRole('button')
+      .click();
   }
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();
