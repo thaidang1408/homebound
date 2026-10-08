@@ -184,6 +184,22 @@ export async function resumeSession(): Promise<void> {
   }
 }
 
+/**
+ * The server lets you go as soon as it gets the leave request, but behind Render's proxy its
+ * closing frame can get lost (seen live: the leave never resolved). Stop waiting after a moment
+ * and close the socket ourselves; a late "abnormal close" must not start a reconnect.
+ */
+const LEAVE_TIMEOUT_MS = 1500;
+
 export async function leaveRoom(): Promise<void> {
-  await getSession().room?.leave();
+  const room = getSession().room;
+  if (!room) return;
+  const timedOut = await Promise.race([
+    room.leave().then(() => false),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(true), LEAVE_TIMEOUT_MS)),
+  ]);
+  if (!timedOut || getSession().room !== room) return;
+  room.connection.events.onclose = null;
+  room.connection.close(CloseCode.CONSENTED);
+  room.onLeave.invoke(CloseCode.CONSENTED);
 }
