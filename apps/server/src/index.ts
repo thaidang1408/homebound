@@ -17,7 +17,13 @@ if (env.allowedOrigins.length > 0) {
   logger.warn('ALLOWED_ORIGINS is not set: any website can open homes on this server');
 }
 
-const mirror = env.databaseUrl ? await openMirror(env.databaseUrl) : null;
+const mirror = env.databaseUrl
+  ? await openMirror(env.databaseUrl).catch((error: unknown) => {
+      // Never print the URL: it holds the password.
+      logger.error(`Cannot use the save database (check DATABASE_URL): ${String(error)}`);
+      process.exit(1);
+    })
+  : null;
 if (!mirror && env.production) {
   logger.warn('DATABASE_URL is not set: saves live on this disk only');
 }

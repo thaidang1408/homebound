@@ -11,3 +11,6 @@ scripts/e2e/out/
 
 # Saved homes (server runtime data)
 data/
+
+# Neon CLI context (project id)
+.neon
