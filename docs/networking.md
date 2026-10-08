@@ -69,11 +69,13 @@ on the client (regression test in `HomeRoom.test.ts`).
 | C→S       | `craft`                 | `{ recipeId }`                   | known recipe, next to the workbench, has the materials, room for the output                                                                 |
 | C→S       | `interact` on a player  | `{ targetId: sessionId }`        | held [E] on a downed partner in reach; pings at least every 0.9 s (a gap pauses the revive)                                                 |
 | C→S       | `interact` on a carcass | `{ targetId: "boar-2" }`         | dead + present, within reach, backpack fits all the loot                                                                                    |
+| C→S       | `chat`                  | `{ text }`                       | any player in the home; cleaned (control chars, whitespace), ≤ 120 chars, one per 0.4 s; not saved                                          |
 | C→S       | `dev:hurt` / `dev:give` | `{ amount }` / `{ itemId, qty }` | **dev servers only**                                                                                                                        |
 | C→S       | `dev:set-time`          | `{ timeOfDay }`                  | **dev servers only** (`NODE_ENV !== production`)                                                                                            |
 | S→C       | `teleport`              | `{ x, z }`                       | rejected move, getting into / out of bed, new day, death                                                                                    |
 | S→C       | `hit-confirm`           | `{ killed }`                     | your strike or arrow landed (hitmarker)                                                                                                     |
 | S→C       | `died`                  | —                                | you bled out / went down alone and woke up at home                                                                                          |
+| S→C       | `chat`                  | `{ from, name, text }`           | broadcast to everyone (sender included) after the server's checks                                                                           |
 | S→C       | `day-summary`           | `{ day, hunted, meals, … }`      | morning after a new day number (waking up, or sunrise): yesterday's stats and goals                                                         |
 
 In production, matchmaking and `/health` answer CORS only for `ALLOWED_ORIGINS` (the Pages URL).

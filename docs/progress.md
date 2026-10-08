@@ -372,6 +372,9 @@ https://homebound-server.onrender.com), awaiting the user's two-laptop test + ap
   client changes need `npm run deploy -- client`; server changes deploy on push.
 - Landing-screen name placeholder in Vietnamese (user request).
 - Same home code + same name on another device = your saved character (ADR-021, user request).
+- In-game chat (user request): Enter opens, Enter sends, Esc cancels; lines fade after ~8 s;
+  server cleans and rate-limits; typing never moves/mutes you; IME-safe (Vietnamese input).
+  Tested on the live site with two browsers; new e2e scenario `chat`.
 
 **Tests**
 
