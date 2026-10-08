@@ -14,6 +14,19 @@ export interface JoinOptions {
 }
 
 /** Error messages the server uses to refuse a join; the client maps them to friendly text. */
+/**
+ * Colyseus answers matchmaking errors with HTTP 520–529, which Cloudflare (in front of Render)
+ * reserves for its own errors and strips (no CORS header, no body): the browser then can't tell
+ * "no room running" from "server down". The server sends them as 420–429 instead (ADR-020).
+ */
+const CDN_RESERVED = { min: 520, max: 529, shift: 100 } as const;
+export const toHttpSafeStatus = (code: number): number =>
+  code >= CDN_RESERVED.min && code <= CDN_RESERVED.max ? code - CDN_RESERVED.shift : code;
+export const fromHttpSafeStatus = (status: number): number =>
+  status >= CDN_RESERVED.min - CDN_RESERVED.shift && status <= CDN_RESERVED.max - CDN_RESERVED.shift
+    ? status + CDN_RESERVED.shift
+    : status;
+
 export const JoinError = {
   HomeNotFound: 'home-not-found',
   HomeAlreadyOpen: 'home-already-open',

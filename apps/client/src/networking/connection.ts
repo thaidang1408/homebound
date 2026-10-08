@@ -1,5 +1,11 @@
 import { Client, CloseCode, ErrorCode, type Room } from '@colyseus/sdk';
-import { GamePhase, JoinError, ROOM_NAME, type HomeState } from '@homebound/shared';
+import {
+  GamePhase,
+  JoinError,
+  ROOM_NAME,
+  fromHttpSafeStatus,
+  type HomeState,
+} from '@homebound/shared';
 import { serverUrl } from '../config/env';
 import { getSession, updateSession } from '../state/session';
 import { getPlayerId, setLastHome } from './identity';
@@ -27,8 +33,11 @@ function writeToken(token: string | null): void {
   }
 }
 
+/** The SDK's error code is the HTTP status; the server shifts 52x to 42x (toHttpSafeStatus). */
 const errorCode = (error: unknown) =>
-  typeof error === 'object' && error !== null && 'code' in error ? error.code : null;
+  typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'number'
+    ? fromHttpSafeStatus(error.code)
+    : null;
 const errorMessage = (error: unknown) => (error instanceof Error ? error.message : '');
 
 /** No room is running under this code right now (it may still be a saved home). */

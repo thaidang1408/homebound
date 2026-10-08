@@ -23,7 +23,7 @@ export async function createRun(appUrl) {
       console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? `  (${detail})` : ''}`);
       if (!ok) failures.push(label);
     },
-    /** `expectRejections`: this player is meant to be refused (HTTP 522), so those logs are expected. */
+    /** `expectRejections`: this player is meant to be refused (HTTP 422), so those logs are expected. */
     async openPlayer(label, { expectRejections = false } = {}) {
       const ctx = await browser.newContext({ viewport: { width: 800, height: 500 } });
       const page = await ctx.newPage();
