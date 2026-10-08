@@ -65,7 +65,7 @@ export function LandingScreen() {
           label="Your name"
           value={name}
           maxLength={PLAYER_NAME_MAX_LENGTH}
-          placeholder="e.g. Hien"
+          placeholder="Nhập tên bé vào"
           onChange={(e) => setName(e.target.value)}
         />
 
