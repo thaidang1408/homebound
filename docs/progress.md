@@ -371,6 +371,7 @@ https://homebound-server.onrender.com), awaiting the user's two-laptop test + ap
   steps (sign-ups, Render blueprint, one env var). The client is a direct upload to Pages, so
   client changes need `npm run deploy -- client`; server changes deploy on push.
 - Landing-screen name placeholder in Vietnamese (user request).
+- Same home code + same name on another device = your saved character (ADR-021, user request).
 
 **Tests**
 

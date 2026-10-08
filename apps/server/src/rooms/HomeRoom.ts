@@ -250,7 +250,8 @@ export class HomeRoom extends Room<{ state: HomeState }> {
 
   override onJoin(client: Client, options: unknown) {
     const playerId = option(options, 'playerId') as string; // validated in onAuth
-    const saved = this.savedPlayers[playerId];
+    const name = sanitizePlayerName(option(options, 'name'));
+    const saved = this.claimSaved(playerId, name);
     const slot = this.freeSlot();
     const spawn = SPAWN_POINTS[slot - 1] ?? { x: 0, z: 0, yaw: 0 };
 
@@ -266,7 +267,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       if (!this.isStandable(player))
         Object.assign(player, { x: spawn.x, z: spawn.z, yaw: spawn.yaw });
     }
-    player.name = sanitizePlayerName(option(options, 'name')) || saved?.name || `Player ${slot}`;
+    player.name = name || saved?.name || `Player ${slot}`;
 
     this.state.players.set(client.sessionId, player);
     this.playerIds.set(client.sessionId, playerId);
@@ -274,6 +275,27 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     logger.info(
       `[room ${this.roomId}] join ${client.sessionId} slot=${slot}${saved ? ' (returning)' : ''}`,
     );
+  }
+
+  /**
+   * The saved character for this joiner (ADR-021): the one kept under their browser id, or else
+   * one with the same name (any case) who isn't in the home right now. The name carries a
+   * character to another device; it then lives under the new browser id.
+   */
+  private claimSaved(playerId: string, name: string): SavedPlayer | undefined {
+    const own = this.savedPlayers[playerId];
+    if (own || !name) return own;
+    const online = new Set(this.playerIds.values());
+    const match = Object.entries(this.savedPlayers).find(
+      ([id, p]) => !online.has(id) && p.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (!match) return undefined;
+    const [oldId, saved] = match;
+    this.savedPlayers = Object.fromEntries(
+      Object.entries(this.savedPlayers).filter(([id]) => id !== oldId),
+    );
+    this.savedPlayers[playerId] = saved;
+    return saved;
   }
 
   override onDrop(client: Client) {

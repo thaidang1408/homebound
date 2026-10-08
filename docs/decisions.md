@@ -233,3 +233,14 @@ behind a Cloudflare Tunnel and an Oracle Cloud VM.
 save written in the last seconds before a crash (not a graceful stop) can miss the database.
 **Revisit when:** the wait annoys players (paid always-on instance, ~$7/month) or saves outgrow
 loading every home at boot.
+
+## ADR-021: A character can be claimed by name (2026-10-08)
+
+**Context:** Players are known by an anonymous browser id (ADR-010), so a new device or browser
+meant a fresh character in the same home. The user asked for "same home code + same name = my
+character".
+**Decision:** On join, the character saved under the browser id wins; if there is none, a saved
+character with the same name (case-insensitive) who is not in the home right now is moved to the
+new browser id. A different name still starts fresh.
+**Trade-off:** anyone with the home code and a player's name can take over that character (accepted
+for a private two-person game). Two saved characters with the same name: the first one is claimed.

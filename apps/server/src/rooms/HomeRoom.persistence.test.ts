@@ -133,6 +133,24 @@ describe('saving and re-opening a home', () => {
     expect(countIn(stranger.state.chest, 'raw_meat')).toBeGreaterThan(0);
   });
 
+  test('the same name on another device gets the character back, any other name starts fresh', async () => {
+    const room = await soloGame(newPlayerId(), 'Bé Na');
+    room.send(ClientMessage.DevGive, { itemId: 'wood', qty: 7 });
+    await waitFor(() => countIn(self(room).inventory, 'wood') === 7);
+    const code = await leaveAndWaitForSave(room);
+
+    const other = await reopen(code, newPlayerId(), 'Someone');
+    await waitFor(() => other.state?.players?.size === 1);
+    expect(countIn(self(other).inventory, 'wood')).toBe(0);
+
+    // New browser (new id), same name in another case: the saved character is claimed.
+    const newDevice = await h.track(
+      h.sdk.joinById<HomeState>(code, { name: 'bé na', playerId: newPlayerId() }),
+    );
+    await waitFor(() => newDevice.state?.players?.size === 2);
+    expect(countIn(self(newDevice).inventory, 'wood')).toBe(7);
+  });
+
   test('unknown codes are refused', async () => {
     await expect(reopen('QQQQQ', newPlayerId())).rejects.toThrow(JoinError.HomeNotFound);
     await expect(reopen('../x', newPlayerId())).rejects.toThrow(JoinError.HomeNotFound);
