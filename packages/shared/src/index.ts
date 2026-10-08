@@ -6,6 +6,7 @@ export * from './items.js';
 export * from './pets.js';
 export * from './progression.js';
 export * from './protocol.js';
+export * from './quests.js';
 export * from './recipes.js';
 export * from './schema.js';
 export * from './validation.js';

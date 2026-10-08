@@ -1,6 +1,7 @@
 import {
   CREATURES,
   HEALTH_MAX,
+  questStep,
   PETS,
   PETS_PER_PLAYER,
   RESOURCE_KINDS,
@@ -131,6 +132,17 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
         : { text: 'The shrine hums softly', actionable: false };
     case 'waystone':
       return { text: 'Travel to another waystone', actionable: true };
+    case 'dom':
+      return { text: 'Talk to Đốm', actionable: true };
+    case 'lantern': {
+      const landmark = focusId.slice('lantern-'.length);
+      if (state.lanterns.has(landmark))
+        return { text: 'The great lantern glows', actionable: false };
+      const step = questStep(state.quest.chapter, state.quest.step);
+      return step?.kind === 'light' && step.landmark === landmark
+        ? { text: 'Light the great lantern', actionable: true }
+        : { text: 'A great lantern, cold and dark — ask Đốm', actionable: false };
+    }
     case 'tree':
     case 'rock':
     case 'bush':

@@ -4,6 +4,9 @@ import {
   CreatureMode,
   NOISE_MS,
   PETS,
+  LANTERN_OFFSET,
+  LANTERN_SAFE_RADIUS,
+  findLandmark,
   STEALTH_CROUCH,
   STEALTH_NOISY,
   isBuffId,
@@ -133,8 +136,25 @@ function moveToward(c: CreatureState, def: CreatureDefinition, to: Point, step: 
 }
 
 /** A player a creature may notice and chase: awake, conscious, outside the safe yard. */
-function isPrey(p: PlayerState): boolean {
-  return p.connected && !p.sleeping && p.health > 0 && Math.hypot(p.x, p.z) > SAFE_RADIUS;
+function isPrey(state: HomeState, p: PlayerState): boolean {
+  return (
+    p.connected &&
+    !p.sleeping &&
+    p.health > 0 &&
+    Math.hypot(p.x, p.z) > SAFE_RADIUS &&
+    !nearLitLantern(state, p)
+  );
+}
+
+/** A lit great lantern (Phase 13) keeps the night creatures off you. */
+function nearLitLantern(state: HomeState, p: Point): boolean {
+  for (const id of state.lanterns.keys()) {
+    const l = findLandmark(id);
+    if (!l) continue;
+    const at = { x: l.x + LANTERN_OFFSET.x, z: l.z + LANTERN_OFFSET.z };
+    if (Math.hypot(p.x - at.x, p.z - at.z) < LANTERN_SAFE_RADIUS) return true;
+  }
+  return false;
 }
 
 /** Edge-to-centre distance: how far the player is from the creature's body. */
@@ -201,7 +221,7 @@ function spot(state: HomeState, c: CreatureState, def: CreatureDefinition, now: 
   let best = '';
   let bestShare = 1; // distance / own detection range: the most noticeable player wins
   for (const [id, p] of state.players) {
-    if (!isPrey(p) || offersFood(def, p)) continue;
+    if (!isPrey(state, p) || offersFood(def, p)) continue;
     // Hunters keep to their territory; anything that spooks prey counts, wherever it stands.
     if (!skittish && Math.hypot(p.x - zone.x, p.z - zone.z) > def.leashRadius) continue;
     if (!skittish && huntersOf(state, c.kind, id) >= maxHunters) continue;
@@ -327,7 +347,7 @@ export function tickCreatures(
     const zone = ZONES[def.zone].center;
     const lost =
       !target ||
-      !isPrey(target) ||
+      !isPrey(state, target) ||
       Math.hypot(target.x - c.x, target.z - c.z) > def.giveUpRange ||
       // Hunters give up at the edge of their territory; prey keeps running from the scare.
       (def.temperament === 'hostile' &&

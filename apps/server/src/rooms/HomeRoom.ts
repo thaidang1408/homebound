@@ -2,6 +2,7 @@ import { Room, ServerError, logger, type Client, type Delayed } from '@colyseus/
 import {
   AUTOSAVE_INTERVAL_MS,
   CREATURES,
+  CHAPTERS,
   GOAL_XP,
   HOTBAR_SLOTS,
   RESOURCE_KINDS,
@@ -114,6 +115,7 @@ import {
   toggleMarker,
   travel,
 } from '../systems/explore.js';
+import { lightLantern, questEvent, talk, tickQuests, type QuestNews } from '../systems/quests.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
@@ -596,20 +598,19 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       if (event.outcome !== 'killed') continue;
       const kind = this.state.creatures.get(event.creatureId)?.kind ?? '';
       if (isCreatureKind(kind)) this.rewardPlayer(event.owner, CREATURES[kind].xp);
-      this.state.today.hunted += 1;
-      this.advanceGoal('hunt');
+      this.hunted(kind);
     }
     const pets = { sessionOf: (id: string) => this.sessionOf(id), random: this.random };
     for (const id of tickExplore(this.state)) {
       logger.info(`[room ${this.roomId}] discovered ${id}`);
     }
+    this.story(tickQuests(this.state));
     for (const event of tickPets(this.state, dtMs, pets)) {
       if (event.type === 'hatched') logger.info(`[room ${this.roomId}] ${event.petId} hatched`);
       else if (event.outcome === 'killed') {
         const kind = this.state.creatures.get(event.creatureId)?.kind ?? '';
         if (isCreatureKind(kind)) this.rewardPlayer(event.owner, CREATURES[kind].xp);
-        this.state.today.hunted += 1;
-        this.advanceGoal('hunt');
+        this.hunted(kind);
       }
     }
     for (const hit of tickProjectiles(this.state, dtMs)) {
@@ -655,9 +656,30 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     const player = this.state.players.get(attackerId);
     if (outcome === 'killed' && player && isCreatureKind(kind)) {
       grantXp(player, CREATURES[kind].xp);
-      this.state.today.hunted += 1;
-      this.advanceGoal('hunt');
+      this.hunted(kind);
     }
+  }
+
+  /** A creature was killed (by a player, a trap or a pet): day stats, goals and the story. */
+  private hunted(kind: string) {
+    this.state.today.hunted += 1;
+    this.advanceGoal('hunt');
+    this.story(questEvent(this.state, { kind: 'hunt', creature: kind }));
+  }
+
+  /** The story moved on: log it, and at a chapter's end everyone here gets its reward. */
+  private story(news: QuestNews) {
+    if (!news.finished) return;
+    logger.info(`[room ${this.roomId}] story: ${news.finished.goal} — done`);
+    const chapter = news.chapterDone === null ? undefined : CHAPTERS[news.chapterDone];
+    if (!chapter) return;
+    for (const player of this.state.players.values()) {
+      for (const { itemId, qty } of chapter.reward) {
+        const left = addItem(player.inventory, itemId, qty);
+        if (left > 0) addItem(this.state.chest, itemId, left); // full backpack: into the chest
+      }
+    }
+    logger.info(`[room ${this.roomId}] chapter ${news.chapterDone} complete`);
   }
 
   /** Progress on a shared goal; a completed goal rewards everyone in the home. */
@@ -792,6 +814,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     grantXp(player, XP_REWARDS.craft);
     this.state.today.crafted += 1;
     this.advanceGoal('craft');
+    this.story(questEvent(this.state, { kind: 'craft', recipe: payload.recipeId }));
   }
 
   /**
@@ -873,6 +896,12 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         break;
       case 'shrine':
         if (pray(player)) act(player, 'wave');
+        break;
+      case 'dom':
+        this.story(talk(this.state, player));
+        break;
+      case 'lantern':
+        this.story(lightLantern(this.state, target.id.slice('lantern-'.length)));
         break;
     }
   }

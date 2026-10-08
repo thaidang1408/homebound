@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import type { Room } from '@colyseus/sdk';
-import { LANDMARKS, type HomeState } from '@homebound/shared';
+import {
+  LANDMARKS,
+  LANTERN_OFFSET,
+  findLandmark,
+  questStep,
+  type HomeState,
+} from '@homebound/shared';
 import { localPose } from '../../game/player/localPose';
 import { playerColor } from '../../game/player/playerColors';
 import { getPings } from '../../state/pings';
@@ -85,6 +91,20 @@ export function Compass({ room }: { room: Room<HomeState> }) {
       const unknownMark = marks.get('unknown');
       if (unknownMark) unknownMark.hidden = !unknown;
       if (unknown) place('unknown', bearing(localPose.x, localPose.z, unknown.x, unknown.z), false);
+      // The story's next place: a landmark's lantern, or home to Đốm.
+      const step = questStep(room.state.quest.chapter, room.state.quest.step);
+      const landmark =
+        step && (step.kind === 'visit' || step.kind === 'light')
+          ? findLandmark(step.landmark)
+          : null;
+      const target = landmark
+        ? { x: landmark.x + LANTERN_OFFSET.x, z: landmark.z + LANTERN_OFFSET.z }
+        : step?.kind === 'talk' || step?.kind === 'bring'
+          ? HOME
+          : null;
+      const questMark = marks.get('quest');
+      if (questMark) questMark.hidden = !target;
+      if (target) place('quest', bearing(localPose.x, localPose.z, target.x, target.z), true);
       const scoutMark = marks.get('scout');
       if (scoutMark) scoutMark.hidden = !scouted;
       if (scouted) place('scout', bearing(localPose.x, localPose.z, scouted.x, scouted.z), true);
@@ -106,6 +126,9 @@ export function Compass({ room }: { room: Room<HomeState> }) {
       </span>
       <span data-mark="ping" className={styles.marker} title="Marked spot" hidden>
         📍
+      </span>
+      <span data-mark="quest" className={styles.marker} title="Where the story goes next" hidden>
+        🏮
       </span>
       <span data-mark="unknown" className={styles.marker} title="Something to discover" hidden>
         ❔

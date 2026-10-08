@@ -98,10 +98,16 @@ function interact(): boolean {
       showToast('From up here you can see far — the map fills in. [M] to look.');
       room.send(ClientMessage.Interact, { targetId: target.id });
       break;
+    case 'dom':
+      updateUi({ domFrom: { chapter: room.state.quest.chapter, step: room.state.quest.step } });
+      room.send(ClientMessage.Interact, { targetId: target.id });
+      openPanel('dom');
+      break;
     case 'stove':
     case 'bed':
     case 'cache':
     case 'shrine':
+    case 'lantern':
       room.send(ClientMessage.Interact, { targetId: target.id });
       break;
     case 'tree':
@@ -154,6 +160,11 @@ export function useGameKeys(): void {
         updateSettings({ muted });
         applyVolume();
         showToast(muted ? '🔇 Sound off (N)' : '🔊 Sound on (N)');
+        return;
+      }
+      if (e.code === 'KeyJ') {
+        if (panel === 'none') openPanel('journal');
+        else if (panel === 'journal') closePanel();
         return;
       }
       if (e.code === 'KeyM') {

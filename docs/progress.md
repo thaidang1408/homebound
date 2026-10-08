@@ -599,3 +599,47 @@ of getting one (eggs and befriending).
   kept as it was); the compass ❔ points the way.
 - Triangles grew from ~47k (Phase 7) to ~105k: within budget, but slow software renderers drop
   to 5–8 fps.
+
+## Phase 13 — Story and quests
+
+**Status:** Done on one machine (tests + e2e pass), awaiting the user's test + approval
+(2026-10-08).
+
+**What was built**
+
+- Đốm, a little talking lantern on the kitchen table (bobs, flickers, glows brighter with every
+  great lantern lit). [E] opens its speech: what it said when you came over and what it says now,
+  plus the next goal.
+- The story as data (ADR-026): five chapters, one great lantern each (Giant Tree, Echo Cave, the
+  camp, the watchtower, the Spirit Shrine), with talk / bring / visit / hunt / craft / tame /
+  light steps. One shared step per home; either player moves it on. Rewards for everyone at a
+  chapter's end.
+- The quest tracker (top right, with counts), a 🏮 compass marker toward the next place, Đốm's
+  lines as toasts when a step finishes away from home, grandpa's journal [J] with a page per
+  chapter.
+- Lit lanterns: safe spots at night (creatures won't hunt you within 14 m) and brighter nights.
+
+**Tests**
+
+- `npm test`: 204 passing + 1 skipped. New: chapter 1 start to finish (talk, missing items, bring,
+  visit, wrong lantern, light, talk); hunt and craft steps count only what they ask for; a pet (not
+  an egg) for the tame step; nothing after the end; every chapter's landmarks exist; Đốm's lines;
+  a wolf ignores you near a lit lantern; saves round-trip and an impossible story position is
+  pulled back; over the network: chapter 1 played through and saved.
+- `npm run e2e`: new `story` scenario (chapter 1 in the browser, journal; screenshots `p13-dom`,
+  `p13-lantern`, `p13-journal`). Full run: everything passed except `two-players` "A sees B move"
+  (the test pressed D before the mouse was captured) — fixed; it passes.
+
+**Bugs found and fixed**
+
+- Talking to Đốm finished the talk step at once, so its opening words were never shown — the
+  panel now shows the line from before and after.
+- `two-players` e2e moved B before its mouse was captured.
+
+**Not done**
+
+- Side quests, carvings, the glider cloak and raft (ADR-026).
+
+**Requested during this phase (not started; proposed as the next phase):** drop items from the
+backpack, equipment slots (hat, coat, boots, weapon…), a craftable bigger backpack, item
+descriptions, small on-screen control hints, more stove dishes and cooking several at once.

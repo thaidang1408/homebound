@@ -5,6 +5,7 @@ import {
   CHEST_SLOTS,
   HEALTH_MAX,
   HUNGER_MAX,
+  CHAPTERS,
   HATCH_MS,
   LANDMARKS,
   MAP_CELLS,
@@ -85,6 +86,9 @@ export interface HomeSave {
   /** …landmark caches emptied today, and marked spots. */
   caches: string[];
   markers: { x: number; z: number }[];
+  /** The story (Phase 13; missing before: the story starts at the beginning). */
+  quest: { chapter: number; step: number; progress: number };
+  lanterns: string[];
 }
 
 export interface SavedPet {
@@ -259,6 +263,8 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
     discovered: parseList(value.discovered, isLandmarkId, LANDMARKS.length),
     caches: parseList(value.caches, isLandmarkId, LANDMARKS.length),
     markers: parseMarkers(value.markers),
+    quest: parseQuest(value.quest),
+    lanterns: parseList(value.lanterns, isLandmarkId, LANDMARKS.length),
   };
 }
 
@@ -292,6 +298,15 @@ function parseList<T>(value: unknown, valid: (v: never) => boolean, max: number)
   return [...new Set(value)].filter((v) => valid(v as never)).slice(0, max) as T[];
 }
 const isLandmarkId = (v: unknown) => typeof v === 'string' && !!findLandmark(v);
+
+/** A story position that exists: a chapter (or the end), a step in it, a sane count. */
+function parseQuest(value: unknown): HomeSave['quest'] {
+  const v = isObject(value) ? value : {};
+  const chapter = Math.floor(num(v.chapter, 0, 0, CHAPTERS.length));
+  const steps = CHAPTERS[chapter]?.steps.length ?? 0;
+  const step = Math.floor(num(v.step, 0, 0, Math.max(0, steps - 1)));
+  return { chapter, step, progress: Math.floor(num(v.progress, 0, 0, UINT8)) };
+}
 
 function parseMarkers(value: unknown): { x: number; z: number }[] {
   if (!Array.isArray(value)) return [];

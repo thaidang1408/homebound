@@ -2,6 +2,8 @@ import type { Room } from '@colyseus/sdk';
 import {
   CREATURES,
   GOALS,
+  CHAPTERS,
+  domLine,
   GOAL_XP,
   GamePhase,
   PETS,
@@ -42,6 +44,9 @@ import { addChatLine, clearChat } from '../state/chat';
 import { addPing } from '../state/pings';
 import { getUi, showToast, updateUi } from '../state/ui';
 
+/** Story lines stay up long enough to read. */
+const STORY_TOAST_MS = 8000;
+
 /** The low-frequency slice of room state the React UI cares about. */
 interface Snapshot {
   key: string;
@@ -67,6 +72,8 @@ interface Snapshot {
   pets: Map<string, string>;
   /** Landmarks discovered so far. */
   discovered: Set<string>;
+  /** Where the story is: "chapter.step". */
+  quest: string;
 }
 
 function slots(list: Iterable<{ itemId: string; qty: number }>): string {
@@ -108,6 +115,8 @@ function snapshot(room: Room<HomeState>): Snapshot {
     [...s.discovered.keys()].join(','),
     [...s.caches.keys()].join(','),
     s.markers.size,
+    `${s.quest.chapter}.${s.quest.step}.${s.quest.progress}`,
+    [...s.lanterns.keys()].join(','),
   ].join(';');
   return {
     key,
@@ -131,6 +140,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     myBuff: s.players.get(room.sessionId)?.buff ?? '',
     pets: new Map([...s.pets.entries()].map(([id, p]) => [id, p.kind])),
     discovered: new Set(s.discovered.keys()),
+    quest: `${s.quest.chapter}.${s.quest.step}`,
   };
 }
 
@@ -155,6 +165,17 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
     if (prev.sprung.has(id)) continue;
     const kind = room.state.traps.get(id)?.kind;
     showToast(kind === 'snare' ? '🪢 A snare caught something!' : '🔺 A spike trap hit something!');
+  }
+  if (next.quest !== prev.quest) {
+    // The story moved on: Đốm's line about it, and the chapter's end if it was the last step.
+    const [chapter = 0, step = 0] = next.quest.split('.').map(Number);
+    const ended = step === 0 && chapter > 0 ? CHAPTERS[chapter - 1] : undefined;
+    const line = domLine(room.state.quest.chapter, room.state.quest.step).split('\n')[0];
+    if (line) showToast(`🏮 Đốm: ${line}`, STORY_TOAST_MS);
+    if (ended) {
+      showToast(`📖 Chapter complete: ${ended.title} — a journal page to read [J]`, STORY_TOAST_MS);
+      playFanfare();
+    } else playBell();
   }
   for (const id of next.discovered) {
     const l = findLandmark(id);

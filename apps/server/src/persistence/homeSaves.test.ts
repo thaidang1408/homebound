@@ -2,7 +2,14 @@ import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, test } from 'vitest';
-import { HATCH_MS, HEALTH_MAX, HUNGER_MAX, MAX_MAP_MARKERS, WORLD_RADIUS } from '@homebound/shared';
+import {
+  CHAPTERS,
+  HATCH_MS,
+  HEALTH_MAX,
+  HUNGER_MAX,
+  MAX_MAP_MARKERS,
+  WORLD_RADIUS,
+} from '@homebound/shared';
 import {
   SAVE_VERSION,
   homeExists,
@@ -65,6 +72,8 @@ function sample(code = 'ABC23'): HomeSave {
     discovered: ['cave'],
     caches: ['cave'],
     markers: [{ x: 10, z: -20 }],
+    quest: { chapter: 1, step: 2, progress: 1 },
+    lanterns: ['giant-tree'],
   };
 }
 
@@ -172,6 +181,24 @@ describe('home saves', () => {
     expect(parsed?.caches).toEqual([]);
     expect(parsed?.markers).toHaveLength(MAX_MAP_MARKERS);
     expect(parsed?.markers.at(-1)).toEqual({ x: 11, z: 0 });
+  });
+
+  test('the story round-trips; an impossible position is pulled back into the story', () => {
+    saveHome(sample());
+    expect(loadHome('ABC23')?.quest).toEqual({ chapter: 1, step: 2, progress: 1 });
+    expect(loadHome('ABC23')?.lanterns).toEqual(['giant-tree']);
+    const raw = sample() as unknown as Record<string, unknown>;
+    const parsed = parseSave(
+      { ...raw, quest: { chapter: 99, step: 40, progress: -2 }, lanterns: ['moon'] },
+      'ABC23',
+    );
+    expect(parsed?.quest).toEqual({ chapter: CHAPTERS.length, step: 0, progress: 0 }); // the end
+    expect(parsed?.lanterns).toEqual([]);
+    expect(parseSave({ ...raw, quest: undefined }, 'ABC23')?.quest).toEqual({
+      chapter: 0,
+      step: 0,
+      progress: 0,
+    });
   });
 
   test('unknown or invalid codes are simply missing', () => {

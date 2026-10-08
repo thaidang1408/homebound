@@ -344,3 +344,24 @@ the roadmap's wolf/fox/owl, obtained both by hatching eggs and by befriending wi
 **Not done (from the roadmap):** the raft, the glider cloak (Phase 13), journal pages (Phase 13),
 biome animals (Phase 14 brings monsters to the biomes), biome ambience. No LOD or chunking was
 needed: the wilds measured 30 draw calls and 116k triangles looking out from the north pass.
+
+## ADR-026: The story as data — one shared step, finished by events, the world or [E] (2026-10-08)
+
+**Decision:**
+
+- **Chapters and steps are data** (`quests.ts`): each step has a kind (talk, bring, visit, hunt,
+  craft, tame, light), its goal text and Đốm's line when it's done. The client builds every line
+  from the position (`domLine(chapter, step)`), so nothing but `{ chapter, step, progress }` and the
+  lit lanterns is synced or saved.
+- **One linear story per home**, shared: either player moves it on. Hunts and crafts send events
+  (kills by players, traps and pets go through one `hunted()` in the room); visits and pets are
+  checked every tick; talking and lighting happen on [E].
+- **Rewards are items** for everyone present at a chapter's end (overflow into the chest). The
+  roadmap's glider cloak and raft were cut: they need new movement (gliding, floating) that isn't
+  worth it yet.
+- **Lit lanterns are safe zones** (creatures don't spot or keep chasing anyone within 14 m) and
+  brighten the night ambient a little each.
+- Saves: `quest` (validated: a real chapter and step, or the end) and `lanterns`.
+
+**Not done:** side quests (lost hedgehog, spirit merchant), carvings in the world, the glider
+cloak and raft.

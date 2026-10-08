@@ -2,7 +2,17 @@ import type { DaySummaryPayload } from '@homebound/shared';
 import { createStore } from './createStore';
 
 export type Panel =
-  'none' | 'inventory' | 'storage' | 'workbench' | 'stove' | 'chat' | 'pet' | 'map' | 'travel';
+  | 'none'
+  | 'inventory'
+  | 'storage'
+  | 'workbench'
+  | 'stove'
+  | 'chat'
+  | 'pet'
+  | 'map'
+  | 'travel'
+  | 'dom'
+  | 'journal';
 
 export interface Toast {
   id: number;
@@ -32,6 +42,8 @@ interface UiState {
   petId: string | null;
   /** The waystone whose travel panel is open. */
   waystoneId: string | null;
+  /** Where the story was when you started talking to Đốm (so its whole reply shows). */
+  domFrom: { chapter: number; step: number } | null;
   toasts: Toast[];
 }
 
@@ -47,6 +59,7 @@ const store = createStore<UiState>({
   crouching: false,
   petId: null,
   waystoneId: null,
+  domFrom: null,
   toasts: [],
 });
 
@@ -60,27 +73,28 @@ let nextToastId = 1;
 /** Short feedback message ("+35 hunger", "Day 2 — Good morning!"). */
 const timers = new Map<number, ReturnType<typeof setTimeout>>();
 
-function expire(id: number): void {
+function expire(id: number, ms = TOAST_MS): void {
   clearTimeout(timers.get(id));
   timers.set(
     id,
     setTimeout(() => {
       timers.delete(id);
       updateUi({ toasts: getUi().toasts.filter((t) => t.id !== id) });
-    }, TOAST_MS),
+    }, ms),
   );
 }
 
-export function showToast(text: string): void {
+/** `ms`: how long it stays (longer for story lines worth reading). */
+export function showToast(text: string, ms = TOAST_MS): void {
   const { toasts } = getUi();
   const last = toasts.at(-1);
   if (last?.text === text) {
     // Same message again (holding E on a tree): count it up and keep it on screen.
     updateUi({ toasts: [...toasts.slice(0, -1), { ...last, count: last.count + 1 }] });
-    expire(last.id);
+    expire(last.id, ms);
     return;
   }
   const toast = { id: nextToastId++, text, count: 1 };
   updateUi({ toasts: [...toasts, toast].slice(-3) });
-  expire(toast.id);
+  expire(toast.id, ms);
 }

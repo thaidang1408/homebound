@@ -56,7 +56,8 @@ export const HOUSE_WALLS: readonly Box[] = [
   wallZ(0, -D, 0), // kitchen ↔ bedroom
 ];
 
-export type InteractableKind = 'stove' | 'chest' | 'bed' | 'workbench';
+/** `dom`: Đốm, the little talking lantern on the kitchen table (Phase 13). */
+export type InteractableKind = 'stove' | 'chest' | 'bed' | 'workbench' | 'dom';
 
 export interface FurnitureDefinition {
   id: string;
@@ -91,6 +92,13 @@ export const FURNITURE: readonly FurnitureDefinition[] = [
     kind: 'workbench',
     box: { minX: 4.65, maxX: 5.8, minZ: 2.4, maxZ: 3.6 },
     height: 0.9,
+  },
+  {
+    id: 'dom',
+    kind: 'dom',
+    // Sits on the kitchen table (inside its footprint, so it adds no new obstacle).
+    box: { minX: -2.75, maxX: -2.25, minZ: -2.75, maxZ: -2.25 },
+    height: 1.05,
   },
   {
     id: 'sofa',

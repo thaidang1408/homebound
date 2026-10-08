@@ -228,6 +228,18 @@ export const MarkerState = schema(
 );
 export type MarkerState = SchemaType<typeof MarkerState>;
 
+/** Where the home is in the story (quests.ts): one shared step at a time. Saved. */
+export const QuestState = schema(
+  {
+    chapter: t.uint8().default(0),
+    step: t.uint8().default(0),
+    /** Counted progress on the step (hunts so far). */
+    progress: t.uint8().default(0),
+  },
+  'QuestState',
+);
+export type QuestState = SchemaType<typeof QuestState>;
+
 /** One of today's shared goals (goals.ts). */
 export const GoalState = schema(
   {
@@ -280,6 +292,9 @@ export const HomeState = schema(
     caches: t.map('boolean'),
     /** Spots marked on the map, keyed `mark-<n>`. */
     markers: t.map(MarkerState),
+    /** The story (Phase 13): the current step, and the great lanterns lit (by landmark id). */
+    quest: QuestState,
+    lanterns: t.map('boolean'),
     /** Today's shared goals (ADR-018). */
     goals: t.array(GoalState),
     today: DayStats,

@@ -27,6 +27,7 @@ import { CraftPanel, InventoryPanel, StoragePanel } from '../panels/InventoryPan
 import { useAmbience } from '../../audio/useAmbience';
 import { MapPanel, TravelPanel } from '../panels/MapPanel';
 import { PetPanel } from '../panels/PetPanel';
+import { DomPanel, JournalPanel, QuestTracker } from '../panels/StoryPanels';
 import { SettingsPanel } from '../panels/SettingsPanel';
 import { Compass } from './Compass';
 import { DaySummaryCard, GoalList } from './DayPanels';
@@ -73,6 +74,7 @@ const CONTROLS: readonly [string, string][] = [
   ['G', 'Wave'],
   ['Enter', 'Chat'],
   ['M', 'Map (click it to mark a spot)'],
+  ['J', 'Grandpa’s journal (the story)'],
   ['N', 'Mute'],
   ['Esc', 'Pause'],
 ];
@@ -174,6 +176,7 @@ export function GameHud() {
           {PHASE_ICON[dayPhase(room.state.timeOfDay)]} Day {room.state.day}
           <span className={styles.clock}>{clockLabel(room.state.timeOfDay)}</span>
         </span>
+        <QuestTracker state={room.state} me={me} />
         <GoalList goals={[...room.state.goals]} />
         <span className={styles.pill}>Room {room.roomId}</span>
       </div>
@@ -294,6 +297,8 @@ export function GameHud() {
       {openPanel === 'pet' && <PetPanel />}
       {openPanel === 'map' && <MapPanel />}
       {openPanel === 'travel' && <TravelPanel />}
+      {openPanel === 'dom' && <DomPanel />}
+      {openPanel === 'journal' && <JournalPanel />}
 
       {!locked && openPanel === 'none' && (
         <div className={`${panel.overlay} ${styles.interactive}`} onClick={resumePlay}>

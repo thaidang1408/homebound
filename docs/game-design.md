@@ -68,6 +68,25 @@ for rendering, client collision, server validation and interaction reach.
   for 2 min), mushroom skewer (2 mushrooms + wood: light-footed for 3 min). Mushrooms grow under the
   northern trees. One buff at a time, shown in the HUD.
 
+## The story (Phase 13, ADR-026)
+
+The family has moved into grandpa's old cabin. The forest's five great lanterns went out one by
+one and the night creatures grew bold. On the kitchen table **Đốm**, a little talking lantern,
+wakes up and asks for help to light them again — one per chapter, one per landmark:
+
+1. **The Sleeping Forest:** talk to Đốm → bring 5 wood and 2 mushrooms → find the Giant Tree →
+   light its lantern → tell Đốm.
+2. **Echoes in the Hills:** craft a spear → hunt 2 boars → find Echo Cave → light it.
+3. **A Friend by the Lake:** make a pet friend → find the camp → light it.
+4. **The Old Watch:** make leather armor → find the watchtower → light it.
+5. **The Heart of the Wild:** face the bear → find the Spirit Shrine → light it → tell Đốm.
+
+Progress is shared by the home (either player moves it on). The tracker (top right) says what's
+next with counts; the compass shows 🏮 toward the place. Each chapter ends with a reward for
+everyone present (into the chest if a backpack is full) and a page of grandpa's journal ([J]).
+A lit lantern is a safe spot: night creatures won't hunt you within 14 m of it, and every lit
+lantern makes the nights a little brighter.
+
 ## The wilds (Phase 12, ADR-025)
 
 The home valley (everything up to Phase 11) is unchanged; a ridge rings it, with low **passes** to
@@ -195,4 +214,4 @@ position. Creatures are not saved: a re-opened home has a fresh herd. A player i
 WASD move · Mouse look · Shift sprint (uses stamina) · Space jump · Q dodge roll (stamina; strikes
 miss you for a moment) · F mark a spot for your partner · G wave · C sneak · R stove recipes · Enter chat · E interact (hold to keep harvesting / reviving) · Left click
 use the held item (food: eat; spear/bow/fists: attack; a creature in your face: punch) · 1–5 / wheel
-hotbar · Tab backpack (drag to rearrange) · M map · N mute · Esc pause (settings).
+hotbar · Tab backpack (drag to rearrange) · M map · J journal · N mute · Esc pause (settings).

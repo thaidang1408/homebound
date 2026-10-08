@@ -14,6 +14,7 @@ import outdoors from './outdoors.mjs';
 import perf from './perf.mjs';
 import pets from './pets.mjs';
 import soloSave from './solo-save.mjs';
+import story from './story.mjs';
 import twoPlayers from './two-players.mjs';
 
 const SCENARIOS = {
@@ -30,6 +31,7 @@ const SCENARIOS = {
   feel,
   pets,
   explore,
+  story,
   perf,
 };
 

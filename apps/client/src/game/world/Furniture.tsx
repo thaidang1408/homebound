@@ -158,6 +158,8 @@ function Piece({ f }: { f: FurnitureDefinition }) {
     case 'sofa':
       body = <Sofa w={w} d={d} h={h} />;
       break;
+    case 'dom':
+      return null; // Đốm is animated (Dom.tsx)
     default:
       body = <Table w={w} d={d} h={h} color={PALETTE.wood} />;
   }

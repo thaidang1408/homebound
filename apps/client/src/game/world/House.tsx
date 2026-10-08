@@ -8,6 +8,7 @@ import {
   WALL_THICKNESS,
   type Box,
 } from '@homebound/shared';
+import { Dom } from './Dom';
 import { Furniture } from './Furniture';
 import { PALETTE } from './palette';
 
@@ -103,6 +104,7 @@ export function House() {
       ))}
 
       <Furniture />
+      <Dom />
     </group>
   );
 }

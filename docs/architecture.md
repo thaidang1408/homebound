@@ -61,7 +61,8 @@ src/
                           creatures (AI state machine, damage, butchering), projectiles (arrows),
                           downed (bleed-out, revive, respawn), crafting, goals (daily goals, day stats), progression,
                           stamina, traps, pets (eggs, befriending, follow/stay/home, abilities; ADR-024),
-                          explore (fog of war, discovery, caches, waystones, map markers; ADR-025)
+                          explore (fog of war, discovery, caches, waystones, map markers; ADR-025),
+                          quests (the shared story step, Đốm, great lanterns; ADR-026)
   inventory/inventory.ts  slot inventories, atomic add/remove/move (unit-tested)
   persistence/            homeSaves.ts (file I/O + validation), homeState.ts (state ↔ save mapping)
   test/harness.ts         real server + SDK clients for integration tests (temp save dir)
@@ -106,7 +107,7 @@ nodes + zones), `terrain.ts` (height), `time.ts` (day phases), `resources.ts` (n
 `interactables.ts` (furniture + nodes, `WORLD_COLLIDERS`), `collision.ts`. Creature kinds:
 `packages/shared/src/creatures.ts` (ADR-016); weapons `weapons.ts`, recipes `recipes.ts` (ADR-017), daily goals `goals.ts` (ADR-018), buffs `buffs.ts` (ADR-023),
 pets `pets.ts` (ADR-024; client models in `apps/client/src/game/pets/`), biomes `world/biomes.ts`
-and landmarks `world/landmarks.ts` (ADR-025).
+and landmarks `world/landmarks.ts` (ADR-025), the story `quests.ts` (ADR-026).
 
 Networking details (messages, movement model, disconnects): `docs/networking.md`.
 

@@ -62,6 +62,8 @@ const KEYS: readonly Key[] = [
 ];
 
 const SUN_DISTANCE = 60;
+/** Extra moonlit ambient at night per great lantern lit. */
+const LANTERN_NIGHT_LIGHT = 0.06;
 const STAR_COUNT = 400;
 const STAR_RADIUS = 140;
 
@@ -128,7 +130,9 @@ export function DayNight() {
     }
     const night = mix(a.stars, b.stars);
     if (hemi.current) {
-      hemi.current.intensity = mix(a.hemi, b.hemi);
+      // Every great lantern lit pushes the night back a little (Phase 13).
+      const lit = room?.state.lanterns.size ?? 0;
+      hemi.current.intensity = mix(a.hemi, b.hemi) + night * lit * LANTERN_NIGHT_LIGHT;
       hemi.current.color.copy(daySky).lerp(moonSky, night); // warm by day, moonlit blue at night
     }
     if (starMaterial.current) starMaterial.current.opacity = night;

@@ -1,6 +1,7 @@
 import type { Room } from '@colyseus/sdk';
 import {
   LANDMARKS,
+  LANTERN_OFFSET,
   WAYSTONES,
   terrainHeight,
   type HomeState,
@@ -200,6 +201,41 @@ function Cache({ landmark, opened }: { landmark: LandmarkDefinition; opened: boo
   );
 }
 
+/** A great lantern on a post: cold and dark, or glowing warm once the story lights it. */
+function GreatLantern({ landmark, lit }: { landmark: LandmarkDefinition; lit: boolean }) {
+  const x = landmark.x + LANTERN_OFFSET.x;
+  const z = landmark.z + LANTERN_OFFSET.z;
+  return (
+    <group position={[x, terrainHeight(x, z), z]}>
+      <mesh position-y={1.1}>
+        <boxGeometry args={[0.16, 2.2, 0.16]} />
+        <Std color={PALETTE.woodDark} />
+      </mesh>
+      <mesh position={[0, 2.25, 0.3]}>
+        <boxGeometry args={[0.1, 0.1, 0.7]} />
+        <Std color={PALETTE.woodDark} />
+      </mesh>
+      <mesh position={[0, 1.85, 0.6]}>
+        <boxGeometry args={[0.4, 0.5, 0.4]} />
+        <meshStandardMaterial
+          color={lit ? PALETTE.lamp : PALETTE.ruinStoneDark}
+          emissive={PALETTE.lamp}
+          emissiveIntensity={lit ? 1.6 : 0}
+          transparent
+          opacity={0.9}
+          flatShading
+        />
+      </mesh>
+      {lit && (
+        <mesh position={[0, 1.85, 0.6]}>
+          <icosahedronGeometry args={[0.8, 1]} />
+          <meshBasicMaterial color={PALETTE.lamp} transparent opacity={0.18} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
 function Waystone({ x, z, lit }: { x: number; z: number; lit: boolean }) {
   return (
     <group position={[x, terrainHeight(x, z), z]}>
@@ -229,6 +265,7 @@ export function Landmarks({ room }: { room: Room<HomeState> }) {
               <Model />
             </group>
             <Cache landmark={l} opened={caches.has(l.id)} />
+            <GreatLantern landmark={l} lit={room.state.lanterns.has(l.id)} />
           </group>
         );
       })}

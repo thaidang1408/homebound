@@ -130,6 +130,8 @@ export function buildSave(
     discovered: [...state.discovered.keys()],
     caches: [...state.caches.keys()],
     markers: [...state.markers.values()].map((m) => ({ x: m.x, z: m.z })),
+    quest: { chapter: state.quest.chapter, step: state.quest.step, progress: state.quest.progress },
+    lanterns: [...state.lanterns.keys()],
   };
 }
 
@@ -187,6 +189,9 @@ export function applyHome(state: HomeState, save: HomeSave): void {
   for (const id of save.discovered) state.discovered.set(id, true);
   state.caches.clear();
   for (const id of save.caches) state.caches.set(id, true);
+  Object.assign(state.quest, save.quest);
+  state.lanterns.clear();
+  for (const id of save.lanterns) state.lanterns.set(id, true);
   state.markers.clear();
   save.markers.forEach((m, i) => {
     const marker = new MarkerState();

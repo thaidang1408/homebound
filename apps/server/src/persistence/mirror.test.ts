@@ -42,6 +42,8 @@ test.skipIf(!url)('saves survive a wiped disk through Postgres', async () => {
       discovered: [],
       caches: [],
       markers: [],
+      quest: { chapter: 0, step: 0, progress: 0 },
+      lanterns: [],
     });
     await first.flush();
 

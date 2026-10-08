@@ -1,5 +1,5 @@
 // Phase 1: room code join, full room, movement sync both ways, reload reconnect, disconnect UI.
-import { hb, roomOf } from './lib.mjs';
+import { hb, play, roomOf } from './lib.mjs';
 
 const partnerPose = (page) =>
   hb(page, (h) => {
@@ -64,10 +64,10 @@ export default async function twoPlayers(t) {
   t.check('B sees A turn', Math.abs(aAfter.yaw - aBefore.yaw) > 0.05);
   await t.shot(b, 'p1-b-sees-a');
 
-  await b.getByText('Paused').click();
+  await play(b); // waits until the mouse is captured: keys only move you then
   const bBefore = await partnerPose(a);
   await b.keyboard.down('KeyD');
-  await b.waitForTimeout(800);
+  await b.waitForTimeout(1200);
   await b.keyboard.up('KeyD');
   await b.waitForTimeout(400);
   t.check('A sees B move', moved(bBefore, await partnerPose(a)));

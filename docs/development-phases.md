@@ -22,8 +22,9 @@ day/night, both-players-sleep to advance the day. No accounts, DB, voice, paymen
 | 10  | Hunting 2.0                | Tracks, sneaking, deer/rabbit/bear, snares and spike traps, hides → armor and an antler spear, stove recipes with buffs. A full hunt takes 10–15 min with a role for both                                                                                                           |
 | 11  | Fantasy pets               | Baby dragon, little ghost, baby dino, unicorn foal, tiny alien: hatch an egg from a nest or befriend a wild one with its favorite food; follow/stay/home, a name, a pat; each pet has a job. The child wants to log in to see their pet                                             |
 | 12  | Exploration + bigger world | The valley is ringed by a ridge with four passes; past it four biomes (Deep Forest, Rocky Hills, Misty Lake, Old Ruins) with five landmarks, loot caches, waystones and a shared map with fog of war. A new player finds three landmarks without being told; the frame budget holds |
+| 13  | Story + quests             | Đốm the talking lantern; five chapters, one great lantern each; shared quest steps (talk, bring, visit, hunt, craft, tame, light); quest tracker and compass marker; grandpa's journal. Chapter 1 plays start to finish and both players know what to do next                       |
 
-Phases 13–16 (story, fantasy monsters, home + garden, seasons) are
+Phases 14–16 ( fantasy monsters, home + garden, seasons) are
 proposed in `docs/roadmap.md` and are added here one at a time as the user approves them.
 
 Success milestone: two people on two computers share a room code, cook, fight, revive each other,
