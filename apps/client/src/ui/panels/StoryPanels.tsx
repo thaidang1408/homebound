@@ -38,7 +38,7 @@ export function QuestTracker({ state, me }: { state: HomeState; me: PlayerState 
   return (
     <div className={styles.tracker} role="status">
       <span className={styles.chapter}>
-        📜 Chapter {state.quest.chapter + 1}: {chapter.title}
+        📜 Chương {state.quest.chapter + 1}: {chapter.title}
       </span>
       <span>{goalText(step, state, me)}</span>
     </div>
@@ -63,13 +63,13 @@ export function DomPanel() {
         <h2 className={panel.title}>🏮 Đốm</h2>
         {chapter && (
           <p className={panel.subtitle}>
-            Chapter {s.quest.chapter + 1}: {chapter.title}
+            Chương {s.quest.chapter + 1}: {chapter.title}
           </p>
         )}
         <p className={styles.speech}>{speech}</p>
         {step && (
           <p className={styles.next}>
-            <strong>Next:</strong> {goalText(step, s, s.players.get(room.sessionId))}
+            <strong>Tiếp theo:</strong> {goalText(step, s, s.players.get(room.sessionId))}
           </p>
         )}
         <Button onClick={closePanel}>OK!</Button>
@@ -88,15 +88,17 @@ export function JournalPanel() {
   return (
     <div className={panel.overlay} onClick={closePanel}>
       <div className={`${panel.panel} ${styles.journal}`} onClick={(e) => e.stopPropagation()}>
-        <h2 className={panel.title}>📖 Grandpa’s journal</h2>
+        <h2 className={panel.title}>📖 Nhật ký của ông</h2>
         <p className={panel.subtitle}>
-          Lanterns lit: {s.lanterns.size}/{CHAPTERS.length}.{' '}
+          Đèn lồng đã thắp: {s.lanterns.size}/{CHAPTERS.length}.{' '}
           {step
-            ? `Now: ${goalText(step, s, s.players.get(room.sessionId))}`
-            : 'The story is complete!'}
+            ? `Bây giờ: ${goalText(step, s, s.players.get(room.sessionId))}`
+            : 'Câu chuyện đã trọn vẹn!'}
         </p>
         {pages.length === 0 ? (
-          <p className={styles.speech}>The pages are blank… Light a great lantern and see.</p>
+          <p className={styles.speech}>
+            Các trang còn trống… Hãy thắp một đèn lồng lớn rồi xem nhé.
+          </p>
         ) : (
           pages.map((c, i) => (
             <section key={c.title} className={styles.page}>
@@ -108,7 +110,7 @@ export function JournalPanel() {
           ))
         )}
         <Button variant="secondary" onClick={closePanel}>
-          Close [J]
+          Đóng [J]
         </Button>
       </div>
     </div>

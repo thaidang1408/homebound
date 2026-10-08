@@ -35,11 +35,11 @@ function treeByTheRoad() {
 
 export default async function outdoors(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('An');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   t.check('home code', true, await roomOf(a));
   await play(a);
 
@@ -47,12 +47,12 @@ export default async function outdoors(t) {
   await walk(a, [{ x: 0, z: 3 }, { x: 0, z: 6 }, tree.road], { x: 0, z: 60 });
   await t.shot(a, 'p3-road');
   await walk(a, [tree.stand], tree.node);
-  await prompt(a, 'Chop wood').waitFor();
+  await prompt(a, 'Chặt gỗ').waitFor();
   t.check('prompt at a tree', true, tree.node.id);
 
   await a.keyboard.down('KeyE');
   await a
-    .getByText(/\+1 🪵 Wood/)
+    .getByText(/\+1 🪵 Gỗ/)
     .first()
     .waitFor();
   await a.waitForTimeout(1800);
@@ -62,7 +62,7 @@ export default async function outdoors(t) {
   await t.shot(a, 'p3-chopping');
 
   await setTime(a, 0.745);
-  await a.getByText(/sun is setting/).waitFor({ timeout: 20000 });
+  await a.getByText(/Mặt trời sắp lặn/).waitFor({ timeout: 20000 });
   t.check('dusk warns to head home', true);
   await t.shot(a, 'p3-dusk');
   await setTime(a, 0.95);

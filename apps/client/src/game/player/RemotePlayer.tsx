@@ -371,12 +371,12 @@ export function RemotePlayer({
           y={0}
           text={
             !connected
-              ? `${name} (reconnecting…)`
+              ? `${name} (đang kết nối lại…)`
               : downed
-                ? `${name} — DOWN! Hold E`
+                ? `${name} — BỊ GỤC! Giữ E`
                 : sleeping
                   ? `${name} 💤`
-                  : `${name} · Lv ${level}`
+                  : `${name} · Cấp ${level}`
           }
         />
       </group>

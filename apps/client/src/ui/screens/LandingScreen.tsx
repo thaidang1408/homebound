@@ -58,11 +58,11 @@ export function LandingScreen() {
       <main className={panel.panel}>
         <header className={styles.brand}>
           <h1 className={styles.logo}>Homebound</h1>
-          <p className={styles.tagline}>Live together. Hunt together. Survive together.</p>
+          <p className={styles.tagline}>Sống cùng nhau. Săn cùng nhau. Sinh tồn cùng nhau.</p>
         </header>
 
         <TextInput
-          label="Your name"
+          label="Tên của bạn"
           value={name}
           maxLength={PLAYER_NAME_MAX_LENGTH}
           placeholder="Nhập tên bé vào"
@@ -71,7 +71,7 @@ export function LandingScreen() {
 
         {lastHome && isValidRoomCode(lastHome) && (
           <Button disabled={!!busy} onClick={() => void continueHome(lastHome, playerName())}>
-            Continue home {lastHome}
+            Về nhà cũ {lastHome}
           </Button>
         )}
         <Button
@@ -79,14 +79,14 @@ export function LandingScreen() {
           disabled={!!busy}
           onClick={() => void createHome(playerName())}
         >
-          Build a new home
+          Xây nhà mới
         </Button>
 
-        <div className={styles.divider}>or enter a home code</div>
+        <div className={styles.divider}>hoặc nhập mã nhà</div>
 
         <form className={panel.row} onSubmit={onJoin}>
           <TextInput
-            label="Home code"
+            label="Mã nhà"
             value={code}
             maxLength={ROOM_CODE_LENGTH + 2}
             placeholder="ABC23"
@@ -97,7 +97,7 @@ export function LandingScreen() {
             onChange={(e) => setCode(e.target.value)}
           />
           <Button type="submit" variant="secondary" disabled={!canJoin}>
-            Join
+            Vào nhà
           </Button>
         </form>
 

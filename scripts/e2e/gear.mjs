@@ -23,13 +23,18 @@ const me = (page) =>
 
 export default async function gear(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('Mai');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('Mai');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
+  const scrolls = await a.evaluate(
+    () => document.documentElement.scrollHeight > window.innerHeight + 1,
+  );
+  t.check('the pause menu fits without scrolling the page', !scrolls);
+  await t.shot(a, 'p14-pause');
   await play(a);
-  await a.getByText('Hide hints').waitFor();
+  await a.getByText('Ẩn gợi ý').waitFor();
   t.check('key hints are on screen while playing', true);
 
   await hb(a, (h) => {
@@ -43,10 +48,10 @@ export default async function gear(t) {
   });
 
   await a.keyboard.press('Tab');
-  await a.getByText('Wearing').waitFor();
-  const slots = a.getByRole('button', { name: /^Your items/ });
+  await a.getByText('Đang mặc').waitFor();
+  const slots = a.getByRole('button', { name: /^Đồ của bạn/ });
   await slots.nth(0).hover();
-  await a.getByText('🎒 +5 backpack slots').waitFor();
+  await a.getByText('🎒 +5 ô ba lô').waitFor();
   t.check('pointing at an item explains it', true);
 
   await slots.nth(0).dblclick();
@@ -56,13 +61,13 @@ export default async function gear(t) {
   });
   t.check('a satchel on your back adds 5 slots', (await me(a)).slots === 15);
 
-  await slots.nth(1).dragTo(a.getByRole('button', { name: /^Head:/ }));
+  await slots.nth(1).dragTo(a.getByRole('button', { name: /^Đầu:/ }));
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();
     return room.state.players.get(room.sessionId).equipment.at(0).itemId === 'leather_cap';
   });
   t.check('drag the cap onto the head slot to wear it', true);
-  await a.getByText(/Armor −10%/).waitFor({ state: 'attached' });
+  await a.getByText(/Giáp −10%/).waitFor({ state: 'attached' });
   await t.shot(a, 'p14-backpack');
 
   // Drag the wood out of the window (onto the world behind it) to drop it.
@@ -72,7 +77,7 @@ export default async function gear(t) {
 
   await a.keyboard.press('Tab');
   await play(a);
-  await prompt(a, 'Pick up Wood ×5').waitFor();
+  await prompt(a, 'Nhặt Gỗ ×5').waitFor();
   await t.shot(a, 'p14-drop');
   await a.keyboard.press('KeyE');
   await a.waitForFunction(() => window.__homebound.getSession().room.state.drops.size === 0);
@@ -80,7 +85,7 @@ export default async function gear(t) {
 
   await hb(a, (h) => h.give('raw_meat', 4));
   await walk(a, TO_STOVE, STOVE);
-  await prompt(a, 'Cook raw meat ×3').waitFor();
+  await prompt(a, 'Nấu thịt sống ×3').waitFor();
   await a.keyboard.press('KeyE');
   await a.waitForFunction(() =>
     [...window.__homebound.getSession().room.state.pans].every((p) => p.status === 'cooking'),
@@ -88,7 +93,7 @@ export default async function gear(t) {
   t.check('three pieces of meat cook at once', true);
   await a.waitForTimeout(2000);
   await t.shot(a, 'p14-stove');
-  await prompt(a, 'Take the food (3)').waitFor({ timeout: 15000 });
+  await prompt(a, 'Lấy đồ ăn (3)').waitFor({ timeout: 15000 });
   await a.keyboard.press('KeyE');
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();

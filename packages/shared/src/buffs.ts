@@ -12,10 +12,10 @@ export interface BuffDefinition {
 }
 
 export const BUFFS = {
-  warm: { name: 'Warm stew', icon: '🍲', durationMs: 120_000, regen: 6 },
-  keen: { name: 'Light-footed', icon: '🍢', durationMs: 180_000, stealth: 0.7 },
-  sweet: { name: 'Sweet energy', icon: '🥧', durationMs: 150_000, stamina: 1.8 },
-  feast: { name: 'Well fed', icon: '🍱', durationMs: 300_000, regen: 3 },
+  warm: { name: 'Ấm bụng', icon: '🍲', durationMs: 120_000, regen: 6 },
+  keen: { name: 'Bước nhẹ', icon: '🍢', durationMs: 180_000, stealth: 0.7 },
+  sweet: { name: 'Ngọt ngào', icon: '🥧', durationMs: 150_000, stamina: 1.8 },
+  feast: { name: 'No căng', icon: '🍱', durationMs: 300_000, regen: 3 },
 } as const satisfies Record<string, BuffDefinition>;
 
 export type BuffId = keyof typeof BUFFS;

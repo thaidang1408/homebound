@@ -28,8 +28,8 @@ export function StaminaMeter({ room }: { room: Room<HomeState> }) {
   }, [room]);
 
   return (
-    <div className={styles.meter} ref={meter} title="Sprint (Shift) and dodge (Q) use stamina">
-      <span className={styles.meterLabel}>💨 Stamina</span>
+    <div className={styles.meter} ref={meter} title="Chạy nhanh (Shift) và lăn né (Q) tốn thể lực">
+      <span className={styles.meterLabel}>💨 Thể lực</span>
       <span className={styles.meterTrack}>
         <span className={styles.meterFill} data-kind="stamina" ref={fill} />
       </span>

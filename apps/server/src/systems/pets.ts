@@ -171,6 +171,8 @@ export function befriend(
   const pet = new PetState();
   becomePet(pet, kind);
   pet.owner = playerId;
+  // Owned from the first patch, so the new owner's toast says "your pet" (not "your partner's").
+  pet.ownerSession = [...state.players].find(([, p]) => p === player)?.[0] ?? '';
   pet.x = c.x;
   pet.z = c.z;
   pet.yaw = c.yaw;

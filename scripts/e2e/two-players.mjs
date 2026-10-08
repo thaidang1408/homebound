@@ -16,42 +16,42 @@ export default async function twoPlayers(t) {
   const b = await t.openPlayer('B');
   const c = await t.openPlayer('C', { expectRejections: true });
 
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByText('Click to copy').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('An');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByText('Bấm để chép mã').waitFor();
   const code = await roomOf(a);
   t.check('create room returns a code', /^[A-Z0-9]{5}$/.test(code), code);
 
-  await b.getByLabel('Your name').fill('Binh');
-  await b.getByLabel('Home code').fill(code.toLowerCase());
-  await b.getByRole('button', { name: 'Join' }).click();
+  await b.getByLabel('Tên của bạn').fill('Binh');
+  await b.getByLabel('Mã nhà').fill(code.toLowerCase());
+  await b.getByRole('button', { name: 'Vào nhà' }).click();
   await a.getByText('Binh').waitFor();
   t.check('partner joins by (lower-case) code', true);
 
-  await c.getByLabel('Home code').fill(code);
-  await c.getByRole('button', { name: 'Join' }).click();
+  await c.getByLabel('Mã nhà').fill(code);
+  await c.getByRole('button', { name: 'Vào nhà' }).click();
   await c.getByRole('alert').waitFor();
   t.check(
     'third player is turned away',
-    /two players/.test(await c.getByRole('alert').textContent()),
+    /hai người/.test(await c.getByRole('alert').textContent()),
   );
-  await c.getByLabel('Home code').fill('QQQQQ');
-  await c.getByRole('button', { name: 'Join' }).click();
-  await c.getByText(/check the code/).waitFor();
+  await c.getByLabel('Mã nhà').fill('QQQQQ');
+  await c.getByRole('button', { name: 'Vào nhà' }).click();
+  await c.getByText(/xem lại mã/).waitFor();
   t.check('wrong code shows a friendly error', true);
   await c.context().close();
 
-  await a.getByRole('button', { name: "I'm ready" }).click();
-  await b.getByRole('button', { name: "I'm ready" }).click();
-  await a.getByText('Both ready').waitFor();
+  await a.getByRole('button', { name: 'Tớ sẵn sàng' }).click();
+  await b.getByRole('button', { name: 'Tớ sẵn sàng' }).click();
+  await a.getByText('Cả hai đã sẵn sàng').waitFor();
   await t.shot(a, 'p1-lobby');
-  await b.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
-  await b.getByText('Paused').waitFor();
+  await b.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
+  await b.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   t.check('both players enter the game', true);
 
-  await a.getByText('Paused').click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).click();
   const aBefore = await partnerPose(b);
   await a.keyboard.down('KeyW');
   await a.mouse.move(400, 250);
@@ -75,11 +75,11 @@ export default async function twoPlayers(t) {
   const sessionOf = (page) => hb(page, (h) => h.getSession().room.sessionId);
   const bSession = await sessionOf(b);
   await b.reload();
-  await b.getByText('Paused').waitFor({ timeout: 15000 });
+  await b.getByRole('heading', { name: 'Tạm dừng' }).waitFor({ timeout: 15000 });
   t.check('reload reconnects into the same seat', bSession === (await sessionOf(b)));
 
   await b.context().close();
-  await a.getByText(/disconnected — waiting/).waitFor();
+  await a.getByText(/mất kết nối — đang chờ/).waitFor();
   t.check('A is told the partner disconnected', (await partnerPose(a))?.connected === false);
   await t.shot(a, 'p1-partner-disconnected');
   await a.context().close();

@@ -25,7 +25,7 @@ export interface BiomeDefinition {
 
 export const BIOMES = {
   valley: {
-    name: 'Home valley',
+    name: 'Thung lũng nhà',
     ground: '#6d9a4f',
     groundDark: '#4f7a3a',
     leafTint: '#ffffff',
@@ -36,7 +36,7 @@ export const BIOMES = {
     bushes: 0,
   },
   forest: {
-    name: 'Deep Forest',
+    name: 'Rừng Sâu',
     ground: '#4e7a43',
     groundDark: '#36592f',
     leafTint: '#8fb7a0',
@@ -47,7 +47,7 @@ export const BIOMES = {
     bushes: 0.08,
   },
   hills: {
-    name: 'Rocky Hills',
+    name: 'Đồi Đá',
     ground: '#8e9a62',
     groundDark: '#6f7a4b',
     leafTint: '#e8e2a8',
@@ -58,7 +58,7 @@ export const BIOMES = {
     bushes: 0.08,
   },
   lake: {
-    name: 'Misty Lake',
+    name: 'Hồ Sương Mù',
     ground: '#78a86a',
     groundDark: '#5b8c55',
     leafTint: '#c9f0e0',
@@ -69,7 +69,7 @@ export const BIOMES = {
     bushes: 0.16,
   },
   ruins: {
-    name: 'Old Ruins',
+    name: 'Tàn Tích Cổ',
     ground: '#8a9470',
     groundDark: '#6c7457',
     leafTint: '#d8c9a0',

@@ -52,8 +52,8 @@ export function ChatBox() {
           autoFocus
           value={draft}
           maxLength={CHAT_MAX_LENGTH}
-          placeholder="Say something… (Enter to send, Esc to cancel)"
-          aria-label="Chat message"
+          placeholder="Nói gì đó… (Enter để gửi, Esc để hủy)"
+          aria-label="Tin nhắn"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
           // Clicking back into the world closes the box without sending.

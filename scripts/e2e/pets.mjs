@@ -26,11 +26,11 @@ const firstPet = (page, kind) =>
 
 export default async function pets(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('Na');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('Na');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   await play(a);
 
   // --- an egg, set down in the yard ---
@@ -41,20 +41,20 @@ export default async function pets(t) {
   await a.mouse.up();
   await a.waitForFunction(() => window.__homebound.getSession().room.state.pets.size === 1);
   t.check('left click with an egg sets it down in the yard', true);
-  await prompt(a, 'Egg hatching').waitFor();
+  await prompt(a, 'Trứng sắp nở').waitFor();
   await t.shot(a, 'p11-egg');
   // Toasts last ~2.6 s: wait for the toast itself (it shows on the same patch as the hatch).
-  await a.getByText('Your egg hatched').waitFor({ timeout: 70000 });
+  await a.getByText('Trứng của bạn đã nở').waitFor({ timeout: 70000 });
   t.check('the egg hatches into a pet (toast)', true);
   await t.shot(a, 'p11-hatched');
 
   // --- talk to it: name and orders ---
-  await prompt(a, 'Talk to').waitFor({ timeout: 10000 });
+  await prompt(a, 'Nói chuyện với').waitFor({ timeout: 10000 });
   await a.keyboard.press('KeyE');
-  await a.getByRole('button', { name: 'Stay here' }).waitFor();
-  await a.getByLabel('Name').fill('Đốm');
-  await a.getByRole('button', { name: 'Rename' }).click();
-  await a.getByRole('button', { name: 'Stay here' }).click();
+  await a.getByRole('button', { name: 'Ở yên đây' }).waitFor();
+  await a.getByLabel('Tên').fill('Đốm');
+  await a.getByRole('button', { name: 'Đổi tên' }).click();
+  await a.getByRole('button', { name: 'Ở yên đây' }).click();
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();
     const [p] = [...room.state.pets.values()];
@@ -62,8 +62,8 @@ export default async function pets(t) {
   });
   t.check('the pet panel renames it and tells it to stay', true);
   await t.shot(a, 'p11-pet-panel');
-  await a.getByRole('button', { name: 'Follow me' }).click();
-  await a.getByRole('button', { name: 'Back to game' }).click();
+  await a.getByRole('button', { name: 'Đi theo tớ' }).click();
+  await a.getByRole('button', { name: 'Quay lại chơi' }).click();
   await play(a);
 
   // --- a wild unicorn foal, befriended with berries ---
@@ -77,13 +77,18 @@ export default async function pets(t) {
   });
   await a.keyboard.press(`Digit${slot + 1}`);
   await hb(a, (h) => h.summon('unicorn', { x: 0, z: 31.4 }));
-  await prompt(a, 'Feed berries').waitFor({ timeout: 10000 });
+  await prompt(a, 'Cho ăn quả mọng').waitFor({ timeout: 10000 });
   t.check('holding its favorite food, the wild foal can be fed', true);
-  for (let i = 0; i < 3; i++) {
+  // Three feeds befriend it; at low frame rates a press can land between prompts, so keep going.
+  const toast = a.getByText('đã thành thú cưng của bạn');
+  const petCount = () => hb(a, (h) => h.getSession().room.state.pets.size);
+  const before = await petCount(); // the egg may have hatched a unicorn too
+  const befriended = async () => (await petCount()) > before;
+  for (let i = 0; i < 12 && !(await befriended()); i++) {
     await a.keyboard.press('KeyE');
-    await a.waitForTimeout(300);
+    await a.waitForTimeout(400);
   }
-  await a.getByText('is your friend now').waitFor({ timeout: 15000 });
+  await toast.waitFor({ timeout: 15000 });
   await firstPet(a, 'unicorn');
   t.check('fed three times, the unicorn foal becomes your pet', true);
   await a.waitForTimeout(600);

@@ -6,10 +6,10 @@ import styles from './ServerStatus.module.css';
 type Status = 'checking' | 'waking' | 'online' | 'offline';
 
 const LABELS: Record<Status, string> = {
-  checking: 'Connecting to server…',
-  waking: 'Waking up the server… (up to a minute)',
-  online: 'Server online',
-  offline: 'Server unreachable',
+  checking: 'Đang kết nối máy chủ…',
+  waking: 'Đang đánh thức máy chủ… (tối đa một phút)',
+  online: 'Máy chủ sẵn sàng',
+  offline: 'Không kết nối được máy chủ',
 };
 
 /** A free host sleeps when nobody plays; its first answer can take ~50 s (ADR-020). */

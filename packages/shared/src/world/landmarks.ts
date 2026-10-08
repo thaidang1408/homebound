@@ -27,7 +27,7 @@ export interface LandmarkDefinition {
 /** Walk this close to a landmark to discover it. */
 export const DISCOVER_RANGE = 14; // m
 /** The home waystone, in the front yard. Always lit. */
-export const HOME_WAYSTONE = { id: 'waystone-home', name: 'Home', at: { x: 7, z: 7 } } as const;
+export const HOME_WAYSTONE = { id: 'waystone-home', name: 'Nhà', at: { x: 7, z: 7 } } as const;
 /** From the top of the watchtower you can see (and map) this far. */
 export const TOWER_VIEW = 75; // m
 
@@ -42,7 +42,7 @@ export const LANDMARKS: readonly LandmarkDefinition[] = [
   {
     id: 'giant-tree',
     kind: 'giant_tree',
-    name: 'The Giant Tree',
+    name: 'Cây Khổng Lồ',
     icon: '🌳',
     x: 0,
     z: -82,
@@ -60,7 +60,7 @@ export const LANDMARKS: readonly LandmarkDefinition[] = [
   {
     id: 'cave',
     kind: 'cave',
-    name: 'Echo Cave',
+    name: 'Hang Tiếng Vọng',
     icon: '🪨',
     x: 82,
     z: 4,
@@ -79,7 +79,7 @@ export const LANDMARKS: readonly LandmarkDefinition[] = [
   {
     id: 'camp',
     kind: 'camp',
-    name: 'Abandoned Camp',
+    name: 'Trại Bỏ Hoang',
     icon: '⛺',
     x: 14,
     z: 68,
@@ -97,7 +97,7 @@ export const LANDMARKS: readonly LandmarkDefinition[] = [
   {
     id: 'watchtower',
     kind: 'watchtower',
-    name: 'Old Watchtower',
+    name: 'Tháp Canh Cũ',
     icon: '🗼',
     x: -80,
     z: -6,
@@ -121,7 +121,7 @@ export const LANDMARKS: readonly LandmarkDefinition[] = [
   {
     id: 'shrine',
     kind: 'shrine',
-    name: 'Spirit Shrine',
+    name: 'Đền Linh Hồn',
     icon: '✨',
     x: 50,
     z: -66,

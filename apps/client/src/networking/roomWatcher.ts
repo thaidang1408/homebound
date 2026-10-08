@@ -148,9 +148,9 @@ function snapshot(room: Room<HomeState>): Snapshot {
 /** Feedback for things worth telling the player, derived from state changes. */
 function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   if (room.state.phase !== GamePhase.Playing) return;
-  if (next.day > prev.day) showToast(`Day ${next.day} — good morning!`);
+  if (next.day > prev.day) showToast(`Ngày ${next.day} — chào buổi sáng!`);
   if (next.stoveDone > prev.stoveDone) {
-    showToast('The food is ready!');
+    showToast('Đồ ăn chín rồi!');
     playBell();
   }
   if (next.myHealth < prev.myHealth) {
@@ -160,12 +160,12 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   for (const id of next.carcasses) {
     const kind = room.state.creatures.get(id)?.kind ?? '';
     if (prev.carcasses.has(id) || !isCreatureKind(kind)) continue;
-    showToast(`${CREATURES[kind].name} down! Butcher it with E`);
+    showToast(`${CREATURES[kind].name} gục rồi! Bấm E để xẻ thịt`);
   }
   for (const id of next.sprung) {
     if (prev.sprung.has(id)) continue;
     const kind = room.state.traps.get(id)?.kind;
-    showToast(kind === 'snare' ? '🪢 A snare caught something!' : '🔺 A spike trap hit something!');
+    showToast(kind === 'snare' ? '🪢 Bẫy dây bắt được gì đó!' : '🔺 Bẫy chông trúng gì đó!');
   }
   if (next.quest !== prev.quest) {
     // The story moved on: Đốm's line about it, and the chapter's end if it was the last step.
@@ -174,45 +174,47 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
     const line = domLine(room.state.quest.chapter, room.state.quest.step).split('\n')[0];
     if (line) showToast(`🏮 Đốm: ${line}`, STORY_TOAST_MS);
     if (ended) {
-      showToast(`📖 Chapter complete: ${ended.title} — a journal page to read [J]`, STORY_TOAST_MS);
+      showToast(`📖 Xong chương: ${ended.title} — có trang nhật ký mới để đọc [J]`, STORY_TOAST_MS);
       playFanfare();
     } else playBell();
   }
   for (const id of next.discovered) {
     const l = findLandmark(id);
     if (prev.discovered.has(id) || !l) continue;
-    showToast(`🗺️ Discovered: ${l.icon} ${l.name} — its waystone is lit`);
+    showToast(`🗺️ Đã khám phá: ${l.icon} ${l.name} — đá dịch chuyển đã sáng`);
     playFanfare();
   }
   for (const [id, kind] of next.pets) {
     const pet = room.state.pets.get(id);
     if (!pet || !isPetKind(kind) || prev.pets.get(id) === kind) continue;
     const mine = pet.ownerSession === room.sessionId;
-    const owner = room.state.players.get(pet.ownerSession)?.name ?? 'Your partner';
+    const owner = room.state.players.get(pet.ownerSession)?.name ?? 'Bạn đồng hành';
     const what = `${PETS[kind].icon} ${PETS[kind].name.toLowerCase()}`;
     if (prev.pets.has(id)) {
       showToast(
         mine
-          ? `🐣 Your egg hatched: a ${what}! Press E to talk to it`
-          : `🐣 ${owner}’s egg hatched: a ${what}!`,
+          ? `🐣 Trứng của bạn đã nở: ${what}! Bấm E để nói chuyện`
+          : `🐣 Trứng của ${owner} đã nở: ${what}!`,
       );
     } else {
       showToast(
         mine
-          ? `💕 The ${what} is your friend now! Press E to talk to it`
-          : `💕 ${owner} made friends with a ${what}!`,
+          ? `💕 ${what} đã thành thú cưng của bạn! Bấm E để nói chuyện`
+          : `💕 ${owner} đã kết bạn với ${what}!`,
       );
     }
     playFanfare();
   }
   if (next.myBuff && next.myBuff !== prev.myBuff && isBuffId(next.myBuff)) {
     const buff = getBuff(next.myBuff);
-    const what = 'regen' in buff ? 'you heal much faster' : 'animals notice you later';
-    showToast(`${buff.icon} ${buff.name}: ${what} for ${Math.round(buff.durationMs / 60_000)} min`);
+    const what = 'regen' in buff ? 'hồi máu nhanh hơn nhiều' : 'thú khó phát hiện bạn hơn';
+    showToast(
+      `${buff.icon} ${buff.name}: ${what} trong ${Math.round(buff.durationMs / 60_000)} phút`,
+    );
   }
   const ate = next.myHunger - prev.myHunger;
   if (ate > 0) {
-    showToast(`+${ate} hunger`);
+    showToast(`+${ate} no`);
     playEat();
   }
   // Loot and XP from one action go in a single toast ("+1 🪵 Wood · +2 XP").
@@ -224,50 +226,50 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   }
   if ([...next.items].some(([id, qty]) => qty > (prev.items.get(id) ?? 0))) playPickup();
   if (next.phase !== prev.phase) {
-    if (next.phase === 'evening') showToast('The sun is setting — head home before dark.');
+    if (next.phase === 'evening') showToast('Mặt trời sắp lặn — về nhà trước khi trời tối nhé.');
     if (next.phase === 'night') {
-      showToast('Night has fallen — wolves are out. Stay close to home.');
+      showToast('Trời tối rồi — sói đã ra ngoài. Ở gần nhà nhé.');
       playHowl();
     }
   }
   const earned = next.myXp - prev.myXp;
-  if (earned > 0) gains.push(`+${earned} XP`);
+  if (earned > 0) gains.push(`+${earned} KN`);
   if (gains.length > 0) showToast(gains.join(' · '));
   if (next.myLevel > prev.myLevel) {
-    showToast(`⭐ Level ${next.myLevel}!`);
+    showToast(`⭐ Cấp ${next.myLevel}!`);
     playFanfare();
   }
   if (next.day === prev.day) {
     for (const g of room.state.goals) {
       const key = `${g.kind}:${g.target}`;
       if (!next.goalsDone.has(key) || prev.goalsDone.has(key) || !isGoalKind(g.kind)) continue;
-      showToast(`✅ Goal done: ${GOALS[g.kind].label(g.target)} (+${GOAL_XP} XP each)`);
+      showToast(`✅ Xong mục tiêu: ${GOALS[g.kind].label(g.target)} (mỗi người +${GOAL_XP} KN)`);
       playFanfare();
     }
   }
 
   for (const id of next.sleeping.keys()) {
     if (id === room.sessionId || prev.sleeping.has(id)) continue;
-    showToast(`${room.state.players.get(id)?.name ?? 'Your partner'} came home`);
+    showToast(`${room.state.players.get(id)?.name ?? 'Bạn đồng hành'} đã về nhà`);
   }
 
   for (const [id, down] of next.downed) {
     const was = prev.downed.get(id) ?? false;
     if (down === was) continue;
-    const name = room.state.players.get(id)?.name ?? 'Your partner';
+    const name = room.state.players.get(id)?.name ?? 'Bạn đồng hành';
     if (down) playDowned();
     else playRevived();
     if (id === room.sessionId) {
-      showToast(down ? 'You’re down! Hang on…' : 'Back on your feet!');
+      showToast(down ? 'Bạn bị gục! Cố lên…' : 'Bạn đứng dậy rồi!');
     } else {
-      showToast(down ? `${name} is down! Hold E next to them to revive` : `${name} is back up`);
+      showToast(down ? `${name} bị gục! Đứng gần và giữ E để cứu` : `${name} đã đứng dậy`);
     }
   }
 
   for (const [id, sleeping] of next.sleeping) {
     if (id === room.sessionId || !sleeping || prev.sleeping.get(id)) continue;
-    const name = room.state.players.get(id)?.name ?? 'Your partner';
-    showToast(`${name} went to bed`);
+    const name = room.state.players.get(id)?.name ?? 'Bạn đồng hành';
+    showToast(`${name} đã đi ngủ`);
   }
 }
 
@@ -299,7 +301,7 @@ export function watchRoom(room: Room<HomeState>): void {
     playPingAt(p.x, p.z);
   });
   room.onMessage(ServerMessage.Died, () =>
-    showToast('You didn’t make it… and woke up at home. Your items are safe.'),
+    showToast('Bạn ngất đi… và tỉnh dậy ở nhà. Đồ đạc vẫn còn nguyên.'),
   );
   room.onMessage(ServerMessage.DaySummary, (summary: DaySummaryPayload) => updateUi({ summary }));
   room.onMessage(ServerMessage.HitConfirm, (p: HitConfirmPayload) => {

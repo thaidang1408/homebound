@@ -135,16 +135,16 @@ export function MapPanel() {
   return (
     <div className={panel.overlay} onClick={closePanel}>
       <div className={`${panel.panel} ${styles.wide}`} onClick={(e) => e.stopPropagation()}>
-        <h2 className={panel.title}>Map</h2>
+        <h2 className={panel.title}>Bản đồ</h2>
         <p className={panel.subtitle}>
-          Click to mark a spot for both of you (click it again to remove it). [M] to close.
+          Bấm để đánh dấu một chỗ cho cả hai (bấm lại để xóa). [M] để đóng.
         </p>
         <canvas
           ref={canvas}
           className={styles.map}
           width={MAP_PX}
           height={MAP_PX}
-          aria-label="Map of the world"
+          aria-label="Bản đồ thế giới"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * MAP_PX;
@@ -157,11 +157,11 @@ export function MapPanel() {
         />
         <p className={panel.subtitle}>
           {found.length === 0
-            ? 'Nothing discovered yet — the trails lead out through the low passes in the ridge.'
-            : `Discovered ${found.length}/${LANDMARKS.length}: ${found.map((l) => `${l.icon} ${l.name}`).join(' · ')}`}
+            ? 'Chưa khám phá được gì — đường mòn dẫn ra ngoài qua những khe núi thấp.'
+            : `Đã khám phá ${found.length}/${LANDMARKS.length}: ${found.map((l) => `${l.icon} ${l.name}`).join(' · ')}`}
         </p>
         <Button variant="secondary" onClick={closePanel}>
-          Back to game
+          Quay lại chơi
         </Button>
       </div>
     </div>
@@ -179,12 +179,14 @@ export function TravelPanel() {
   return (
     <div className={panel.overlay} onClick={closePanel}>
       <div className={panel.panel} onClick={(e) => e.stopPropagation()}>
-        <h2 className={panel.title}>Waystone</h2>
+        <h2 className={panel.title}>Đá dịch chuyển</h2>
         <p className={panel.subtitle}>
-          Lit waystones are linked. Discover a landmark to light its stone.
+          Các đá dịch chuyển đã sáng được nối với nhau. Tìm ra một địa danh để thắp sáng đá ở đó.
         </p>
         <div className={styles.trips}>
-          {lit.length === 0 && <p className={panel.subtitle}>No other waystone is lit yet.</p>}
+          {lit.length === 0 && (
+            <p className={panel.subtitle}>Chưa có đá dịch chuyển nào khác sáng.</p>
+          )}
           {lit.map((w) => (
             <Button
               key={w.id}
@@ -199,7 +201,7 @@ export function TravelPanel() {
           ))}
         </div>
         <Button variant="ghost" onClick={closePanel}>
-          Stay here
+          Ở lại đây
         </Button>
       </div>
     </div>

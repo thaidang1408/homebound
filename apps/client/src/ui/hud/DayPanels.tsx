@@ -7,7 +7,7 @@ import styles from './DayPanels.module.css';
 export function GoalList({ goals }: { goals: readonly GoalState[] }) {
   if (goals.length === 0) return null;
   return (
-    <ul className={styles.goals} aria-label="Today's goals">
+    <ul className={styles.goals} aria-label="Mục tiêu hôm nay">
       {goals.map((g) => {
         if (!isGoalKind(g.kind)) return null;
         const done = g.progress >= g.target;
@@ -35,15 +35,15 @@ export function DaySummaryCard({ summary }: { summary: DaySummaryPayload }) {
   }, [summary]);
 
   const lines: [string, string, number][] = [
-    ['🐗', 'hunted', summary.hunted],
-    ['🍖', 'meals cooked', summary.meals],
-    ['🪵', 'gathered', summary.gathered],
-    ['🔨', 'crafted', summary.crafted],
-    ['🤝', 'revives', summary.revives],
+    ['🐗', 'con thú đã săn', summary.hunted],
+    ['🍖', 'món đã nấu', summary.meals],
+    ['🪵', 'đồ đã nhặt', summary.gathered],
+    ['🔨', 'đồ đã chế tạo', summary.crafted],
+    ['🤝', 'lần cứu bạn', summary.revives],
   ];
   return (
     <div className={styles.summary} role="status">
-      <p className={styles.summaryTitle}>Day {summary.day} survived</p>
+      <p className={styles.summaryTitle}>Đã vượt qua ngày {summary.day}</p>
       <ul className={styles.stats}>
         {lines
           .filter(([, , n]) => n > 0)
@@ -54,8 +54,8 @@ export function DaySummaryCard({ summary }: { summary: DaySummaryPayload }) {
           ))}
       </ul>
       <p className={styles.summaryGoals}>
-        Goals {summary.goalsDone}/{summary.goalsTotal}
-        {summary.goalsDone === summary.goalsTotal ? ' — great teamwork!' : ''}
+        Mục tiêu {summary.goalsDone}/{summary.goalsTotal}
+        {summary.goalsDone === summary.goalsTotal ? ' — đồng đội tuyệt vời!' : ''}
       </p>
     </div>
   );

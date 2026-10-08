@@ -388,3 +388,14 @@ cloak and raft.
 
 **Not done:** dropping from the chest or straight from the hotbar, a durability system, gear stats
 beyond armor/stealth/slots.
+
+## ADR-028: The game speaks Vietnamese (2026-10-08)
+
+**Decision:** every player-facing string — UI, prompts, toasts, items, creatures, pets, places,
+the story — is Vietnamese, written in place (no i18n layer, no language switch). The family plays
+in Vietnamese; one language keeps the code simple. Code, comments, logs and docs stay English.
+The page is `lang="vi"`. A shared glossary keeps terms consistent (Ba lô, Rương chung, Bàn chế
+tạo, Đèn lồng lớn, …).
+
+**Revisit when** someone who doesn't read Vietnamese plays: then move strings into a `strings`
+module per language.

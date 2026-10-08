@@ -6,11 +6,11 @@ const BUDGET = { calls: 250, triangles: 250_000 };
 
 export default async function perf(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('An');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   await play(a);
 
   const measure = async (label) => {

@@ -13,10 +13,10 @@ export interface GoalDefinition {
 }
 
 export const GOALS = {
-  hunt: { icon: '🐗', label: (n) => `Hunt ${n} ${n === 1 ? 'animal' : 'animals'}`, target: [1, 3] },
-  cook: { icon: '🍖', label: (n) => `Cook ${n} ${n === 1 ? 'meal' : 'meals'}`, target: [2, 4] },
-  gather: { icon: '🪵', label: (n) => `Gather ${n} wood or stone`, target: [8, 16] },
-  craft: { icon: '🔨', label: (n) => `Craft ${n} ${n === 1 ? 'thing' : 'things'}`, target: [1, 2] },
+  hunt: { icon: '🐗', label: (n) => `Săn ${n} con thú`, target: [1, 3] },
+  cook: { icon: '🍖', label: (n) => `Nấu ${n} món`, target: [2, 4] },
+  gather: { icon: '🪵', label: (n) => `Nhặt ${n} gỗ hoặc đá`, target: [8, 16] },
+  craft: { icon: '🔨', label: (n) => `Chế tạo ${n} món đồ`, target: [1, 2] },
 } as const satisfies Record<string, GoalDefinition>;
 
 export type GoalKind = keyof typeof GOALS;

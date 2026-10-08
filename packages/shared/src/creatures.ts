@@ -119,7 +119,7 @@ const WILD_PET = {
 
 export const CREATURES = {
   boar: {
-    name: 'Boar',
+    name: 'Heo rừng',
     temperament: 'hostile',
     snareable: false,
     maxHealth: 40,
@@ -149,7 +149,7 @@ export const CREATURES = {
   },
   /** Night hunter: comes out of the north woods in a pair; faster than walking, slower than sprinting. */
   wolf: {
-    name: 'Wolf',
+    name: 'Sói',
     temperament: 'hostile',
     snareable: false,
     maxHealth: 30,
@@ -180,7 +180,7 @@ export const CREATURES = {
   },
   /** Grazes the east meadow; bolts faster than you can sprint. Sneak up or use the bow. */
   deer: {
-    name: 'Deer',
+    name: 'Nai',
     temperament: 'skittish',
     snareable: false,
     maxHealth: 35,
@@ -215,7 +215,7 @@ export const CREATURES = {
   },
   /** Small and quick among the west grove's bushes; the snare's favorite. */
   rabbit: {
-    name: 'Rabbit',
+    name: 'Thỏ',
     temperament: 'skittish',
     snareable: true,
     maxHealth: 8,
@@ -251,7 +251,7 @@ export const CREATURES = {
    * stamina is your escape.
    */
   bear: {
-    name: 'Bear',
+    name: 'Gấu',
     temperament: 'hostile',
     snareable: false,
     maxHealth: 160,

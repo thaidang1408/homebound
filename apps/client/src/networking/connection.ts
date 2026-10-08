@@ -53,20 +53,20 @@ function friendlyError(error: unknown): string {
   const code = errorCode(error);
   const message = errorMessage(error);
   if (message.includes(JoinError.HomeNotFound)) {
-    return 'No home with that code. Please check the code.';
+    return 'Không có nhà nào có mã này. Bạn xem lại mã nhé.';
   }
   if (message.includes(JoinError.AlreadyInHome)) {
-    return "You're already in this home in another tab.";
+    return 'Bạn đang ở trong nhà này ở một tab khác rồi.';
   }
   if (code === ErrorCode.MATCHMAKE_INVALID_ROOM_ID) {
     return /locked/.test(message)
-      ? 'This home already has two players.'
-      : 'No home with that code. Please check the code.';
+      ? 'Nhà này đã đủ hai người chơi.'
+      : 'Không có nhà nào có mã này. Bạn xem lại mã nhé.';
   }
   if (code === null || code === undefined) {
-    return "Can't reach the game server. Please try again in a moment.";
+    return 'Chưa kết nối được máy chủ. Bạn thử lại sau một chút nhé.';
   }
-  return 'Something went wrong. Please try again.';
+  return 'Có trục trặc rồi. Bạn thử lại nhé.';
 }
 
 /** Join resolves before the first state patch; screens need `room.state.players` to exist. */
@@ -103,7 +103,7 @@ function bindRoom(room: Room<HomeState>): void {
       error:
         code === CloseCode.CONSENTED
           ? null
-          : 'Connection lost. Your home is saved — rejoin with its code.',
+          : 'Mất kết nối. Nhà của bạn đã được lưu — vào lại bằng mã nhà nhé.',
     });
   });
 }
@@ -121,7 +121,7 @@ async function run(busy: string, join: () => Promise<Room<HomeState>>): Promise<
 const joinOptions = (name: string) => ({ name, playerId: getPlayerId() });
 
 export function createHome(name: string): Promise<void> {
-  return run('Building your home…', () => client.create<HomeState>(ROOM_NAME, joinOptions(name)));
+  return run('Đang xây nhà của bạn…', () => client.create<HomeState>(ROOM_NAME, joinOptions(name)));
 }
 
 /**
@@ -163,19 +163,19 @@ async function enterHome(
 
 /** Join a partner's home by code (usually running). */
 export function joinHome(code: string, name: string): Promise<void> {
-  return run('Opening the door…', () => enterHome(code, name, 'join'));
+  return run('Đang mở cửa…', () => enterHome(code, name, 'join'));
 }
 
 /** Go back to your own last home (usually closed and saved). */
 export function continueHome(code: string, name: string): Promise<void> {
-  return run('Opening the door…', () => enterHome(code, name, 'reopen'));
+  return run('Đang mở cửa…', () => enterHome(code, name, 'reopen'));
 }
 
 /** After a page reload, try to take back the seat held by the server's grace period. */
 export async function resumeSession(): Promise<void> {
   const token = readToken();
   if (!token) return;
-  updateSession({ busy: 'Reconnecting…' });
+  updateSession({ busy: 'Đang kết nối lại…' });
   try {
     bindRoom(await firstState(await client.reconnect<HomeState>(token)));
   } catch {

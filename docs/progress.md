@@ -680,3 +680,19 @@ descriptions, small on-screen control hints, more stove dishes and cooking sever
 **Not done**
 
 - Dropping from the chest or straight from the hotbar, durability, more gear stats.
+
+## After Phase 14 — The game in Vietnamese, a tidier pause menu
+
+**Status:** Done (2026-10-08), requested by the user between phases.
+
+- Every player-facing string is Vietnamese (ADR-028): screens, HUD, prompts, toasts, items and
+  their descriptions, creatures, pets, places, goals, buffs and the whole story. Code, comments and
+  docs stay English. One glossary keeps the terms consistent.
+- The pause menu no longer pushes the page down: keys and settings sit side by side, the menu
+  scrolls inside on short screens, and the page itself never scrolls. Scrollbars are thin and
+  amber; the sliders have a filled track and a round knob.
+- Bug found: a pet you just befriended was announced as your partner's for one tick (the owner's
+  session was only set on the next tick) — the server sets it at once now (test).
+- Tests: `npm test` 215 passing + 1 skipped; every e2e scenario passes (run in batches; a full run
+  in one go times out on this machine's software renderer). The e2e scripts now match the
+  Vietnamese text; `gear` checks that the pause menu fits without scrolling the page.

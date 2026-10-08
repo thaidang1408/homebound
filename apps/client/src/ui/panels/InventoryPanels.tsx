@@ -134,7 +134,7 @@ function Shell({
         <p className={panel.subtitle}>{hint}</p>
         {children}
         <Button variant="secondary" onClick={closePanel}>
-          Back to game
+          Quay lại chơi
         </Button>
       </div>
     </div>
@@ -155,7 +155,7 @@ function WornGrid({
 }) {
   return (
     <section className={styles.section}>
-      <h3 className={styles.heading}>Wearing</h3>
+      <h3 className={styles.heading}>Đang mặc</h3>
       <div className={styles.worn}>
         {EQUIP_SLOTS.map((slot, i) => (
           <div key={slot} className={styles.wornSlot}>
@@ -213,22 +213,22 @@ export function InventoryPanel() {
 
   return (
     <Shell
-      title="Backpack"
-      hint="Double-click to eat or wear. Drag an item out of this window to drop it. [Tab] to close."
+      title="Ba lô"
+      hint="Nhấp đúp để ăn hoặc mặc. Kéo đồ ra ngoài khung này để vứt. [Tab] để đóng."
       onDropOutside={dropOut}
     >
       <ItemDetails itemId={itemId} qty={stack?.qty ?? 0}>
         {shown?.container === 'equip' ? (
           <Button variant="secondary" onClick={() => send(ClientMessage.Unequip, shown.index)}>
-            Take off
+            Tháo ra
           </Button>
         ) : (
           shown && (
             <>
               {edible && (
-                <Button onClick={() => send(ClientMessage.UseItem, shown.index)}>Eat</Button>
+                <Button onClick={() => send(ClientMessage.UseItem, shown.index)}>Ăn</Button>
               )}
-              {gear && <Button onClick={() => send(ClientMessage.Equip, shown.index)}>Wear</Button>}
+              {gear && <Button onClick={() => send(ClientMessage.Equip, shown.index)}>Mặc</Button>}
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -236,7 +236,7 @@ export function InventoryPanel() {
                   setPicked(null);
                 }}
               >
-                Drop
+                Vứt
               </Button>
             </>
           )
@@ -250,7 +250,7 @@ export function InventoryPanel() {
           onHover={(index) => setHovered({ container: 'equip', index })}
         />
         <Grid
-          title={extra > 0 ? `Your items (+${extra} from your bag)` : 'Your items'}
+          title={extra > 0 ? `Đồ của bạn (+${extra} nhờ túi)` : 'Đồ của bạn'}
           container="player"
           stacks={[...me.inventory]}
           selected={picked?.container === 'player' ? picked.index : undefined}
@@ -284,18 +284,18 @@ export function StoragePanel() {
 
   return (
     <Shell
-      title="Shared storage"
-      hint="Click a stack to move it across, or drag it where you want. Both of you can use this chest."
+      title="Rương chung"
+      hint="Bấm vào đồ để chuyển sang bên kia, hoặc kéo tới chỗ bạn muốn. Cả hai đều dùng được rương này."
     >
       <Grid
-        title="Chest"
+        title="Rương"
         container="chest"
         stacks={[...room.state.chest]}
         onSlot={move('chest')}
         onHover={(index) => setHovered({ container: 'chest', index })}
       />
       <Grid
-        title="Your items"
+        title="Đồ của bạn"
         container="player"
         stacks={[...me.inventory]}
         onSlot={move('player')}
@@ -310,14 +310,14 @@ export function StoragePanel() {
 /** Workbench: turn wood and stone into weapons and arrows (from your backpack). */
 const STATIONS: Record<CraftStation, { title: string; hint: string; verb: string }> = {
   workbench: {
-    title: 'Workbench',
-    hint: 'Crafting uses materials from your backpack. Wear what you make from the backpack [Tab].',
-    verb: 'Craft',
+    title: 'Bàn chế tạo',
+    hint: 'Chế tạo dùng nguyên liệu trong ba lô. Mở ba lô [Tab] để mặc đồ vừa làm.',
+    verb: 'Chế tạo',
   },
   stove: {
-    title: 'Stove — recipes',
-    hint: 'Dishes with a bonus. Raw meat (or the mushroom in your hand) cooks with [E], three at once.',
-    verb: 'Cook',
+    title: 'Bếp — công thức',
+    hint: 'Món ăn có thêm sức mạnh. Thịt sống (hoặc nấm đang cầm) nấu bằng [E], ba miếng một lần.',
+    verb: 'Nấu',
   },
 };
 

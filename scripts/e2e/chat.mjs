@@ -16,7 +16,7 @@ export default async function chat(t) {
 
   const before = await position(a);
   await a.keyboard.press('Enter');
-  const input = a.getByLabel('Chat message');
+  const input = a.getByLabel('Tin nhắn');
   await input.waitFor();
   await input.pressSequentially('wwww mmm đi săn thôi');
   await a.keyboard.press('Enter');
@@ -26,7 +26,7 @@ export default async function chat(t) {
   t.check('sender sees their own line', true);
   const after = await position(a);
   t.check('typing W does not walk', Math.hypot(after.x - before.x, after.z - before.z) < 0.05);
-  t.check('typing M does not mute', !(await a.getByText('Sound off').isVisible()));
+  t.check('typing M does not mute', !(await a.getByText('Đã tắt tiếng').isVisible()));
   t.check('the box closes after sending', !(await input.isVisible()));
   await t.shot(b, 'chat-partner');
   await a.context().close();

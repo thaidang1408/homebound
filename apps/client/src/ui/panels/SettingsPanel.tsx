@@ -2,15 +2,23 @@ import { applyVolume } from '../../audio/engine';
 import { SENSITIVITY_RANGE, updateSettings, useSettings } from '../../state/settings';
 import styles from './SettingsPanel.module.css';
 
+/** How much of a slider's track is filled (0–1), for the CSS. */
+const fill = (share: number) =>
+  ({ '--fill': `${Math.round(share * 100)}%` }) as React.CSSProperties;
+
 /** Mouse sensitivity, volume and mute: shown in the pause menu, remembered in this browser. */
 export function SettingsPanel() {
   const { sensitivity, volume, muted, hints } = useSettings();
   return (
     <div className={styles.settings} onClick={(e) => e.stopPropagation()}>
       <label className={styles.row}>
-        <span>Mouse sensitivity</span>
+        <span>Độ nhạy chuột</span>
         <input
           type="range"
+          className={styles.slider}
+          style={fill(
+            (sensitivity - SENSITIVITY_RANGE.min) / (SENSITIVITY_RANGE.max - SENSITIVITY_RANGE.min),
+          )}
           min={SENSITIVITY_RANGE.min}
           max={SENSITIVITY_RANGE.max}
           step={0.05}
@@ -20,9 +28,11 @@ export function SettingsPanel() {
         <span className={styles.value}>{sensitivity.toFixed(2)}×</span>
       </label>
       <label className={styles.row}>
-        <span>Volume</span>
+        <span>Âm lượng</span>
         <input
           type="range"
+          className={styles.slider}
+          style={fill(volume)}
           min={0}
           max={1}
           step={0.05}
@@ -43,7 +53,7 @@ export function SettingsPanel() {
             applyVolume();
           }}
         />
-        Mute (N)
+        Tắt tiếng (N)
       </label>
       <label className={styles.check}>
         <input
@@ -51,7 +61,7 @@ export function SettingsPanel() {
           checked={hints}
           onChange={(e) => updateSettings({ hints: e.target.checked })}
         />
-        Key hints on screen (H)
+        Hiện gợi ý phím (H)
       </label>
     </div>
   );

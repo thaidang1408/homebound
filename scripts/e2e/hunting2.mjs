@@ -22,15 +22,15 @@ const state = (page, fn, arg) =>
 
 export default async function hunting2(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('An');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   await play(a);
 
   await a.keyboard.press('KeyC');
-  await a.getByText('Sneaking').waitFor();
+  await a.getByText('Đang rón rén').waitFor();
   t.check('C toggles sneaking (HUD shows it)', true);
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();
@@ -54,10 +54,10 @@ export default async function hunting2(t) {
 
   // Bring a rabbit right onto it.
   await hb(a, (h, at) => h.summon('rabbit', at), trap);
-  await a.getByText('A snare caught something!').waitFor({ timeout: 15000 });
+  await a.getByText('Bẫy dây bắt được gì đó!').waitFor({ timeout: 15000 });
   t.check('the snare catches a rabbit', true);
   await t.shot(a, 'p10-snare');
-  await prompt(a, 'Butcher rabbit').waitFor({ timeout: 15000 });
+  await prompt(a, 'Xẻ thịt thỏ').waitFor({ timeout: 15000 });
   await a.keyboard.press('KeyE');
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();

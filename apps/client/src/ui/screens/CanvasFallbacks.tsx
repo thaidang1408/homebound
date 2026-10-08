@@ -5,7 +5,7 @@ import styles from './CanvasFallbacks.module.css';
 export function WorldLoading() {
   return (
     <div className={styles.backdrop} aria-hidden>
-      <p className={styles.loading}>Loading the world…</p>
+      <p className={styles.loading}>Đang tải thế giới…</p>
     </div>
   );
 }
@@ -23,10 +23,10 @@ export class CanvasBoundary extends Component<{ children: ReactNode }, { failed:
     return (
       <div className={styles.backdrop} role="alert">
         <div className={styles.error}>
-          <p className={styles.title}>Your browser couldn’t start the 3D world.</p>
+          <p className={styles.title}>Trình duyệt của bạn chưa mở được thế giới 3D.</p>
           <p>
-            Try the latest Chrome, Edge or Firefox, and make sure hardware acceleration is turned on
-            in the browser settings.
+            Hãy thử Chrome, Edge hoặc Firefox mới nhất, và bật tăng tốc phần cứng trong cài đặt
+            trình duyệt.
           </p>
         </div>
       </div>

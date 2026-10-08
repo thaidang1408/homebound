@@ -1,7 +1,14 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
-import { ClientMessage, GamePhase, ROOM_NAME, type HomeState, type Point } from '@homebound/shared';
+import {
+  ClientMessage,
+  GamePhase,
+  PETS,
+  ROOM_NAME,
+  type HomeState,
+  type Point,
+} from '@homebound/shared';
 import type { Room } from '@colyseus/sdk';
 import { createHarness, newPlayerId, self, sleep, waitFor, walk } from '../test/harness.js';
 
@@ -143,6 +150,6 @@ describe('wild pets and orders', () => {
     partner.send(ClientMessage.PetCommand, { petId, command: 'pat' });
     await waitFor(() => pet()?.actionSeq !== seq);
     expect(pet()?.order).toBe('follow');
-    expect(pet()?.name).toBe('Unicorn foal');
+    expect(pet()?.name).toBe(PETS.unicorn.name);
   });
 });

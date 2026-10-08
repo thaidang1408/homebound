@@ -17,10 +17,10 @@ const HALF_FOV = Math.PI / 2;
 const HOME = { x: 0, z: 0 };
 
 const CARDINALS: readonly [string, number][] = [
-  ['N', 0],
-  ['E', -Math.PI / 2],
-  ['S', Math.PI],
-  ['W', Math.PI / 2],
+  ['B', 0],
+  ['Đ', -Math.PI / 2],
+  ['N', Math.PI],
+  ['T', Math.PI / 2],
 ];
 
 /** Bearing in "yaw" terms (yaw 0 looks toward −Z = north). */
@@ -121,22 +121,27 @@ export function Compass({ room }: { room: Room<HomeState> }) {
           {label}
         </span>
       ))}
-      <span data-mark="home" className={styles.marker} title="Home">
+      <span data-mark="home" className={styles.marker} title="Nhà">
         🏠
       </span>
-      <span data-mark="ping" className={styles.marker} title="Marked spot" hidden>
+      <span data-mark="ping" className={styles.marker} title="Chỗ đã đánh dấu" hidden>
         📍
       </span>
-      <span data-mark="quest" className={styles.marker} title="Where the story goes next" hidden>
+      <span data-mark="quest" className={styles.marker} title="Câu chuyện đi tiếp ở đây" hidden>
         🏮
       </span>
-      <span data-mark="unknown" className={styles.marker} title="Something to discover" hidden>
+      <span data-mark="unknown" className={styles.marker} title="Có gì đó để khám phá" hidden>
         ❔
       </span>
-      <span data-mark="scout" className={styles.marker} title="Your ghost found an animal" hidden>
+      <span
+        data-mark="scout"
+        className={styles.marker}
+        title="Ma bé đã tìm thấy một con thú"
+        hidden
+      >
         🐾
       </span>
-      <span data-mark="partner" className={styles.marker} title="Partner">
+      <span data-mark="partner" className={styles.marker} title="Bạn cùng chơi">
         ●
       </span>
     </div>

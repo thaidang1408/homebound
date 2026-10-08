@@ -13,18 +13,22 @@ function PlayerCard({ player, isYou }: { player: PlayerState | undefined; isYou:
   if (!player) {
     return (
       <li className={`${styles.card} ${styles.empty}`}>
-        <span className={styles.name}>Waiting for partner…</span>
-        <span className={styles.status}>Share the room code</span>
+        <span className={styles.name}>Đang chờ bạn cùng chơi…</span>
+        <span className={styles.status}>Gửi mã nhà cho bạn ấy</span>
       </li>
     );
   }
-  const status = !player.connected ? 'Reconnecting…' : player.ready ? 'Ready' : 'Not ready';
+  const status = !player.connected
+    ? 'Đang kết nối lại…'
+    : player.ready
+      ? 'Sẵn sàng'
+      : 'Chưa sẵn sàng';
   return (
     <li className={styles.card} data-ready={player.ready}>
       <span className={styles.swatch} style={{ background: playerColor(player.slot) }} />
       <span className={styles.name}>
         {player.name}
-        {isYou && <span className={styles.you}> (you)</span>}
+        {isYou && <span className={styles.you}> (bạn)</span>}
       </span>
       <span className={styles.status}>{status}</span>
     </li>
@@ -44,10 +48,10 @@ export function LobbyScreen() {
   const canStart =
     players.every(([, p]) => p.connected) && (alone || players.every(([, p]) => p.ready));
   const hint = alone
-    ? 'Start now — your partner can join any time with the code.'
+    ? 'Bắt đầu ngay — bạn cùng chơi có thể vào bất cứ lúc nào bằng mã nhà.'
     : canStart
-      ? 'Both ready — start when you are!'
-      : 'Both players must be ready.';
+      ? 'Cả hai đã sẵn sàng — bắt đầu thôi!'
+      : 'Cả hai người phải sẵn sàng.';
 
   const copyCode = async () => {
     try {
@@ -63,11 +67,11 @@ export function LobbyScreen() {
     <div className={panel.overlay}>
       <main className={panel.panel}>
         <div className={styles.codeBlock}>
-          <span className={styles.codeLabel}>Room code</span>
+          <span className={styles.codeLabel}>Mã nhà</span>
           <button type="button" className={styles.code} onClick={() => void copyCode()}>
             {room.roomId}
           </button>
-          <span className={styles.codeHint}>{copied ? 'Copied!' : 'Click to copy'}</span>
+          <span className={styles.codeHint}>{copied ? 'Đã chép!' : 'Bấm để chép mã'}</span>
         </div>
 
         <ul className={styles.players}>
@@ -86,7 +90,7 @@ export function LobbyScreen() {
               className={styles.grow}
               onClick={() => room.send(ClientMessage.Ready, { ready: !me?.ready })}
             >
-              {me?.ready ? 'Not ready' : "I'm ready"}
+              {me?.ready ? 'Chưa sẵn sàng' : 'Tớ sẵn sàng'}
             </Button>
           )}
           <Button
@@ -94,13 +98,13 @@ export function LobbyScreen() {
             disabled={!canStart}
             onClick={() => room.send(ClientMessage.Start)}
           >
-            Start game
+            Bắt đầu chơi
           </Button>
         </div>
 
         <p className={panel.muted}>{hint}</p>
         <Button variant="ghost" onClick={() => void leaveRoom()}>
-          Leave room
+          Rời nhà
         </Button>
       </main>
     </div>

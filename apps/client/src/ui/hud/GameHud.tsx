@@ -61,41 +61,41 @@ function usePointerLocked(): boolean {
 
 /** Always on screen while playing (small, bottom right): the keys you need most. */
 const HINTS: readonly [string, string][] = [
-  ['WASD', 'Move'],
-  ['Shift', 'Sprint'],
-  ['Space', 'Jump'],
-  ['Q', 'Roll'],
-  ['C', 'Sneak'],
-  ['E', 'Use'],
-  ['Click', 'Attack / eat'],
-  ['1–5', 'Hotbar'],
-  ['Tab', 'Backpack'],
-  ['M', 'Map'],
-  ['J', 'Journal'],
-  ['Enter', 'Chat'],
-  ['H', 'Hide hints'],
+  ['WASD', 'Đi'],
+  ['Shift', 'Chạy nhanh'],
+  ['Space', 'Nhảy'],
+  ['Q', 'Lăn né'],
+  ['C', 'Rón rén'],
+  ['E', 'Dùng'],
+  ['Chuột trái', 'Đánh / ăn'],
+  ['1–5', 'Thanh đồ'],
+  ['Tab', 'Ba lô'],
+  ['M', 'Bản đồ'],
+  ['J', 'Nhật ký'],
+  ['Enter', 'Trò chuyện'],
+  ['H', 'Ẩn gợi ý'],
 ];
 
 const CONTROLS: readonly [string, string][] = [
-  ['WASD', 'Move'],
-  ['Mouse', 'Look'],
-  ['Shift', 'Sprint (uses stamina)'],
-  ['Space', 'Jump'],
-  ['Q', 'Dodge roll'],
-  ['C', 'Sneak (animals notice you later)'],
-  ['E', 'Interact'],
-  ['Click', 'Use held item (attack / shoot / eat)'],
-  ['1–5', 'Hotbar'],
-  ['Tab', 'Backpack'],
-  ['F', 'Mark a spot for your partner'],
-  ['R', 'Stove recipes (at the stove)'],
-  ['G', 'Wave'],
-  ['Enter', 'Chat'],
-  ['M', 'Map (click it to mark a spot)'],
-  ['J', 'Grandpa’s journal (the story)'],
-  ['N', 'Mute'],
-  ['H', 'Show / hide the key hints'],
-  ['Esc', 'Pause'],
+  ['WASD', 'Đi'],
+  ['Chuột', 'Nhìn'],
+  ['Shift', 'Chạy nhanh (tốn thể lực)'],
+  ['Space', 'Nhảy'],
+  ['Q', 'Lăn né'],
+  ['C', 'Rón rén (thú khó thấy bạn hơn)'],
+  ['E', 'Dùng / nói chuyện'],
+  ['Chuột trái', 'Dùng đồ đang cầm (đánh / bắn / ăn)'],
+  ['1–5', 'Thanh đồ'],
+  ['Tab', 'Ba lô'],
+  ['F', 'Đánh dấu một chỗ cho bạn cùng chơi'],
+  ['R', 'Công thức bếp (khi đứng ở bếp)'],
+  ['G', 'Vẫy tay'],
+  ['Enter', 'Trò chuyện'],
+  ['M', 'Bản đồ (bấm lên để đánh dấu)'],
+  ['J', 'Nhật ký của ông (câu chuyện)'],
+  ['N', 'Tắt tiếng'],
+  ['H', 'Hiện / ẩn gợi ý phím'],
+  ['Esc', 'Tạm dừng'],
 ];
 
 export function GameHud() {
@@ -121,14 +121,14 @@ export function GameHud() {
   const me = room.state.players.get(room.sessionId);
   const partner = [...room.state.players.entries()].find(([id]) => id !== room.sessionId)?.[1];
   const partnerStatus = !partner
-    ? `Home alone — share code ${room.roomId}`
+    ? `Ở nhà một mình — gửi mã nhà ${room.roomId}`
     : !partner.connected
-      ? `${partner.name} disconnected — waiting…`
+      ? `${partner.name} mất kết nối — đang chờ…`
       : partner.downed
-        ? `${partner.name} is DOWN — go help!`
+        ? `${partner.name} BỊ GỤC — mau đến cứu!`
         : partner.sleeping
-          ? `${partner.name} is in bed`
-          : `${partner.name} is here`;
+          ? `${partner.name} đang ngủ`
+          : `${partner.name} đang ở đây`;
   const prompt = focusId && locked ? promptFor(focusId, room.state, room.sessionId) : null;
   const armor = me ? armorOf(me.equipment) : 0;
   const hunger = me?.hunger ?? HUNGER_MAX;
@@ -147,7 +147,7 @@ export function GameHud() {
     <div className={styles.hud}>
       <div className={styles.topLeft}>
         <div className={styles.meter} data-warn={health < WOUNDED_AT}>
-          <span className={styles.meterLabel}>❤️ Health</span>
+          <span className={styles.meterLabel}>❤️ Máu</span>
           <span className={styles.meterTrack}>
             <span
               className={styles.meterFill}
@@ -158,7 +158,7 @@ export function GameHud() {
           <span className={styles.meterValue}>{health}</span>
         </div>
         <div className={styles.meter} data-warn={hunger < HUNGRY_AT}>
-          <span className={styles.meterLabel}>🍖 Hunger</span>
+          <span className={styles.meterLabel}>🍖 No</span>
           <span className={styles.meterTrack}>
             <span
               className={styles.meterFill}
@@ -168,8 +168,8 @@ export function GameHud() {
           <span className={styles.meterValue}>{hunger}</span>
         </div>
         <StaminaMeter room={room} />
-        <div className={styles.meter} title={`${progress.intoLevel} / ${progress.needed} XP`}>
-          <span className={styles.meterLabel}>⭐ Level {progress.level}</span>
+        <div className={styles.meter} title={`${progress.intoLevel} / ${progress.needed} KN`}>
+          <span className={styles.meterLabel}>⭐ Cấp {progress.level}</span>
           <span className={styles.meterTrack}>
             <span className={styles.xpFill} style={{ width: `${xpShare * 100}%` }} />
           </span>
@@ -181,31 +181,31 @@ export function GameHud() {
         >
           {partnerStatus}
         </span>
-        {crouching && <span className={styles.pill}>🤫 Sneaking (C)</span>}
+        {crouching && <span className={styles.pill}>🤫 Đang rón rén (C)</span>}
         {me && isBuffId(me.buff) && (
           <span className={styles.pill} data-tone="ok">
             {getBuff(me.buff).icon} {getBuff(me.buff).name} {Math.floor(me.buffLeft / 60)}:
             {String(me.buffLeft % 60).padStart(2, '0')}
           </span>
         )}
-        {armor > 0 && <span className={styles.pill}>🛡️ Armor −{Math.round(armor * 100)}%</span>}
+        {armor > 0 && <span className={styles.pill}>🛡️ Giáp −{Math.round(armor * 100)}%</span>}
       </div>
 
       <div className={styles.topRight}>
         <span className={styles.day} data-phase={dayPhase(room.state.timeOfDay)}>
-          {PHASE_ICON[dayPhase(room.state.timeOfDay)]} Day {room.state.day}
+          {PHASE_ICON[dayPhase(room.state.timeOfDay)]} Ngày {room.state.day}
           <span className={styles.clock}>{clockLabel(room.state.timeOfDay)}</span>
         </span>
         <QuestTracker state={room.state} me={me} />
         <GoalList goals={[...room.state.goals]} />
-        <span className={styles.pill}>Room {room.roomId}</span>
+        <span className={styles.pill}>Mã nhà {room.roomId}</span>
       </div>
 
       <Compass room={room} />
 
       {connection === 'reconnecting' && (
         <div className={styles.banner} role="alert">
-          Connection lost. Trying to reconnect…
+          Mất kết nối. Đang kết nối lại…
         </div>
       )}
 
@@ -235,9 +235,9 @@ export function GameHud() {
       )}
       {showPrey && (
         <div className={styles.prompt} data-actionable>
-          <kbd className={styles.key}>Click</kbd>
-          {heldWeaponId(room) === 'fists' ? 'Punch' : 'Stab'} {preyName.toLowerCase()}
-          <span className={styles.preyTrack} aria-label="Creature health">
+          <kbd className={styles.key}>Chuột trái</kbd>
+          {heldWeaponId(room) === 'fists' ? 'Đấm' : 'Đâm'} {preyName.toLowerCase()}
+          <span className={styles.preyTrack} aria-label="Máu của thú">
             <span className={styles.preyFill} style={{ width: `${preyHealth * 100}%` }} />
           </span>
         </div>
@@ -273,13 +273,13 @@ export function GameHud() {
 
       {me?.downed && (
         <div className={styles.downed} role="alert">
-          <p className={styles.sleepText}>You’re down!</p>
+          <p className={styles.sleepText}>Bạn bị gục rồi!</p>
           <p className={styles.sleepHint}>
             {partner?.connected
               ? me.revive > 0
-                ? `${partner.name} is reviving you…`
-                : `Hang on — ${partner.name} can revive you`
-              : 'Hang on…'}
+                ? `${partner.name} đang cứu bạn…`
+                : `Cố lên — ${partner.name} có thể cứu bạn`
+              : 'Cố lên…'}
           </p>
           <span className={styles.bleedTrack}>
             <span
@@ -298,12 +298,10 @@ export function GameHud() {
           style={{ transitionDuration: `${bothAsleep ? NEW_DAY_DELAY_MS : 400}ms` }}
         >
           <p className={styles.sleepText}>
-            {bothAsleep
-              ? 'Good night…'
-              : `Sleeping… waiting for ${partner?.name ?? 'your partner'}`}
+            {bothAsleep ? 'Chúc ngủ ngon…' : `Đang ngủ… chờ ${partner?.name ?? 'bạn cùng chơi'}`}
           </p>
           <p className={styles.sleepHint}>
-            <kbd className={styles.key}>E</kbd> Get up
+            <kbd className={styles.key}>E</kbd> Dậy
           </p>
         </div>
       )}
@@ -311,7 +309,7 @@ export function GameHud() {
       <ChatBox />
 
       {hints && locked && openPanel === 'none' && (
-        <ul className={styles.hints} aria-label="Keys">
+        <ul className={styles.hints} aria-label="Phím">
           {HINTS.map(([key, action]) => (
             <li key={key}>
               <kbd className={styles.hintKey}>{key}</kbd> {action}
@@ -332,17 +330,20 @@ export function GameHud() {
 
       {!locked && openPanel === 'none' && (
         <div className={`${panel.overlay} ${styles.interactive}`} onClick={resumePlay}>
-          <div className={panel.panel}>
-            <h2 className={panel.title}>Paused</h2>
-            <p className={panel.subtitle}>Click the world to play.</p>
-            <ul className={styles.controls}>
-              {CONTROLS.map(([key, action]) => (
-                <li key={key}>
-                  <kbd className={styles.key}>{key}</kbd> {action}
-                </li>
-              ))}
-            </ul>
-            <SettingsPanel />
+          <div className={`${panel.panel} ${styles.pause}`}>
+            <h2 className={panel.title}>Tạm dừng</h2>
+            <p className={panel.subtitle}>Bấm vào thế giới để chơi.</p>
+            <div className={styles.pauseBody}>
+              <ul className={styles.controls}>
+                {CONTROLS.map(([key, action]) => (
+                  <li key={key}>
+                    <kbd className={styles.key}>{key}</kbd>
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ul>
+              <SettingsPanel />
+            </div>
             <Button
               variant="ghost"
               onClick={(e) => {
@@ -350,7 +351,7 @@ export function GameHud() {
                 void leaveRoom();
               }}
             >
-              Leave room
+              Rời nhà
             </Button>
           </div>
         </div>

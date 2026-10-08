@@ -172,7 +172,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
           z: p.z - Math.cos(p.yaw) * TRAP_PLACE_DISTANCE,
         };
         if (Math.hypot(at.x, at.z) < ZONES.yard.radius) {
-          showToast('Set traps outside the yard — animals never come this close to home.');
+          showToast('Đặt bẫy bên ngoài sân nhé — thú không bao giờ đến gần nhà thế này.');
           return;
         }
         room.send(ClientMessage.PlaceTrap, { slot: h.slot });
@@ -188,11 +188,11 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
         };
         const mine = [...room.state.pets.values()].filter((x) => x.ownerSession === room.sessionId);
         if (mine.length >= PETS_PER_PLAYER) {
-          showToast('You already have two pets — keep the egg for your partner.');
+          showToast('Bạn đã có hai thú cưng rồi — để trứng cho bạn đồng hành nhé.');
           return;
         }
         if (Math.hypot(at.x, at.z) > ZONES.yard.radius - PET_RADIUS) {
-          showToast('Bring the egg home — set it down in the yard to hatch.');
+          showToast('Mang trứng về nhà — đặt xuống sân để trứng nở.');
           return;
         }
         room.send(ClientMessage.PlaceEgg, { slot: h.slot });
@@ -212,7 +212,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       if (weapon.kind === 'ranged') {
         const ammo = [...me.inventory].some((s) => s.itemId === weapon.ammo && s.qty > 0);
         if (!ammo) {
-          showToast('No arrows — craft some at the workbench.');
+          showToast('Hết mũi tên — chế tạo thêm ở bàn chế tạo.');
           return;
         }
       }

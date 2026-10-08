@@ -37,12 +37,12 @@ const face = (page, target) => hb(page, (h, p) => h.walkTo([], p), target);
 
 export default async function hunting(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
-  t.check('HUD shows health', (await a.getByText('❤️ Health').count()) === 1);
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('An');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
+  t.check('HUD shows health', (await a.getByText('❤️ Máu').count()) === 1);
   await play(a);
   await setTime(a, 0.5);
 
@@ -65,7 +65,7 @@ export default async function hunting(t) {
     if (b.mode === 'dead') break;
     await face(a, b);
     await a.waitForTimeout(120);
-    sawPrompt ||= (await prompt(a, 'Punch boar').count()) > 0;
+    sawPrompt ||= (await prompt(a, 'Đấm heo rừng').count()) > 0;
     await a.mouse.down();
     await a.mouse.up();
     if (b.health < 40 && !hurt) {
@@ -77,10 +77,10 @@ export default async function hunting(t) {
   const dead = await boarById(a, boar.id);
   t.check('crosshair shows "Click Punch boar"', sawPrompt);
   t.check('the boar goes down', dead.mode === 'dead', `mode ${dead.mode}`);
-  await a.getByText(/Boar down!/).waitFor();
+  await a.getByText(/Heo rừng gục rồi!/).waitFor();
 
   await face(a, dead);
-  await prompt(a, 'Butcher boar').waitFor();
+  await prompt(a, 'Xẻ thịt heo rừng').waitFor();
   await t.shot(a, 'p4-carcass');
   const before = countItem((await myPlayer(a)).items, 'raw_meat');
   await a.keyboard.press('KeyE');

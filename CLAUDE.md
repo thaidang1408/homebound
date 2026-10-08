@@ -12,6 +12,7 @@ makes two people say "Chơi thêm ngày nữa đi." Phases and MVP scope: `docs/
 - Record important technical decisions as ADRs in `docs/decisions.md`; keep `docs/architecture.md` current.
 - Commits: conventional (`feat(multiplayer): …`, `fix(network): …`). Never overwrite user work.
 - Talk to the user in Vietnamese; code, comments and docs in English.
+- Player-facing game text (UI, prompts, items, story) is Vietnamese (ADR-028).
 - The user may be running `npm run dev` in their own terminal. Check ports 2567/5173 before starting
   servers; never kill processes you did not start. Run `npm run e2e` against their dev server instead.
 

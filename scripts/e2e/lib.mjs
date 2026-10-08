@@ -62,21 +62,21 @@ export const roomOf = (page) => hb(page, (h) => h.getSession().room.roomId);
 
 /** Both players create/join, ready up and enter the game. Returns the room code. */
 export async function startPair(a, b, names = ['An', 'Binh']) {
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill(names[0]);
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByText('Click to copy').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill(names[0]);
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByText('Bấm để chép mã').waitFor();
   const code = await roomOf(a);
-  await b.getByLabel('Your name').fill(names[1]);
-  await b.getByLabel('Home code').fill(code);
-  await b.getByRole('button', { name: 'Join' }).click();
+  await b.getByLabel('Tên của bạn').fill(names[1]);
+  await b.getByLabel('Mã nhà').fill(code);
+  await b.getByRole('button', { name: 'Vào nhà' }).click();
   await a.getByText(names[1]).waitFor();
-  await a.getByRole('button', { name: "I'm ready" }).click();
-  await b.getByRole('button', { name: "I'm ready" }).click();
-  await a.getByText('Both ready').waitFor();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
-  await b.getByText('Paused').waitFor();
+  await a.getByRole('button', { name: 'Tớ sẵn sàng' }).click();
+  await b.getByRole('button', { name: 'Tớ sẵn sàng' }).click();
+  await a.getByText('Cả hai đã sẵn sàng').waitFor();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
+  await b.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   return code;
 }
 
@@ -85,7 +85,7 @@ export async function play(page) {
   const isLocked = () => page.evaluate(() => document.pointerLockElement !== null);
   // Closing a panel re-locks asynchronously; give it a moment before clicking "Paused".
   for (let i = 0; i < 10 && !(await isLocked()); i++) await page.waitForTimeout(50);
-  if (!(await isLocked())) await page.getByText('Paused').click();
+  if (!(await isLocked())) await page.getByRole('heading', { name: 'Tạm dừng' }).click();
   await page.waitForFunction(() => document.pointerLockElement !== null);
 }
 

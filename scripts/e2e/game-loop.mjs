@@ -48,18 +48,21 @@ const me = (page) =>
 
 export default async function gameLoop(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
-  const goals = await a.getByRole('list', { name: "Today's goals" }).getByRole('listitem').count();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('An');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
+  const goals = await a
+    .getByRole('list', { name: 'Mục tiêu hôm nay' })
+    .getByRole('listitem')
+    .count();
   t.check('two daily goals on the HUD', goals === 2, `${goals}`);
   await play(a);
 
   await hb(a, (h) => h.give('spear', 1)); // slot 1 = hotbar key 1
   await setTime(a, NIGHT);
-  await a.getByText(/wolves are out/).waitFor({ timeout: 20000 });
+  await a.getByText(/sói đã ra ngoài/).waitFor({ timeout: 20000 });
   t.check('nightfall warns about wolves', true);
 
   await walk(a, OUT_NORTH, { x: 0, z: -38 });
@@ -92,14 +95,14 @@ export default async function gameLoop(t) {
   const pos = await me(a);
   if (Math.hypot(pos.x, pos.z) > 6) await walk(a, FRONT_DOOR);
   await walk(a, TO_BED, BED);
-  await prompt(a, 'Sleep').waitFor();
+  await prompt(a, 'Ngủ').waitFor();
   await a.keyboard.press('KeyE');
-  await a.getByText(/Day 1 survived/).waitFor({ timeout: 20000 });
+  await a.getByText(/Đã vượt qua ngày 1/).waitFor({ timeout: 20000 });
   t.check('morning summary card after sleeping', true);
   await t.shot(a, 'p6-summary');
   t.check(
     'day 2 brings fresh goals',
-    (await a.getByRole('list', { name: "Today's goals" }).getByRole('listitem').count()) === 2,
+    (await a.getByRole('list', { name: 'Mục tiêu hôm nay' }).getByRole('listitem').count()) === 2,
   );
 
   await a.context().close();

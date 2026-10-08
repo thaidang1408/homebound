@@ -40,19 +40,19 @@ export interface ChapterDefinition {
 
 export const CHAPTERS: readonly ChapterDefinition[] = [
   {
-    title: 'The Sleeping Forest',
+    title: 'Khu Rừng Ngủ Yên',
     intro:
-      'Oh! Hello! I’m Đốm. Grandpa lit me every evening… then he was gone, and the great lanterns went out one by one. Will you help me light them again?',
+      'Ồ! Xin chào! Tớ là Đốm. Tối nào ông cũng thắp sáng tớ… rồi ông đi xa, và những ngọn đèn lồng lớn tắt dần từng ngọn một. Cậu giúp tớ thắp lại chúng nhé?',
     steps: [
       {
         kind: 'talk',
-        goal: 'Talk to Đốm, the little lantern in the kitchen',
-        done: 'Yay! First, a lantern needs a stand and something to burn. Bring me some wood and mushrooms.',
+        goal: 'Nói chuyện với Đốm, chiếc đèn lồng nhỏ trong bếp',
+        done: 'Yay! Trước tiên, đèn lồng cần một cái giá và thứ để cháy. Mang cho tớ ít gỗ và nấm nhé.',
       },
       {
         kind: 'bring',
-        goal: 'Bring Đốm 5 wood and 2 mushrooms',
-        done: 'Perfect! Now we need the great lantern of the forest: north, past the ridge, under the Giant Tree.',
+        goal: 'Mang cho Đốm 5 gỗ và 2 nấm',
+        done: 'Tuyệt quá! Giờ mình cần ngọn đèn lồng lớn của khu rừng: ở phía bắc, qua khỏi dãy núi, dưới gốc Cây Khổng Lồ.',
         items: [
           { itemId: 'wood', qty: 5 },
           { itemId: 'mushroom', qty: 2 },
@@ -60,20 +60,20 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
       },
       {
         kind: 'visit',
-        goal: 'Find the Giant Tree in the Deep Forest (north)',
-        done: 'You found it! Its lantern is hanging by the roots — give it a little light.',
+        goal: 'Tìm Cây Khổng Lồ trong Rừng Sâu (phía bắc)',
+        done: 'Cậu tìm thấy rồi! Đèn lồng treo cạnh rễ cây — thắp cho nó chút ánh sáng nào.',
         landmark: 'giant-tree',
       },
       {
         kind: 'light',
-        goal: 'Light the great lantern at the Giant Tree',
-        done: 'Look how it glows! Night creatures won’t hunt you near a lit lantern. Come and tell me!',
+        goal: 'Thắp đèn lồng lớn ở Cây Khổng Lồ',
+        done: 'Nhìn nó sáng chưa kìa! Thú đêm sẽ không săn cậu khi ở gần đèn đã thắp. Về kể cho tớ nghe nhé!',
         landmark: 'giant-tree',
       },
       {
         kind: 'talk',
-        goal: 'Go home and tell Đốm',
-        done: 'One lantern lit! I found a page of grandpa’s journal in my glass — read it with [J].',
+        goal: 'Về nhà kể cho Đốm',
+        done: 'Một ngọn đèn đã sáng! Tớ tìm thấy một trang nhật ký của ông trong lồng kính — đọc bằng phím [J] nhé.',
       },
     ],
     reward: [
@@ -81,36 +81,36 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
       { itemId: 'arrow', qty: 10 },
     ],
     journal:
-      'Day one at the cabin. The forest is old and kind, if you are kind to it. I hung a lantern under the Giant Tree so the little creatures can find their way at night. — Grandpa',
+      'Ngày đầu ở căn nhà gỗ. Khu rừng già và hiền lành, nếu mình hiền với nó. Ông treo một chiếc đèn lồng dưới Cây Khổng Lồ để các con vật nhỏ tìm được đường về ban đêm. — Ông',
   },
   {
-    title: 'Echoes in the Hills',
+    title: 'Tiếng Vọng Đồi Đá',
     intro:
-      'The hills to the east are rocky and the boars there are grumpy. The great lantern sits in Echo Cave. We’ll need to be brave — and well armed!',
+      'Đồi phía đông toàn đá, và heo rừng ở đó khó tính lắm. Đèn lồng lớn nằm trong Hang Tiếng Vọng. Mình phải thật dũng cảm — và có vũ khí tốt nữa!',
     steps: [
       {
         kind: 'craft',
-        goal: 'Craft a spear at the workbench',
-        done: 'A fine spear! The boars have been scaring everything away from the cave.',
+        goal: 'Chế tạo một cây giáo ở bàn chế tạo',
+        done: 'Cây giáo đẹp quá! Lũ heo rừng cứ dọa mọi con vật chạy khỏi hang.',
         recipe: 'spear',
       },
       {
         kind: 'hunt',
-        goal: 'Hunt 2 boars',
-        done: 'That’s calmer. Now head east, through the low pass, to Echo Cave.',
+        goal: 'Săn 2 con heo rừng',
+        done: 'Yên ổn hơn rồi. Giờ đi về phía đông, qua con đèo thấp, tới Hang Tiếng Vọng.',
         count: 2,
         creature: 'boar',
       },
       {
         kind: 'visit',
-        goal: 'Find Echo Cave in the Rocky Hills (east)',
-        done: 'Hello… hello… hello! The lantern is right inside.',
+        goal: 'Tìm Hang Tiếng Vọng ở Đồi Đá (phía đông)',
+        done: 'Xin chào… chào… chào! Đèn lồng ở ngay bên trong.',
         landmark: 'cave',
       },
       {
         kind: 'light',
-        goal: 'Light the great lantern in Echo Cave',
-        done: 'Two lanterns! Can you feel the nights getting a little brighter?',
+        goal: 'Thắp đèn lồng lớn trong Hang Tiếng Vọng',
+        done: 'Hai ngọn đèn rồi! Cậu có thấy đêm sáng hơn một chút không?',
         landmark: 'cave',
       },
     ],
@@ -119,28 +119,28 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
       { itemId: 'snare', qty: 2 },
     ],
     journal:
-      'The cave sings back whatever you say. I told it a joke; it told it back, twice. Some of grandma’s best songs were written here. — Grandpa',
+      'Cái hang hát lại mọi điều mình nói. Ông kể nó nghe một chuyện cười; nó kể lại hai lần. Bà đã viết vài bài hát hay nhất ở đây. — Ông',
   },
   {
-    title: 'A Friend by the Lake',
+    title: 'Người Bạn Bên Hồ',
     intro:
-      'Grandpa always said the Misty Lake is lonely. It would be happier with a friend around. Do you have a pet yet? Eggs hide in nests far away, and shy wild ones love their favorite food.',
+      'Ông hay bảo Hồ Sương Mù cô đơn lắm. Có bạn bên cạnh thì hồ sẽ vui hơn. Cậu có thú cưng chưa? Trứng nằm trong tổ ở xa, còn những bé hoang nhút nhát thì mê món ăn yêu thích của chúng.',
     steps: [
       {
         kind: 'tame',
-        goal: 'Make a pet friend (hatch an egg or befriend a wild one)',
-        done: 'How cute! Bring your friend south to the lake — the old camp is on the shore.',
+        goal: 'Có một bạn thú cưng (ấp trứng hoặc làm quen một bé hoang)',
+        done: 'Dễ thương quá! Dẫn bạn ấy xuống hồ ở phía nam nhé — khu trại cũ nằm trên bờ.',
       },
       {
         kind: 'visit',
-        goal: 'Find the Abandoned Camp by the Misty Lake (south)',
-        done: 'Grandpa camped here every summer. The lantern hangs by the tent.',
+        goal: 'Tìm Trại Bỏ Hoang bên Hồ Sương Mù (phía nam)',
+        done: 'Hè nào ông cũng cắm trại ở đây. Đèn lồng treo cạnh lều.',
         landmark: 'camp',
       },
       {
         kind: 'light',
-        goal: 'Light the great lantern at the camp',
-        done: 'The mist is lifting! Three lanterns!',
+        goal: 'Thắp đèn lồng lớn ở khu trại',
+        done: 'Sương tan dần rồi! Ba ngọn đèn!',
         landmark: 'camp',
       },
     ],
@@ -149,29 +149,29 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
       { itemId: 'pet_egg', qty: 1 },
     ],
     journal:
-      'Caught nothing all day, but a little ghost sat with me by the fire and we watched the stars. Best fishing trip ever. — Grandpa',
+      'Cả ngày chẳng câu được con cá nào, nhưng một bé ma ngồi cạnh ông bên đống lửa, cùng ông ngắm sao. Chuyến câu cá vui nhất đời. — Ông',
   },
   {
-    title: 'The Old Watch',
+    title: 'Tháp Canh Xưa',
     intro:
-      'In the west there are ruins older than the cabin, and a tall watchtower. The way is cold and the wolves are bold. Wear something warm!',
+      'Phía tây có những tàn tích còn cổ hơn căn nhà gỗ, và một tháp canh cao. Đường đi lạnh lắm, mà sói thì gan dạ. Mặc gì đó cho ấm nhé!',
     steps: [
       {
         kind: 'craft',
-        goal: 'Make leather armor at the workbench (3 hides)',
-        done: 'Snug! Now to the ruins in the west.',
+        goal: 'Làm áo giáp da ở bàn chế tạo (3 da thú)',
+        done: 'Ấm áp ghê! Giờ tới khu tàn tích phía tây nào.',
         recipe: 'leather_armor',
       },
       {
         kind: 'visit',
-        goal: 'Find the Old Watchtower in the ruins (west)',
-        done: 'Climb it to see far away! The lantern hangs under the platform.',
+        goal: 'Tìm Tháp Canh Cũ trong khu tàn tích (phía tây)',
+        done: 'Leo lên để nhìn thật xa! Đèn lồng treo dưới sàn tháp.',
         landmark: 'watchtower',
       },
       {
         kind: 'light',
-        goal: 'Light the great lantern at the watchtower',
-        done: 'Four! Only one left — the Spirit Shrine, where the forest’s heart is.',
+        goal: 'Thắp đèn lồng lớn ở tháp canh',
+        done: 'Bốn ngọn! Chỉ còn một — Đền Linh Hồn, nơi trái tim của khu rừng.',
         landmark: 'watchtower',
       },
     ],
@@ -180,36 +180,36 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
       { itemId: 'spike_trap', qty: 2 },
     ],
     journal:
-      'From the top of the tower you can see the whole Wild: the lake, the hills, the Giant Tree, and our little roof. Home looks small and warm from up here. — Grandpa',
+      'Từ đỉnh tháp nhìn thấy cả vùng hoang dã: cái hồ, những ngọn đồi, Cây Khổng Lồ, và mái nhà nhỏ của mình. Từ trên này, nhà trông nhỏ xíu và ấm áp. — Ông',
   },
   {
-    title: 'The Heart of the Wild',
+    title: 'Trái Tim Khu Rừng',
     intro:
-      'The last lantern is at the Spirit Shrine, but a great bear guards the old den in the north-west. It’s scared, and scared bears are dangerous. Be careful — together!',
+      'Ngọn đèn cuối cùng ở Đền Linh Hồn, nhưng có một con gấu to canh cái hang cũ ở phía tây bắc. Nó đang sợ, mà gấu sợ thì nguy hiểm lắm. Cẩn thận nhé — đi cùng nhau!',
     steps: [
       {
         kind: 'hunt',
-        goal: 'Face the bear in its den (north-west)',
-        done: 'You were so brave. Now the shrine — north-east, where the light goes up to the sky.',
+        goal: 'Đối mặt với con gấu trong hang (phía tây bắc)',
+        done: 'Cậu dũng cảm quá. Giờ tới ngôi đền — ở phía đông bắc, nơi có luồng sáng vút lên trời.',
         count: 1,
         creature: 'bear',
       },
       {
         kind: 'visit',
-        goal: 'Find the Spirit Shrine (north-east)',
-        done: 'This is the heart of the Wild. Light the last lantern…',
+        goal: 'Tìm Đền Linh Hồn (phía đông bắc)',
+        done: 'Đây là trái tim của khu rừng. Thắp ngọn đèn cuối cùng nào…',
         landmark: 'shrine',
       },
       {
         kind: 'light',
-        goal: 'Light the great lantern at the Spirit Shrine',
-        done: 'ALL FIVE! The Wild is glowing again! Come home — I have something to tell you.',
+        goal: 'Thắp đèn lồng lớn ở Đền Linh Hồn',
+        done: 'ĐỦ CẢ NĂM! Khu rừng sáng rực trở lại! Về nhà đi — tớ có chuyện muốn kể.',
         landmark: 'shrine',
       },
       {
         kind: 'talk',
-        goal: 'Go home to Đốm',
-        done: 'Grandpa would be so proud. This cabin is your home now, and the Wild is your friend. Thank you! (The story is complete — the Wild is yours to explore.)',
+        goal: 'Về nhà gặp Đốm',
+        done: 'Ông sẽ tự hào lắm. Căn nhà gỗ này giờ là nhà của cậu, và khu rừng là bạn của cậu. Cảm ơn nhé! (Câu chuyện đã kết thúc — khu rừng là của cậu để khám phá.)',
       },
     ],
     reward: [
@@ -217,7 +217,7 @@ export const CHAPTERS: readonly ChapterDefinition[] = [
       { itemId: 'stew', qty: 2 },
     ],
     journal:
-      'If you are reading this, the lanterns are lit again and the cabin has a family. Look after the Wild, and it will look after you. With all my love. — Grandpa',
+      'Nếu cháu đang đọc những dòng này, thì đèn lồng đã sáng lại và căn nhà gỗ đã có một gia đình. Hãy chăm sóc khu rừng, và nó sẽ chăm sóc cháu. Thương cháu nhiều. — Ông',
   },
 ];
 

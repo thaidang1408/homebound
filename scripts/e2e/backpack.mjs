@@ -14,11 +14,11 @@ const slotItem = (page, i) =>
 
 export default async function backpack(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('An');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('An');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   await play(a);
   await hb(a, (h) => h.give('wood', 5)); // slot 0
   await hb(a, (h) => h.give('stone', 2)); // slot 1
@@ -28,8 +28,8 @@ export default async function backpack(t) {
   });
 
   await a.keyboard.press('Tab');
-  await a.getByText('Backpack').waitFor();
-  const slots = a.getByRole('button', { name: /^Your items:/ });
+  await a.getByRole('heading', { name: 'Ba lô' }).waitFor();
+  const slots = a.getByRole('button', { name: /^Đồ của bạn:/ });
   await slots.nth(0).dragTo(slots.nth(8));
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();

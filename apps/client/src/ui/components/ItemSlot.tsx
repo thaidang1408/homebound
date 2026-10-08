@@ -39,7 +39,7 @@ export function ItemSlot({
 }: Props) {
   const [over, setOver] = useState(false);
   const item = qty > 0 && isItemId(itemId) ? getItem(itemId) : null;
-  const title = item ? `${item.name} ×${qty}` : 'Empty';
+  const title = item ? `${item.name} ×${qty}` : 'Trống';
   const tooltip = item ? `${item.name}${qty > 1 ? ` ×${qty}` : ''} — ${item.description}` : title;
   const content = (
     <>

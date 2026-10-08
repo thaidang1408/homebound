@@ -15,9 +15,9 @@ import { closePanel } from '../hud/useGameKeys';
 import styles from './PetPanel.module.css';
 
 const ORDERS: readonly { command: PetCommand; label: string }[] = [
-  { command: 'follow', label: 'Follow me' },
-  { command: 'stay', label: 'Stay here' },
-  { command: 'home', label: 'Go home' },
+  { command: 'follow', label: 'Đi theo tớ' },
+  { command: 'stay', label: 'Ở yên đây' },
+  { command: 'home', label: 'Về nhà' },
 ];
 
 /** [E] on your own pet: name it, tell it what to do, give it a pat. */
@@ -47,16 +47,16 @@ export function PetPanel() {
           }}
         >
           <TextInput
-            label="Name"
+            label="Tên"
             value={name}
             maxLength={PET_NAME_MAX_LENGTH}
             onChange={(e) => setName(e.target.value)}
           />
           <Button type="submit" variant="secondary" disabled={!name.trim() || name === pet.name}>
-            Rename
+            Đổi tên
           </Button>
         </form>
-        <div className={styles.orders} role="group" aria-label="Orders">
+        <div className={styles.orders} role="group" aria-label="Ra lệnh">
           {ORDERS.map(({ command, label }) => (
             <Button
               key={command}
@@ -69,10 +69,10 @@ export function PetPanel() {
           ))}
         </div>
         <Button variant="secondary" onClick={() => send('pat')}>
-          💕 Pat
+          💕 Vuốt ve
         </Button>
         <Button variant="ghost" onClick={closePanel}>
-          Back to game
+          Quay lại chơi
         </Button>
       </div>
     </div>

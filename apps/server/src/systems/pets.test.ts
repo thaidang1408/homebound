@@ -201,6 +201,7 @@ describe('wild pets', () => {
     expect(befriend(state, 'dragon-0', player, OWNER, 'pet-0')).toBe('befriended');
     expect(state.pets.get('pet-0')?.kind).toBe('dragon');
     expect(state.pets.get('pet-0')?.owner).toBe(OWNER);
+    expect(state.pets.get('pet-0')?.ownerSession).toBe('p1'); // "your pet" from the first patch
     expect(wild.present).toBe(false);
     run(CREATURES.dragon.respawnMs + 200);
     expect(wild.present).toBe(true); // another one turns up for the partner

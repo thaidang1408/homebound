@@ -35,11 +35,11 @@ const LANDMARK_VIEWS = [
 
 export default async function explore(t) {
   const a = await t.openPlayer('A');
-  await a.getByText('Server online').waitFor();
-  await a.getByLabel('Your name').fill('Na');
-  await a.getByRole('button', { name: 'Build a new home' }).click();
-  await a.getByRole('button', { name: 'Start game' }).click();
-  await a.getByText('Paused').waitFor();
+  await a.getByText('Máy chủ sẵn sàng').waitFor();
+  await a.getByLabel('Tên của bạn').fill('Na');
+  await a.getByRole('button', { name: 'Xây nhà mới' }).click();
+  await a.getByRole('button', { name: 'Bắt đầu chơi' }).click();
+  await a.getByRole('heading', { name: 'Tạm dừng' }).waitFor();
   await play(a);
 
   // From the north pass in the ridge, the giant tree stands over the Deep Forest.
@@ -60,16 +60,16 @@ export default async function explore(t) {
 
   // Echo Cave: the cache inside.
   await jump(a, 82.4, 4, { x: 84, z: 4 });
-  await prompt(a, 'Open the cache').waitFor();
+  await prompt(a, 'Mở hòm báu').waitFor();
   await a.keyboard.press('KeyE');
   await a.waitForFunction(() => window.__homebound.getSession().room.state.caches.has('cave'));
-  await prompt(a, 'Empty').waitFor();
+  await prompt(a, 'Trống rồi').waitFor();
   t.check('a cache gives its loot once, then waits for the morning', true);
 
   // The watchtower maps the land around it.
   const before = await hb(a, (h) => h.getSession().room.state.explored.size);
   await jump(a, -78, -6, { x: -80, z: -6 });
-  await prompt(a, 'Climb up').waitFor();
+  await prompt(a, 'Leo lên').waitFor();
   await a.keyboard.press('KeyE');
   await a.waitForFunction(
     (n) => window.__homebound.getSession().room.state.explored.size > n + 40,
@@ -79,7 +79,7 @@ export default async function explore(t) {
 
   // The shared map: open it, mark a spot.
   await a.keyboard.press('KeyM');
-  const map = a.getByLabel('Map of the world');
+  const map = a.getByLabel('Bản đồ thế giới');
   const box = await map.boundingBox();
   await map.click({ position: { x: box.width * 0.7, y: box.height * 0.3 } });
   await a.waitForFunction(() => window.__homebound.getSession().room.state.markers.size === 1);
@@ -91,9 +91,9 @@ export default async function explore(t) {
 
   // Waystone home.
   await jump(a, 73.6, 4, { x: 75, z: 4 });
-  await prompt(a, 'Travel').waitFor();
+  await prompt(a, 'Đi tới đá dịch chuyển').waitFor();
   await a.keyboard.press('KeyE');
-  await a.getByRole('button', { name: /Home/ }).click();
+  await a.getByRole('button', { name: /Nhà/ }).click();
   await a.waitForFunction(() => {
     const { room } = window.__homebound.getSession();
     const me = room.state.players.get(room.sessionId);

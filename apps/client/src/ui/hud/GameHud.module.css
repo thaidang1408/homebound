@@ -364,11 +364,46 @@
 .controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-1) var(--space-4);
+  align-content: start;
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+}
+
+.controls li {
+  display: grid;
+  grid-template-columns: 4.2em 1fr;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.controls .key {
+  min-width: 0;
+  padding: 2px var(--space-1);
+}
+
+/* Pause menu: keys on the left, settings on the right; scrolls inside on short screens. */
+.pause {
+  width: min(860px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.pauseBody {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .pauseBody {
+    grid-template-columns: 1fr;
+  }
 }
 
 .key {

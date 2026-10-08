@@ -23,10 +23,10 @@ export default async function combat(t) {
   await give(a, 'wood', 8);
   await give(a, 'stone', 3);
   await walk(a, A_TO_WORKBENCH, WORKBENCH);
-  await prompt(a, 'Craft').waitFor();
+  await prompt(a, 'Chế tạo').waitFor();
   await a.keyboard.press('KeyE');
-  await a.getByText('Workbench').waitFor();
-  for (const name of ['Spear', 'Bow', 'Arrow ×5']) {
+  await a.getByText('Bàn chế tạo').waitFor();
+  for (const name of ['Giáo', 'Cung', 'Mũi tên ×5']) {
     await a
       .getByRole('listitem')
       .filter({ has: a.getByText(name, { exact: true }) })
@@ -50,8 +50,8 @@ export default async function combat(t) {
 
   // --- Downed and revive ---
   await hb(b, (h) => h.hurt(200));
-  await b.getByText('You’re down!').first().waitFor();
-  await a.getByText(/is down! Hold E/).waitFor();
+  await b.getByText('Bạn bị gục rồi!').first().waitFor();
+  await a.getByText(/bị gục! Đứng gần và giữ E/).waitFor();
   t.check('B goes down; A is told to help', true);
   await t.shot(b, 'p5-downed');
 
@@ -64,11 +64,11 @@ export default async function combat(t) {
     ],
     bPos,
   );
-  await prompt(a, 'revive').waitFor();
+  await prompt(a, 'cứu').waitFor();
   await a.keyboard.down('KeyE');
   await a.waitForTimeout(800);
   await t.shot(a, 'p5-reviving');
-  await b.getByText('Back on your feet!').waitFor({ timeout: 15000 });
+  await b.getByText('Bạn đứng dậy rồi!').waitFor({ timeout: 15000 });
   await a.keyboard.up('KeyE');
   const revived = await me(b);
   t.check(

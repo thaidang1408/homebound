@@ -42,7 +42,7 @@ function ping(): void {
   const spot = pingTarget();
   if (!room) return;
   if (!spot) {
-    showToast('Look at the ground to mark a spot.');
+    showToast('Nhìn xuống đất để đánh dấu.');
     return;
   }
   room.send(ClientMessage.Ping, spot);
@@ -95,7 +95,7 @@ function interact(): boolean {
       openPanel('travel');
       break;
     case 'tower':
-      showToast('From up here you can see far — the map fills in. [M] to look.');
+      showToast('Trên này nhìn được thật xa — bản đồ đã hiện thêm. Nhấn [M] để xem.');
       room.send(ClientMessage.Interact, { targetId: target.id });
       break;
     case 'dom':
@@ -159,7 +159,7 @@ export function useGameKeys(): void {
         const muted = !getSettings().muted;
         updateSettings({ muted });
         applyVolume();
-        showToast(muted ? '🔇 Sound off (N)' : '🔊 Sound on (N)');
+        showToast(muted ? '🔇 Đã tắt tiếng (N)' : '🔊 Đã bật tiếng (N)');
         return;
       }
       if (e.code === 'KeyH') {
