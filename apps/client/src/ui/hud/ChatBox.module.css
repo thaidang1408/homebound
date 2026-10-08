@@ -1,0 +1,69 @@
+.chat {
+  position: absolute;
+  left: var(--space-4);
+  bottom: var(--space-8);
+  width: min(360px, 40vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.line {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-scrim);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+  /* Visible for a while, then gone; always visible while the box is open. */
+  animation: chat-fade 10s var(--ease-out) forwards;
+}
+
+.chat[data-open='true'] .line {
+  animation: none;
+}
+
+.name {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-xp);
+}
+
+.name[data-mine='true'] {
+  color: var(--color-primary);
+}
+
+.input {
+  pointer-events: auto;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  user-select: text;
+}
+
+.input:focus {
+  outline: 2px solid var(--color-primary);
+}
+
+@keyframes chat-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

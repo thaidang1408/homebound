@@ -12,6 +12,7 @@ import {
   isCreatureKind,
   isGoalKind,
   isItemId,
+  type ChatBroadcast,
   type DayPhase,
   type DaySummaryPayload,
   type HitConfirmPayload,
@@ -28,7 +29,9 @@ import {
   playHurt,
   playPickup,
   playRevived,
+  playUiClick,
 } from '../audio/sounds';
+import { addChatLine, clearChat } from '../state/chat';
 import { getUi, showToast, updateUi } from '../state/ui';
 
 /** The low-frequency slice of room state the React UI cares about. */
@@ -196,6 +199,12 @@ export function watchRoom(room: Room<HomeState>): void {
     });
   };
   room.onStateChange(apply);
+  clearChat();
+  room.onMessage(ServerMessage.Chat, (m: ChatBroadcast) => {
+    const mine = m.from === room.sessionId;
+    addChatLine(m, mine);
+    if (!mine) playUiClick();
+  });
   room.onMessage(ServerMessage.Died, () =>
     showToast('You didn’t make it… and woke up at home. Your items are safe.'),
   );

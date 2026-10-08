@@ -5,6 +5,7 @@ import {
   HOTBAR_SLOTS,
   findInteractable,
 } from '@homebound/shared';
+import { isTyping } from '../../game/player/keyboard';
 import { getSession } from '../../state/session';
 import { applyVolume } from '../../audio/engine';
 import { getSettings, updateSettings } from '../../state/settings';
@@ -78,10 +79,17 @@ export function useGameKeys(): void {
       if (e.code === 'KeyE') stopHold();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.repeat) return;
+      if (e.repeat || isTyping(e)) return;
       const locked = document.pointerLockElement !== null;
       const { panel } = getUi();
 
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+        if (panel === 'none') {
+          e.preventDefault();
+          openPanel('chat');
+        }
+        return;
+      }
       if (e.code === 'Tab') {
         e.preventDefault(); // never move browser focus while playing
         if (panel === 'none') openPanel('inventory');

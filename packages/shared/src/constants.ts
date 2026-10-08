@@ -23,6 +23,9 @@ export const RECONNECT_GRACE_SECONDS = 30;
 export const MAX_MESSAGES_PER_SECOND = 60;
 
 export const PLAYER_NAME_MAX_LENGTH = 16;
+/** Chat: characters per message, and the minimum gap between one player's messages. */
+export const CHAT_MAX_LENGTH = 120;
+export const CHAT_COOLDOWN_MS = 400;
 
 /** Anonymous player ids: 16–64 url-safe characters. */
 export const PLAYER_ID_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;

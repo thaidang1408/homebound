@@ -1,12 +1,15 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 import { CloseCode } from '@colyseus/sdk';
 import {
+  CHAT_COOLDOWN_MS,
+  CHAT_MAX_LENGTH,
   ClientMessage,
   GamePhase,
   ROOM_CODE_LENGTH,
   ROOM_NAME,
   ServerMessage,
   isValidRoomCode,
+  type ChatBroadcast,
   type HomeState,
   type TeleportPayload,
 } from '@homebound/shared';
@@ -155,5 +158,26 @@ describe('disconnects', () => {
     const partnerId = partner.sessionId;
     await partner.leave();
     await waitFor(() => !host.state.players.has(partnerId));
+  });
+});
+
+describe('chat', () => {
+  test('a message reaches both players, cleaned; empty and too-fast ones are dropped', async () => {
+    const { host, partner } = await createPair();
+    const heard: ChatBroadcast[] = [];
+    partner.onMessage(ServerMessage.Chat, (m: ChatBroadcast) => heard.push(m));
+    const echoed: ChatBroadcast[] = [];
+    host.onMessage(ServerMessage.Chat, (m: ChatBroadcast) => echoed.push(m));
+
+    host.send(ClientMessage.Chat, { text: '   ' });
+    host.send(ClientMessage.Chat, { text: '  đi săn   thôi!  ' });
+    host.send(ClientMessage.Chat, { text: 'spam' }); // inside the cooldown
+    await waitFor(() => heard.length === 1 && echoed.length === 1);
+    await new Promise((r) => setTimeout(r, CHAT_COOLDOWN_MS + 100));
+    expect(heard).toEqual([{ from: host.sessionId, name: 'Host', text: 'đi săn thôi!' }]);
+
+    host.send(ClientMessage.Chat, { text: 'x'.repeat(500) });
+    await waitFor(() => heard.length === 2);
+    expect(heard[1]?.text).toHaveLength(CHAT_MAX_LENGTH);
   });
 });

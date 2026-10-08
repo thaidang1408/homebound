@@ -25,6 +25,7 @@ import { SettingsPanel } from '../panels/SettingsPanel';
 import { Compass } from './Compass';
 import { DaySummaryCard, GoalList } from './DayPanels';
 import styles from './GameHud.module.css';
+import { ChatBox } from './ChatBox';
 import { resumePlay, useGameKeys } from './useGameKeys';
 
 const PHASE_ICON: Record<DayPhase, string> = {
@@ -57,6 +58,7 @@ const CONTROLS: readonly [string, string][] = [
   ['Click', 'Use held item (attack / shoot / eat)'],
   ['1–5', 'Hotbar'],
   ['Tab', 'Backpack'],
+  ['Enter', 'Chat'],
   ['M', 'Mute'],
   ['Esc', 'Pause'],
 ];
@@ -249,6 +251,8 @@ export function GameHud() {
           </p>
         </div>
       )}
+
+      <ChatBox />
 
       {openPanel === 'inventory' && <InventoryPanel />}
       {openPanel === 'storage' && <StoragePanel />}

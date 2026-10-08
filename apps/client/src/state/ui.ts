@@ -1,7 +1,7 @@
 import type { DaySummaryPayload } from '@homebound/shared';
 import { createStore } from './createStore';
 
-export type Panel = 'none' | 'inventory' | 'storage' | 'workbench';
+export type Panel = 'none' | 'inventory' | 'storage' | 'workbench' | 'chat';
 
 export interface Toast {
   id: number;

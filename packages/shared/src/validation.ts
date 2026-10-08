@@ -3,6 +3,7 @@ import {
   MOVE_DISTANCE_SLACK,
   MOVE_SPEED_TOLERANCE,
   PLAYER_ID_PATTERN,
+  CHAT_MAX_LENGTH,
   PLAYER_NAME_MAX_LENGTH,
   PLAYER_SPRINT_SPEED,
   ROOM_CODE_ALPHABET,
@@ -35,17 +36,26 @@ export function isValidPlayerId(value: unknown): value is string {
   return typeof value === 'string' && PLAYER_ID_PATTERN.test(value);
 }
 
-/** Trims, removes control characters, caps length. Empty result means "use a default". */
-export function sanitizePlayerName(input: unknown): string {
+/** Removes control characters, collapses whitespace, trims and caps the length. */
+function cleanText(input: unknown, maxLength: number): string {
   if (typeof input !== 'string') return '';
   return (
     input
       // eslint-disable-next-line no-control-regex
-      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .replace(/[\u0000-\u001f\u007f]/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim()
-      .slice(0, PLAYER_NAME_MAX_LENGTH)
+      .slice(0, maxLength)
+      .trim()
   );
 }
+
+/** Empty result means "use a default". */
+export const sanitizePlayerName = (input: unknown): string =>
+  cleanText(input, PLAYER_NAME_MAX_LENGTH);
+
+/** Empty result means "send nothing". */
+export const sanitizeChatText = (input: unknown): string => cleanText(input, CHAT_MAX_LENGTH);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

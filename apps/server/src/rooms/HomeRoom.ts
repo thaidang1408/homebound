@@ -5,6 +5,7 @@ import {
   GOAL_XP,
   HOTBAR_SLOTS,
   RESOURCE_KINDS,
+  CHAT_COOLDOWN_MS,
   CHEST_SLOTS,
   ClientMessage,
   GamePhase,
@@ -51,8 +52,10 @@ import {
   parseReadyPayload,
   parseTransferPayload,
   parseUseItemPayload,
+  sanitizeChatText,
   sanitizePlayerName,
   type Box,
+  type ChatBroadcast,
   type Point,
   type GoalKind,
   type HitConfirmPayload,
@@ -118,6 +121,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private readonly lastHarvestAt = new Map<string, number>();
   /** Server time of each player's last strike (cooldown). */
   private readonly lastAttackAt = new Map<string, number>();
+  private readonly lastChatAt = new Map<string, number>();
   /** Creature spawns, wandering and loot rolls. */
   private readonly random = createRandom(Date.now());
   /** sessionId → stable playerId (what saves are keyed by). */
@@ -166,6 +170,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     );
     this.onMessage(ClientMessage.MoveSlot, (client, message: unknown) =>
       this.handleMoveSlot(client, message),
+    );
+    this.onMessage(ClientMessage.Chat, (client, message: unknown) =>
+      this.handleChat(client, message),
     );
     this.onMessage(ClientMessage.SelectSlot, (client, message: unknown) => {
       const payload = parseUseItemPayload(message);
@@ -277,6 +284,18 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     );
   }
 
+  /** Chat is not saved: it's a live conversation. Asleep or downed players can still talk. */
+  private handleChat(client: Client, message: unknown) {
+    const player = this.state.players.get(client.sessionId);
+    const text = sanitizeChatText(option(message, 'text'));
+    const now = this.clock.currentTime;
+    const last = this.lastChatAt.get(client.sessionId) ?? -Infinity;
+    if (!player || !text || now - last < CHAT_COOLDOWN_MS) return;
+    this.lastChatAt.set(client.sessionId, now);
+    const chat: ChatBroadcast = { from: client.sessionId, name: player.name, text };
+    this.broadcast(ServerMessage.Chat, chat);
+  }
+
   /**
    * The saved character for this joiner (ADR-021): the one kept under their browser id, or else
    * one with the same name (any case) who isn't in the home right now. The name carries a
@@ -329,6 +348,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.lastMoveAt.delete(client.sessionId);
     this.lastHarvestAt.delete(client.sessionId);
     this.lastAttackAt.delete(client.sessionId);
+    this.lastChatAt.delete(client.sessionId);
     this.save();
     this.scheduleNewDay(); // the one still in bed may now be the only player
     logger.info(`[room ${this.roomId}] leave ${client.sessionId}`);

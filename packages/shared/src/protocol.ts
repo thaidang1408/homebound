@@ -56,6 +56,8 @@ export const ClientMessage = {
   Attack: 'attack',
   /** Craft a workbench recipe. */
   Craft: 'craft',
+  /** Say something to the home (`{ text }`); the server cleans and rate-limits it. */
+  Chat: 'chat',
   /** Development servers only: jump the clock (playtests). Ignored in production. */
   DevSetTime: 'dev:set-time',
   /** Development servers only: lose health (test downed/revive). Payload `{ amount }`. */
@@ -74,7 +76,20 @@ export const ServerMessage = {
   Died: 'died',
   /** Everyone slept: how the day went (sent before the new day's stats reset). */
   DaySummary: 'day-summary',
+  /** Someone in the home said something (already cleaned by the server). */
+  Chat: 'chat',
 } as const;
+
+export interface ChatPayload {
+  text: string;
+}
+
+export interface ChatBroadcast {
+  /** Sender's sessionId. */
+  from: string;
+  name: string;
+  text: string;
+}
 
 export interface ReadyPayload {
   ready: boolean;

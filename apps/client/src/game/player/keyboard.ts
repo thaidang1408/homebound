@@ -1,12 +1,18 @@
 import { useEffect, useRef } from 'react';
 
+/** Keys typed into a text field (chat) are text, not game controls. */
+export const isTyping = (e: KeyboardEvent): boolean =>
+  e.target instanceof HTMLInputElement && e.target.type === 'text';
+
 /** Set of currently held `KeyboardEvent.code`s, kept in a ref (no re-renders). */
 export function useHeldKeys() {
   const held = useRef(new Set<string>());
 
   useEffect(() => {
     const keys = held.current;
-    const down = (e: KeyboardEvent) => keys.add(e.code);
+    const down = (e: KeyboardEvent) => {
+      if (!isTyping(e)) keys.add(e.code);
+    };
     const up = (e: KeyboardEvent) => keys.delete(e.code);
     const clear = () => keys.clear();
     // Only on losing the lock: gaining it is async and would drop a key pressed meanwhile.

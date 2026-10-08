@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { MAX_PITCH, WORLD_RADIUS } from './constants.js';
+import { CHAT_MAX_LENGTH, MAX_PITCH, WORLD_RADIUS } from './constants.js';
 import {
   clampToWorld,
   isMoveWithinSpeed,
@@ -10,6 +10,7 @@ import {
   parseReadyPayload,
   parseTransferPayload,
   parseUseItemPayload,
+  sanitizeChatText,
   sanitizePlayerName,
 } from './validation.js';
 
@@ -29,6 +30,13 @@ describe('player names', () => {
   test('strips control characters and caps length', () => {
     expect(sanitizePlayerName('  Hien\u0000\n ')).toBe('Hien');
     expect(sanitizePlayerName('x'.repeat(40))).toHaveLength(16);
+  });
+
+  test('chat text is cleaned and capped', () => {
+    expect(sanitizeChatText('  chào\n\n  bé \u0007 ơi  ')).toBe('chào bé ơi');
+    expect(sanitizeChatText('a'.repeat(300))).toHaveLength(CHAT_MAX_LENGTH);
+    expect(sanitizeChatText('   ')).toBe('');
+    expect(sanitizeChatText(42)).toBe('');
     expect(sanitizePlayerName(42)).toBe('');
   });
 });
