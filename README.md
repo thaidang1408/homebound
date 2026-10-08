@@ -42,6 +42,28 @@ The landing screen shows "Server online" when the client can reach the server.
 4. If B can't connect: check both are on the same network, the network profile is **Private**, and
    `http://<machine-a-ip>:2567/health` opens on B.
 
+## Deploying (free)
+
+Frontend on Cloudflare Pages, game server on Render (free plan), saves copied to Neon Postgres
+(ADR-020). All three have free tiers without a card. Render's free server sleeps after 15 minutes
+without players; the first visit after that waits ~1 minute ("Waking up the server…").
+
+1. **GitHub** — create an empty **private** repo, then:
+   `git remote add origin https://github.com/<you>/homebound.git && git push -u origin main`
+2. **Neon** (neon.tech) — new project, region _AWS Asia Pacific (Singapore)_. Copy the connection
+   string (`postgres://…?sslmode=require`). The server creates its `homes` table itself.
+3. **Render** (render.com) — _New → Blueprint_, pick the repo; it reads `render.yaml`. Set
+   `DATABASE_URL` to the Neon string; leave `ALLOWED_ORIGINS` for step 5. When it is live, open
+   `https://<service>.onrender.com/health` — it should say `{"status":"ok",…}`.
+4. **Cloudflare Pages** — _Workers & Pages → Create → Pages → Connect to Git_, pick the repo:
+   - Build command: `npm run build -w @homebound/shared && npm run build -w @homebound/client`
+   - Build output directory: `apps/client/dist`
+   - Environment variables: `VITE_SERVER_URL=https://<service>.onrender.com`, `NODE_VERSION=22`
+5. Back on Render, set `ALLOWED_ORIGINS=https://<project>.pages.dev` (comma-separate several).
+6. Open the Pages URL on two computers: one builds a home, the other joins with the code.
+
+Every push to `main` redeploys both. Server logs: Render dashboard → _Logs_.
+
 ## Scripts
 
 | Command             | What it does                                                                            |

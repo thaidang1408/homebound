@@ -210,3 +210,23 @@ Levels still unlock nothing; they stay a score for now.
   staying up past midnight still ends with the morning summary; a revive pauses (never resets)
   when the helper's pings lapse; clicking with food in hand while a creature is in your face
   punches instead of eating; repeated toasts stack ("×4").
+
+## ADR-020: Cloudflare Pages + Render free + saves mirrored to Neon Postgres (2026-10-08)
+
+**Context:** Phase 8 needs a public URL at zero cost. Free Node hosts with WebSockets (Render)
+sleep when idle and wipe the disk, where saves live (ADR-009). Chosen by the user over self-hosting
+behind a Cloudflare Tunnel and an Oracle Cloud VM.
+**Decision:**
+
+- Client: static build on Cloudflare Pages; `VITE_SERVER_URL` points at the Render service.
+- Server: Render free web service from `render.yaml` (`NODE_ENV=production`, `/health` check).
+- Saves: the JSON files stay the working copy (the room code stays synchronous); each save is
+  also upserted into a Neon `homes (code, save jsonb)` table through a queue, and on boot homes
+  missing from disk are restored. The queue is flushed on graceful shutdown. The data is validated
+  on load exactly like a file.
+- CORS: `ALLOWED_ORIGINS` (exact origins) in production.
+
+**Trade-off:** first visit after 15 idle minutes waits ~1 minute (the landing screen says so). A
+save written in the last seconds before a crash (not a graceful stop) can miss the database.
+**Revisit when:** the wait annoys players (paid always-on instance, ~$7/month) or saves outgrow
+loading every home at boot.

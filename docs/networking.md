@@ -75,6 +75,8 @@ on the client (regression test in `HomeRoom.test.ts`).
 | S→C       | `died`                  | —                                | you bled out / went down alone and woke up at home                                                                                          |
 | S→C       | `day-summary`           | `{ day, hunted, meals, … }`      | morning after a new day number (waking up, or sunrise): yesterday's stats and goals                                                         |
 
+In production, matchmaking and `/health` answer CORS only for `ALLOWED_ORIGINS` (the Pages URL).
+
 Invalid messages are dropped (and too-fast moves logged); they never crash the room or kick
 the client. `maxMessagesPerSecond = 60` disconnects floods.
 

@@ -94,13 +94,38 @@ export function homeExists(code: string): boolean {
   return isValidRoomCode(code) && existsSync(fileFor(code));
 }
 
+/** Called after every save, e.g. to copy it to a database (see mirror.ts). */
+let onSaved: ((save: HomeSave) => void) | null = null;
+export function setSaveMirror(mirror: typeof onSaved): void {
+  onSaved = mirror;
+}
+
 /** Writes atomically (temp file + rename) so a crash mid-write never leaves a half file. */
-export function saveHome(save: HomeSave): void {
+function writeFile(code: string, json: string): void {
   mkdirSync(saveDir, { recursive: true });
-  const target = fileFor(save.code);
+  const target = fileFor(code);
   const temp = `${target}.tmp`;
-  writeFileSync(temp, JSON.stringify(save, null, 2));
+  writeFileSync(temp, json);
   renameSync(temp, target);
+}
+
+export function saveHome(save: HomeSave): void {
+  writeFile(save.code, JSON.stringify(save, null, 2));
+  onSaved?.(save);
+}
+
+/**
+ * Puts mirrored saves back on disk after the host wiped it. A file already on disk is at least as
+ * new as its mirror, so it is kept. Rows are validated later by loadHome, like any file.
+ */
+export function restoreSaves(rows: { code: string; save: unknown }[]): number {
+  let restored = 0;
+  for (const { code, save } of rows) {
+    if (!isValidRoomCode(code) || homeExists(code)) continue;
+    writeFile(code, JSON.stringify(save, null, 2));
+    restored++;
+  }
+  return restored;
 }
 
 /** Loads and validates a save. A corrupt file is kept aside (never overwritten) and reported as missing. */

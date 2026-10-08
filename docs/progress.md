@@ -352,3 +352,30 @@ approval (2026-10-08)
 - Two-machine test still pending on the user's side.
 
 **Next phase:** Phase 8 — deployment.
+
+## Phase 8 — Deployment
+
+**Status:** Code ready; waiting for the user to create the GitHub / Neon / Render / Cloudflare
+accounts and deploy (2026-10-08). Hosting chosen by the user: Render + Neon (ADR-020).
+
+**What was built**
+
+- Saves are mirrored to Postgres (`persistence/mirror.ts`) when `DATABASE_URL` is set; homes
+  missing from disk are restored on boot; queued writes are flushed on graceful shutdown.
+- CORS limited to `ALLOWED_ORIGINS` in production (matchmaking and `/health`).
+- Production warnings in the log when `ALLOWED_ORIGINS` or `DATABASE_URL` is missing.
+- Landing screen: "Waking up the server… (up to a minute)" and retries for a sleeping free host.
+- `render.yaml` (Singapore, free plan, health check), README deploy guide, `.env.example`.
+
+**Tests**
+
+- `npm test`: 144 passing + 1 skipped (the Postgres round-trip test needs `TEST_DATABASE_URL`).
+  New: every save reaches the mirror; restore fills only missing homes, ignores bad codes.
+- Production smoke test on a temp port: `/health` ok, allowed origin echoed, other origins refused.
+- Production bundle contains no dev hooks.
+
+**Known issues**
+
+- One unidentified test failed once in 8 full runs (timing under load); not reproduced.
+- Not yet run against a real Postgres (Docker Desktop was off): run the skipped test with the Neon URL.
+- Render free sleeps after 15 min idle (~1 min first load) and has 750 free hours/month.

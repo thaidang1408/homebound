@@ -8,8 +8,10 @@ import {
   homeExists,
   loadHome,
   parseSave,
+  restoreSaves,
   saveHome,
   setSaveDir,
+  setSaveMirror,
   type HomeSave,
 } from './homeSaves.js';
 
@@ -111,5 +113,22 @@ describe('home saves', () => {
   test('a save for a different code or version is rejected', () => {
     expect(parseSave(sample('XYZ23'), 'ABC23')).toBeNull();
     expect(parseSave({ ...sample(), version: 99 }, 'ABC23')).toBeNull();
+  });
+
+  test('every save is handed to the mirror; restore only fills in missing homes', () => {
+    const mirrored: HomeSave[] = [];
+    setSaveMirror((save) => mirrored.push(save));
+    saveHome(sample('ABC23'));
+    setSaveMirror(null);
+    expect(mirrored.map((s) => s.code)).toEqual(['ABC23']);
+
+    const restored = restoreSaves([
+      { code: 'ABC23', save: { ...sample('ABC23'), day: 99 } }, // on disk already: kept
+      { code: 'XYZ23', save: sample('XYZ23') }, // wiped disk: restored
+      { code: '../evil', save: sample() },
+    ]);
+    expect(restored).toBe(1);
+    expect(loadHome('ABC23')?.day).toBe(4);
+    expect(loadHome('XYZ23')?.day).toBe(4);
   });
 });

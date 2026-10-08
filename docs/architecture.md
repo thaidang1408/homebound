@@ -38,6 +38,18 @@ One `.env` at the repo root (`.env.example`):
 - `VITE_SERVER_URL` — game server base URL for the client. Empty ⇒ same host as the page, port 2567.
 - `HOMEBOUND_SAVE_DIR` — where homes are saved (default `data/homes` relative to the server cwd,
   i.e. `apps/server/data/homes` in dev). Git-ignored.
+- Production (Render dashboard, see `render.yaml`): `NODE_ENV=production` (dev commands off),
+  `DATABASE_URL` (Postgres copy of the saves), `ALLOWED_ORIGINS` (frontend origins for CORS).
+
+## Deployment (ADR-020)
+
+```text
+Browser ──https──► Cloudflare Pages (static apps/client/dist, VITE_SERVER_URL baked in)
+   └────wss/https─► Render free web service (npm start → apps/server/dist, /health check)
+                        └── saves: disk (working copy) ──mirror──► Neon Postgres `homes` table
+```
+
+Push to `main` redeploys both. Setup steps: `README.md` → "Deploying (free)".
 
 ## Server
 

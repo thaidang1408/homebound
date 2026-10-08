@@ -1,0 +1,22 @@
+# Render Blueprint for the game server (ADR-020). Free plan: sleeps after 15 min idle.
+services:
+  - type: web
+    name: homebound-server
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build -w @homebound/shared -w @homebound/server
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '22'
+      # Neon connection string (postgres://…?sslmode=require), set in the dashboard.
+      - key: DATABASE_URL
+        sync: false
+      # The Cloudflare Pages URL, e.g. https://homebound.pages.dev
+      - key: ALLOWED_ORIGINS
+        sync: false
