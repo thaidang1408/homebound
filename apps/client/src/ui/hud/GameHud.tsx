@@ -26,6 +26,7 @@ import { Compass } from './Compass';
 import { DaySummaryCard, GoalList } from './DayPanels';
 import styles from './GameHud.module.css';
 import { ChatBox } from './ChatBox';
+import { StaminaMeter } from './StaminaMeter';
 import { resumePlay, useGameKeys } from './useGameKeys';
 
 const PHASE_ICON: Record<DayPhase, string> = {
@@ -53,11 +54,15 @@ function usePointerLocked(): boolean {
 const CONTROLS: readonly [string, string][] = [
   ['WASD', 'Move'],
   ['Mouse', 'Look'],
-  ['Shift', 'Sprint'],
+  ['Shift', 'Sprint (uses stamina)'],
+  ['Space', 'Jump'],
+  ['Q', 'Dodge roll'],
   ['E', 'Interact'],
   ['Click', 'Use held item (attack / shoot / eat)'],
   ['1–5', 'Hotbar'],
   ['Tab', 'Backpack'],
+  ['F', 'Mark a spot for your partner'],
+  ['G', 'Wave'],
   ['Enter', 'Chat'],
   ['M', 'Mute'],
   ['Esc', 'Pause'],
@@ -127,6 +132,7 @@ export function GameHud() {
           </span>
           <span className={styles.meterValue}>{hunger}</span>
         </div>
+        <StaminaMeter room={room} />
         <div className={styles.meter} title={`${progress.intoLevel} / ${progress.needed} XP`}>
           <span className={styles.meterLabel}>⭐ Level {progress.level}</span>
           <span className={styles.meterTrack}>

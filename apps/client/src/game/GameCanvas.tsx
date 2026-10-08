@@ -5,6 +5,7 @@ import { CAMERA_FOV } from '../config/controls';
 import { useSession } from '../state/session';
 import { Arrows } from './combat/Arrows';
 import { HeldItem } from './combat/HeldItem';
+import { PingMarkers } from './fx/PingMarkers';
 import { Creatures } from './creatures/Creatures';
 import { LocalPlayer } from './player/LocalPlayer';
 import { RemotePlayer } from './player/RemotePlayer';
@@ -44,6 +45,7 @@ function Players() {
       <Creatures room={room} />
       <Arrows room={room} />
       <HeldItem room={room} />
+      <PingMarkers room={room} />
       {partners.map(([id, p]) => (
         <RemotePlayer
           key={id}

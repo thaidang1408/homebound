@@ -118,6 +118,11 @@
   background: var(--color-health);
 }
 
+.meterFill[data-kind='stamina'] {
+  background: var(--color-stamina);
+  transition: none; /* written every frame */
+}
+
 .meter[data-warn='true'] {
   border-color: var(--color-danger);
 }

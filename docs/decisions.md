@@ -244,3 +244,26 @@ character with the same name (case-insensitive) who is not in the home right now
 new browser id. A different name still starts fresh.
 **Trade-off:** anyone with the home code and a player's name can take over that character (accepted
 for a private two-person game). Two saved characters with the same name: the first one is claimed.
+
+## ADR-022: Movement and animation feel (2026-10-08)
+
+**Decision:**
+
+- **Actions are replicated as state, not events:** `PlayerState.action` + a wrapping `actionSeq`.
+  The server sets them when it accepts something visible (strike, shot, harvest, eat, dodge) or an
+  emote (jump, wave, ping → point). A changed counter replays the animation even for repeats, and
+  a late joiner never sees a stale one-shot. The local player animates immediately (`localAction`).
+- **Stamina is server-owned.** Moves carry `sprint`; the server drains stamina for the time spent
+  sprinting, refills it after a pause, and winds you at 0 until 25. Dodges cost 30 and give a short
+  window in which creature strikes miss (checked on the server). Known ceiling (`ponytail:` in
+  `systems/stamina.ts`): the speed check still allows sprint speed while winded, because walking vs
+  sprinting is inside the jitter tolerance; the client simply stops sprinting.
+- **Jump is cosmetic:** positions stay 2D on the server; the arc is local and the partner replays it
+  from the `jump` emote.
+- **Input buffer:** Space/Q are read from key events and kept for 250 ms plus one frame, so quick
+  taps and slightly early presses (Q in mid-air) are never lost, even at a low frame rate. Found by
+  the e2e run at 2–3 FPS.
+- **Pings** are broadcast messages (not saved): a beam + ring in the sender's color for 8 s, a 📍
+  on the compass. For a child who types slowly, F does what a sentence would.
+- First-person arms and the partner's limbs are keyframed procedurally from data tables (no
+  skeletal assets).

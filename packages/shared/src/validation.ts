@@ -10,12 +10,15 @@ import {
   ROOM_CODE_LENGTH,
   WORLD_RADIUS,
 } from './constants.js';
+import { EMOTES } from './protocol.js';
 import type {
   AttackPayload,
   CraftPayload,
+  EmotePayload,
   InteractPayload,
   MovePayload,
   MoveSlotPayload,
+  PingPayload,
   ReadyPayload,
   TransferPayload,
   UseItemPayload,
@@ -72,7 +75,19 @@ export function parseMovePayload(value: unknown): MovePayload | null {
   if (!isFiniteNumber(x) || !isFiniteNumber(z) || !isFiniteNumber(yaw) || !isFiniteNumber(pitch)) {
     return null;
   }
-  return { x, z, yaw, pitch: Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch)) };
+  const pose = { x, z, yaw, pitch: Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch)) };
+  return value.sprint === true ? { ...pose, sprint: true } : pose;
+}
+
+export function parseEmotePayload(value: unknown): EmotePayload | null {
+  if (!isRecord(value)) return null;
+  const kind = EMOTES.find((e) => e === value.kind);
+  return kind ? { kind } : null;
+}
+
+export function parsePingPayload(value: unknown): PingPayload | null {
+  if (!isRecord(value) || !isFiniteNumber(value.x) || !isFiniteNumber(value.z)) return null;
+  return { x: value.x, z: value.z };
 }
 
 export function parseReadyPayload(value: unknown): ReadyPayload | null {

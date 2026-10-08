@@ -208,6 +208,30 @@ export function playRevived(): void {
   tone(sfx(), { type: 'triangle', from: 220, to: 660, length: 0.6, gain: 0.3 });
 }
 
+/** Push off the ground. */
+export function playJump(): void {
+  burst(sfx(), { length: 0.12, gain: 0.25, freq: 500, sweepTo: 900, q: 1 });
+}
+
+/** Feet back on the ground: a soft thump. */
+export function playLand(): void {
+  const b = sfx();
+  tone(b, { from: 120 * vary(), to: 60, length: 0.12, gain: 0.35 });
+  burst(b, { length: 0.08, gain: 0.25, freq: 400, q: 0.8 });
+}
+
+/** A quick whoosh for the dodge roll. */
+export function playDodge(): void {
+  burst(sfx(), { length: 0.3, gain: 0.35, freq: 300, sweepTo: 1400, q: 0.9 });
+}
+
+/** "Look here": two bright notes, placed where the mark is. */
+export function playPingAt(x: number, z: number): void {
+  const b = sfxAt(x, z);
+  tone(b, { type: 'triangle', from: 988, length: 0.18, gain: 0.3 });
+  tone(b, { type: 'triangle', from: 1319, length: 0.3, gain: 0.25, delay: 0.1 });
+}
+
 export function playUiClick(): void {
   tone(sfx(), { type: 'triangle', from: 1200, length: 0.04, gain: 0.12 });
 }

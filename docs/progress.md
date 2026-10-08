@@ -400,3 +400,45 @@ https://homebound-server.onrender.com), awaiting the user's two-laptop test + ap
 - Render only rebuilds for server/shared/dependency changes (`buildFilter`).
 - Two real laptops on the public URL: pending on the user's side (required for the DoD).
 - Render free sleeps after 15 min idle (~1 min first load) and has 750 free hours/month.
+
+## Phase 9 — Movement and animation feel
+
+**Status:** Done on one machine (tests + e2e pass), not deployed yet; awaiting the user's test +
+approval (2026-10-08).
+
+**What was built**
+
+- Jump (Space) with landing dust, dip and sound; dodge roll (Q) with duck and lean; stamina meter;
+  sprint drains stamina; winded at 0. Input buffer for quick or early presses.
+- First-person arm (sleeve + hand) with keyframed punch, stab, bow draw, chop, mine, pick, eat,
+  wave, point, dodge and jump; sway with the view; bob while walking.
+- Partner body rebuilt with torso, head, arms and legs on pivots: walk/run cycle from the distance
+  covered, and every action animated from `action`/`actionSeq` (attack, shoot, chop, mine, pick,
+  eat, wave, point, jump arc, dodge roll). Held weapon follows the right hand.
+- Creatures: idle sniffing, coiling before a strike, squash on hit (on top of the existing tell,
+  lunge, flinch and fall).
+- Wave (G) and ping (F): a beam and ring in your color for 8 s, a 📍 on the partner's compass and
+  a chime from that direction.
+
+**Tests**
+
+- `npm test`: 155 passing + 1 skipped. New: stamina drain/regen/winded, dodge cost/cooldown/i-frames,
+  action counter wrap; over the network: dodge seen by the partner and refused inside the cooldown,
+  wave/jump emotes (unknown ones ignored), ping broadcast and too-far ping dropped.
+- `npm run e2e`: new `feel` scenario (wave, jump, dodge, ping on the compass, sprint drains stamina)
+  and `chat`; screenshots `p9-partner-waves`, `p9-ping`, `p9-arms-hud`.
+
+**Bugs found and fixed**
+
+- A quick tap on Space/Q could fall between two frames at low FPS and be lost: presses now come
+  from key events with a buffer that includes the last frame.
+- `game-loop` e2e was flaky (2 of 4 runs): wolves roam 34 m and sometimes never came near. A
+  dev-only `dev:summon` brings the nearest wolf over after 10 s; 3 of 3 runs pass. Full suite: 71 of 72
+  checks passed before the fix; only `game-loop` was re-run after it.
+
+**Known issues**
+
+- Downed players still can't crawl (they couldn't move before either).
+- Sprint speed is not enforced on the server while winded (see ADR-022).
+- Arms and partner poses are tuned from screenshots in headless Chrome; please judge them in a real
+  browser.

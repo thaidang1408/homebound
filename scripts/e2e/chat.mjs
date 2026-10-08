@@ -22,7 +22,8 @@ export default async function chat(t) {
   await a.keyboard.press('Enter');
   await b.getByText('đi săn thôi').waitFor();
   t.check('partner sees the message', true);
-  t.check('sender sees their own line', await a.getByText('đi săn thôi').isVisible());
+  await a.getByText('đi săn thôi').waitFor();
+  t.check('sender sees their own line', true);
   const after = await position(a);
   t.check('typing W does not walk', Math.hypot(after.x - before.x, after.z - before.z) < 0.05);
   t.check('typing M does not mute', !(await a.getByText('Sound off').isVisible()));

@@ -6,6 +6,9 @@ import {
   HOTBAR_SLOTS,
   RESOURCE_KINDS,
   CHAT_COOLDOWN_MS,
+  EMOTE_COOLDOWN_MS,
+  PING_COOLDOWN_MS,
+  PING_MAX_DISTANCE,
   CHEST_SLOTS,
   ClientMessage,
   GamePhase,
@@ -52,10 +55,15 @@ import {
   parseReadyPayload,
   parseTransferPayload,
   parseUseItemPayload,
+  parseEmotePayload,
+  parsePingPayload,
   sanitizeChatText,
   sanitizePlayerName,
   type Box,
   type ChatBroadcast,
+  type PingBroadcast,
+  type PlayerAction,
+  type ResourceKind,
   type Point,
   type GoalKind,
   type HitConfirmPayload,
@@ -85,6 +93,7 @@ import {
 } from '../systems/creatures.js';
 import { harvest, initResources, tickResources } from '../systems/harvest.js';
 import { eatFromSlot, hurtPlayer, tickNeeds } from '../systems/needs.js';
+import { act, drainSprint, isDodging, tickStamina, tryDodge } from '../systems/stamina.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
@@ -98,6 +107,16 @@ const SERVER_COLLISION_RADIUS = PLAYER_RADIUS - 0.05;
 const NOT_FOUND = 404;
 const CONFLICT = 409;
 const BAD_REQUEST = 400;
+
+/** dev:summon puts the creature here relative to you (12 m away, ahead and to the side). */
+const SUMMON_OFFSET = { x: 7, z: -9.8 };
+
+/** What the partner sees you do when a harvest lands. */
+const HARVEST_ACTION: Record<ResourceKind, PlayerAction> = {
+  tree: 'chop',
+  rock: 'mine',
+  bush: 'pick',
+};
 
 function option(options: unknown, key: string): unknown {
   return typeof options === 'object' && options !== null && key in options
@@ -183,9 +202,20 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       const payload = parseUseItemPayload(message);
       const player = this.activePlayer(client);
       if (payload && player && !player.sleeping && !player.downed) {
-        eatFromSlot(player, payload.slot);
+        if (eatFromSlot(player, payload.slot)) act(player, 'eat');
       }
     });
+    this.onMessage(ClientMessage.Dodge, (client) => {
+      const player = this.activePlayer(client);
+      if (!player || player.sleeping || player.downed) return;
+      if (tryDodge(player, this.clock.currentTime)) act(player, 'dodge');
+    });
+    this.onMessage(ClientMessage.Emote, (client, message: unknown) =>
+      this.handleEmote(client, message),
+    );
+    this.onMessage(ClientMessage.Ping, (client, message: unknown) =>
+      this.handlePing(client, message),
+    );
 
     if (env.devCommands) {
       this.onMessage(ClientMessage.DevSetTime, (_client, message: unknown) => {
@@ -197,6 +227,22 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         const player = this.activePlayer(client);
         if (typeof amount !== 'number' || !player || player.downed) return;
         if (hurtPlayer(player, amount)) this.fall(client.sessionId);
+      });
+      this.onMessage(ClientMessage.DevSummon, (client, message: unknown) => {
+        const kind = option(message, 'kind');
+        const player = this.activePlayer(client);
+        if (!player) return;
+        const near = [...this.state.creatures.values()]
+          .filter((c) => c.kind === kind && c.present && c.health > 0)
+          .sort(
+            (a, b) =>
+              Math.hypot(a.x - player.x, a.z - player.z) -
+              Math.hypot(b.x - player.x, b.z - player.z),
+          )[0];
+        if (!near) return;
+        const spot = clampToWorld(player.x + SUMMON_OFFSET.x, player.z + SUMMON_OFFSET.z);
+        near.x = spot.x;
+        near.z = spot.z;
       });
       this.onMessage(ClientMessage.DevGive, (client, message: unknown) => {
         const itemId = option(message, 'itemId');
@@ -282,6 +328,32 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     logger.info(
       `[room ${this.roomId}] join ${client.sessionId} slot=${slot}${saved ? ' (returning)' : ''}`,
     );
+  }
+
+  /** Jump / wave: nothing happens in the game, the partner just sees it. */
+  private handleEmote(client: Client, message: unknown) {
+    const payload = parseEmotePayload(message);
+    const player = this.activePlayer(client);
+    const now = this.clock.currentTime;
+    if (!payload || !player || player.sleeping || player.downed) return;
+    if (now - player.emoteAt < EMOTE_COOLDOWN_MS) return;
+    player.emoteAt = now;
+    act(player, payload.kind);
+  }
+
+  /** "Look here": a mark on the ground near you, shown to everyone for PING_MS. */
+  private handlePing(client: Client, message: unknown) {
+    const payload = parsePingPayload(message);
+    const player = this.activePlayer(client);
+    const now = this.clock.currentTime;
+    if (!payload || !player || player.sleeping) return;
+    if (Math.hypot(payload.x - player.x, payload.z - player.z) > PING_MAX_DISTANCE) return;
+    if (now - player.pingAt < PING_COOLDOWN_MS) return;
+    player.pingAt = now;
+    if (!player.downed) act(player, 'point');
+    const spot = clampToWorld(payload.x, payload.z);
+    const ping: PingBroadcast = { from: client.sessionId, x: spot.x, z: spot.z };
+    this.broadcast(ServerMessage.Ping, ping);
   }
 
   /** Chat is not saved: it's a live conversation. Asleep or downed players can still talk. */
@@ -387,9 +459,12 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       this.state.today.meals += 1;
       this.advanceGoal('cook');
     }
+    const now = this.clock.currentTime;
+    for (const player of this.state.players.values()) tickStamina(player, dtMs, now);
     for (const hit of tickCreatures(this.state, dtMs, this.random)) {
       const player = this.state.players.get(hit.sessionId);
-      if (player && hurtPlayer(player, hit.damage)) this.fall(hit.sessionId);
+      if (!player || isDodging(player, now)) continue; // rolled out of the way
+      if (hurtPlayer(player, hit.damage)) this.fall(hit.sessionId);
     }
     for (const hit of tickProjectiles(this.state, dtMs)) {
       this.confirmHit(hit.owner, hit.creatureId, hit.outcome);
@@ -512,6 +587,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       return;
     }
 
+    if (move.sprint && Math.hypot(target.x - player.x, target.z - player.z) > 0) {
+      drainSprint(player, elapsed, now);
+    }
     player.x = target.x;
     player.z = target.z;
     player.yaw = move.yaw;
@@ -533,9 +611,11 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       if (!removeItem(player.inventory, weapon.ammo, 1)) return; // out of arrows
       shoot(this.state, client.sessionId, player, weapon, payload.yaw, payload.pitch);
       this.lastAttackAt.set(client.sessionId, now);
+      act(player, 'shoot');
       return;
     }
     this.lastAttackAt.set(client.sessionId, now); // a swing at thin air still takes time
+    act(player, 'attack');
     if (!payload.targetId) return;
     const outcome = strikeCreature(
       this.state,
@@ -613,6 +693,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     const last = this.lastHarvestAt.get(client.sessionId) ?? -Infinity;
     if (harvest(this.state, player, node, now, last) !== 'harvested') return;
     this.lastHarvestAt.set(client.sessionId, now);
+    act(player, HARVEST_ACTION[node.kind]);
     grantXp(player, XP_REWARDS.gather);
     const { drop, qty } = RESOURCE_KINDS[node.kind];
     this.state.today.gathered += qty;

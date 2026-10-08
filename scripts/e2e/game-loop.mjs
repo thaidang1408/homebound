@@ -67,6 +67,8 @@ export default async function gameLoop(t) {
   for (let i = 0; i < 80 && !wolf; i++) {
     wolf = await hostileWolf(a);
     if (!wolf) await a.waitForTimeout(500);
+    // Wolves roam a wide area; if none wandered close in 10 s, bring the nearest one over.
+    if (!wolf && i === 20) await hb(a, (h) => h.summon('wolf'));
   }
   t.check('a wolf comes for you in the north woods at night', !!wolf);
   if (wolf) {

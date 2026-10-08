@@ -128,6 +128,7 @@ position. Creatures are not saved: a re-opened home has a fresh herd. A player i
 
 ## Controls
 
-WASD move · Mouse look · Shift sprint · E interact (hold to keep harvesting / reviving) · Left click
+WASD move · Mouse look · Shift sprint (uses stamina) · Space jump · Q dodge roll (stamina; strikes
+miss you for a moment) · F mark a spot for your partner · G wave · Enter chat · E interact (hold to keep harvesting / reviving) · Left click
 use the held item (food: eat; spear/bow/fists: attack; a creature in your face: punch) · 1–5 / wheel
 hotbar · Tab backpack (drag to rearrange) · M mute · Esc pause (settings).

@@ -13,6 +13,7 @@ import {
   isGoalKind,
   isItemId,
   type ChatBroadcast,
+  type PingBroadcast,
   type DayPhase,
   type DaySummaryPayload,
   type HitConfirmPayload,
@@ -27,11 +28,13 @@ import {
   playHit,
   playHowl,
   playHurt,
+  playPingAt,
   playPickup,
   playRevived,
   playUiClick,
 } from '../audio/sounds';
 import { addChatLine, clearChat } from '../state/chat';
+import { addPing } from '../state/pings';
 import { getUi, showToast, updateUi } from '../state/ui';
 
 /** The low-frequency slice of room state the React UI cares about. */
@@ -204,6 +207,10 @@ export function watchRoom(room: Room<HomeState>): void {
     const mine = m.from === room.sessionId;
     addChatLine(m, mine);
     if (!mine) playUiClick();
+  });
+  room.onMessage(ServerMessage.Ping, (p: PingBroadcast) => {
+    addPing(p, p.from === room.sessionId);
+    playPingAt(p.x, p.z);
   });
   room.onMessage(ServerMessage.Died, () =>
     showToast('You didn’t make it… and woke up at home. Your items are safe.'),

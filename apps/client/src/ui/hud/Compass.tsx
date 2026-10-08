@@ -3,6 +3,7 @@ import type { Room } from '@colyseus/sdk';
 import type { HomeState } from '@homebound/shared';
 import { localPose } from '../../game/player/localPose';
 import { playerColor } from '../../game/player/playerColors';
+import { getPings } from '../../state/pings';
 import styles from './Compass.module.css';
 
 /** The strip shows ±90° around where you look. */
@@ -28,7 +29,7 @@ function relative(yaw: number, target: number): number {
 }
 
 /**
- * Compass bar: cardinal points, the house and your partner. Updated every animation frame by
+ * Compass bar: cardinal points, the house, your partner and the latest marked spot. Updated every animation frame by
  * writing styles directly (no React re-render). Home and partner stick to the edge when behind you.
  */
 export function Compass({ room }: { room: Room<HomeState> }) {
@@ -61,6 +62,10 @@ export function Compass({ room }: { room: Room<HomeState> }) {
         partnerMark.style.color = playerColor(partner.slot); // same color as their body
         place('partner', bearing(localPose.x, localPose.z, partner.x, partner.z), true);
       }
+      const ping = getPings().at(-1);
+      const pingMark = marks.get('ping');
+      if (pingMark) pingMark.hidden = !ping;
+      if (ping) place('ping', bearing(localPose.x, localPose.z, ping.x, ping.z), true);
       frame = requestAnimationFrame(update);
     };
     frame = requestAnimationFrame(update);
@@ -76,6 +81,9 @@ export function Compass({ room }: { room: Room<HomeState> }) {
       ))}
       <span data-mark="home" className={styles.marker} title="Home">
         🏠
+      </span>
+      <span data-mark="ping" className={styles.marker} title="Marked spot" hidden>
+        📍
       </span>
       <span data-mark="partner" className={styles.marker} title="Partner">
         ●

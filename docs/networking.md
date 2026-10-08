@@ -44,6 +44,8 @@ Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `al
 | `PlayerState.downed` / `bleedOut` / `revive`                 | boolean / 8-bit 0–1 / 8-bit 0–1   | downed state, bleed-out and revive bars             |
 | `PlayerState.health`                                         | uint8                             | rounded up from server-only `healthExact`           |
 | `PlayerState.selectedSlot`                                   | uint8                             | held hotbar slot (cosmetic)                         |
+| `PlayerState.stamina` / `winded`                             | uint8 / boolean                   | from server-only `staminaExact` (ADR-022)           |
+| `PlayerState.action` / `actionSeq`                           | string / uint8 (wraps)            | last visible action; the counter replays repeats    |
 | `PlayerState.xp` / `level`                                   | uint32 / uint8                    | level derived from xp                               |
 | `PlayerState.inventory`                                      | array&lt;ItemStack&gt; (10)       | first 5 = hotbar                                    |
 
@@ -58,7 +60,7 @@ on the client (regression test in `HomeRoom.test.ts`).
 | --------- | ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | C→S       | `ready`                 | `{ ready }`                      | shape, lobby phase                                                                                                                          |
 | C→S       | `start`                 | —                                | lobby phase; alone, or both ready + connected                                                                                               |
-| C→S       | `move`                  | `{ x, z, yaw, pitch }`           | shape, playing, not asleep, world bounds, walls/furniture, max speed                                                                        |
+| C→S       | `move`                  | `{ x, z, yaw, pitch, sprint? }`  | shape, playing, not asleep, world bounds, walls/furniture, max speed                                                                        |
 | C→S       | `interact`              | `{ targetId }`                   | known furniture, within reach, asleep → only the bed                                                                                        |
 | C→S       | `transfer`              | `{ from: player                  | chest, slot }`                                                                                                                              | next to the chest, not asleep; moves what fits |
 | C→S       | `move-slot`             | `{ container, from, to }`        | slot indices in range; chest only while at it; move / swap / merge                                                                          |
@@ -69,8 +71,12 @@ on the client (regression test in `HomeRoom.test.ts`).
 | C→S       | `craft`                 | `{ recipeId }`                   | known recipe, next to the workbench, has the materials, room for the output                                                                 |
 | C→S       | `interact` on a player  | `{ targetId: sessionId }`        | held [E] on a downed partner in reach; pings at least every 0.9 s (a gap pauses the revive)                                                 |
 | C→S       | `interact` on a carcass | `{ targetId: "boar-2" }`         | dead + present, within reach, backpack fits all the loot                                                                                    |
+| C→S       | `dodge`                 | —                                | not asleep/downed, stamina ≥ 30, not winded, 650 ms cooldown; creature strikes miss for 340 ms                                              |
+| C→S       | `emote`                 | `{ kind: 'jump' \| 'wave' }`     | known kind, not asleep/downed, one per 300 ms (cosmetic)                                                                                    |
+| C→S       | `ping`                  | `{ x, z }`                       | within 60 m of the player, one per second; broadcast as `ping { from, x, z }`                                                               |
 | C→S       | `chat`                  | `{ text }`                       | any player in the home; cleaned (control chars, whitespace), ≤ 120 chars, one per 0.4 s; not saved                                          |
 | C→S       | `dev:hurt` / `dev:give` | `{ amount }` / `{ itemId, qty }` | **dev servers only**                                                                                                                        |
+| C→S       | `dev:summon`            | `{ kind }`                       | **dev servers only**: moves the nearest live creature of that kind 12 m from you (e2e)                                                      |
 | C→S       | `dev:set-time`          | `{ timeOfDay }`                  | **dev servers only** (`NODE_ENV !== production`)                                                                                            |
 | S→C       | `teleport`              | `{ x, z }`                       | rejected move, getting into / out of bed, new day, death                                                                                    |
 | S→C       | `hit-confirm`           | `{ killed }`                     | your strike or arrow landed (hitmarker)                                                                                                     |

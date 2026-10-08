@@ -3,7 +3,13 @@ import { useFrame, useThree } from '@react-three/fiber';
 import type { Room } from '@colyseus/sdk';
 import {
   ClientMessage,
+  DODGE_COOLDOWN_MS,
+  DODGE_COST,
+  DODGE_DISTANCE,
+  DODGE_MS,
+  GRAVITY,
   INTERACT_RANGE,
+  JUMP_SPEED,
   WORLD_COLLIDERS,
   MAX_PITCH,
   MOVE_SEND_INTERVAL_MS,
@@ -27,10 +33,11 @@ import { getSettings } from '../../state/settings';
 import { getUi, showToast, updateUi } from '../../state/ui';
 import { findCreature, findDownedPartner, findFocus, isAvailable } from '../interaction/focus';
 import { heldItem, heldWeaponId } from './held';
-import { playFootstep, playSwing } from '../../audio/sounds';
+import { playDodge, playFootstep, playJump, playLand, playSwing } from '../../audio/sounds';
+import { emitBurst } from '../fx/Particles';
 import { autopilot, yawToward } from './autopilot';
-import { useHeldKeys } from './keyboard';
-import { localPose } from './localPose';
+import { isTyping, useHeldKeys } from './keyboard';
+import { localAction, localPose } from './localPose';
 
 /** Dev-only: turn toward the next autopilot waypoint; returns 1 to walk forward, 0 when done. */
 function steerAutopilot(p: MovePayload, stepLength: number): number {
@@ -71,6 +78,14 @@ const HOUSE_HALF = { x: 6, z: 5 };
 /** Taking a hit shakes the view briefly. */
 const SHAKE_MS = 220;
 const SHAKE_ANGLE = 0.035;
+/** A jump/dodge pressed slightly too early (mid-air, mid-roll) still happens within this. */
+const INPUT_BUFFER_MS = 250;
+/** Landing dips the view a little; a dodge ducks low and leans into the roll. */
+const LAND_DIP = 0.12;
+const LAND_DIP_MS = 160;
+const DODGE_DUCK = 0.45;
+const DODGE_LEAN = 0.12;
+
 /** Downed: eyes just above the grass, head tilted. */
 const DOWNED_EYE_HEIGHT = 0.45;
 const DOWNED_ROLL = 0.35;
@@ -93,6 +108,15 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
   const bob = useRef({ phase: 0, amount: 0 });
   const sentSlot = useRef(-1);
   const shake = useRef({ seen: 0, at: -1e9 });
+  const jump = useRef({ y: 0, vy: 0, landedAt: -1e9 });
+  const sprintSent = useRef(false);
+  const dodge = useRef({ active: false, at: -1e9, dx: 0, dz: 0, done: 0, lean: 0 });
+  /**
+   * When Space / Q were last pressed. Taken from key events, not the held-key set: a quick tap can
+   * go down and up between two frames (low FPS). A press waits up to INPUT_BUFFER_MS for the
+   * move to become possible (Q in mid-air rolls on landing).
+   */
+  const pressed = useRef({ jump: -1e9, dodge: -1e9 });
 
   useEffect(() => {
     const self = room.state.players.get(room.sessionId);
@@ -129,6 +153,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       // selected slot mid-hunt, and eating it instead of fighting back gets you killed).
       if (isItemId(h.itemId) && getItem(h.itemId).hunger !== undefined && !getUi().preyId) {
         room.send(ClientMessage.UseItem, { slot: h.slot });
+        localAction('eat');
         return;
       }
       const now = performance.now();
@@ -142,7 +167,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
         }
       }
       swingAt.current = now;
-      localPose.attackAt = now;
+      localAction(weapon.kind === 'ranged' ? 'shoot' : 'attack');
       if (weapon.kind === 'melee') playSwing();
       const p = pose.current;
       room.send(ClientMessage.Attack, {
@@ -152,13 +177,20 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
         pitch: p.pitch,
       });
     };
+    const press = (e: KeyboardEvent) => {
+      if (e.repeat || isTyping(e) || document.pointerLockElement !== canvas) return;
+      if (e.code === 'Space') pressed.current.jump = performance.now();
+      if (e.code === 'KeyQ') pressed.current.dodge = performance.now();
+    };
     canvas.addEventListener('click', lock);
     document.addEventListener('mousemove', look);
     document.addEventListener('mousedown', use);
+    window.addEventListener('keydown', press);
     return () => {
       canvas.removeEventListener('click', lock);
       document.removeEventListener('mousemove', look);
       document.removeEventListener('mousedown', use);
+      window.removeEventListener('keydown', press);
       if (document.pointerLockElement === canvas) document.exitPointerLock();
     };
   }, [canvas, room]);
@@ -170,6 +202,12 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
 
     const me = room.state.players.get(room.sessionId);
     const sleeping = me?.sleeping ?? false;
+    if (me?.downed || sleeping) {
+      jump.current.y = 0;
+      jump.current.vy = 0;
+      dodge.current.active = false;
+      localPose.jumpY = 0;
+    }
     if (me?.downed) {
       camera.position.set(p.x, terrainHeight(p.x, p.z) + DOWNED_EYE_HEIGHT, p.z);
       camera.rotation.set(p.pitch, p.yaw, DOWNED_ROLL, 'YXZ');
@@ -186,41 +224,110 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     let walked = 0;
     let forward = 0;
     let strafe = 0;
-    if (document.pointerLockElement === canvas) {
+    const locked = document.pointerLockElement === canvas;
+    if (locked) {
       forward = Number(held.has('KeyW')) - Number(held.has('KeyS'));
       strafe = Number(held.has('KeyD')) - Number(held.has('KeyA'));
     }
     if (import.meta.env.DEV) forward ||= steerAutopilot(p, PLAYER_WALK_SPEED * dt);
 
+    const now = performance.now();
+    // yaw 0 looks toward -Z; right vector is +X.
+    const sin = Math.sin(p.yaw);
+    const cos = Math.cos(p.yaw);
     const length = Math.hypot(forward, strafe);
-    if (length > 0) {
-      const sprinting = held.has('ShiftLeft') || held.has('ShiftRight');
-      const step = ((sprinting ? PLAYER_SPRINT_SPEED : PLAYER_WALK_SPEED) * dt) / length;
-      // yaw 0 looks toward -Z; right vector is +X.
-      const sin = Math.sin(p.yaw);
-      const cos = Math.cos(p.yaw);
-      const wanted = clampToWorld(
-        p.x + (-sin * forward + cos * strafe) * step,
-        p.z + (-cos * forward - sin * strafe) * step,
-      );
+    const stepBy = (dx: number, dz: number) => {
       // Push out of walls/furniture: the player slides along them.
-      const next = resolveCircle(wanted, PLAYER_RADIUS, WORLD_COLLIDERS);
-      walked = Math.hypot(next.x - p.x, next.z - p.z);
+      const next = resolveCircle(clampToWorld(p.x + dx, p.z + dz), PLAYER_RADIUS, WORLD_COLLIDERS);
+      const moved = Math.hypot(next.x - p.x, next.z - p.z);
+      p.x = next.x;
+      p.z = next.z;
+      return moved;
+    };
+
+    // --- jump (Space): a cosmetic arc; the partner sees it through the "jump" emote ---
+    const j = jump.current;
+    const d = dodge.current;
+    // Counted from the previous frame, so even a slow frame never drops a press.
+    const buffer = INPUT_BUFFER_MS + rawDt * 1000;
+    const wantsJump = now - pressed.current.jump < buffer;
+    const wantsDodge = now - pressed.current.dodge < buffer;
+    if (wantsJump && j.y === 0 && j.vy === 0 && !d.active) {
+      pressed.current.jump = -1e9;
+      j.vy = JUMP_SPEED;
+      room.send(ClientMessage.Emote, { kind: 'jump' });
+      localAction('jump');
+      playJump();
+    }
+    if (j.vy !== 0 || j.y > 0) {
+      j.vy -= GRAVITY * dt;
+      j.y = Math.max(0, j.y + j.vy * dt);
+      if (j.y === 0) {
+        j.vy = 0;
+        j.landedAt = now;
+        playLand();
+        emitBurst('dust', p.x, terrainHeight(p.x, p.z) + 0.05, p.z);
+      }
+    }
+
+    // --- dodge roll (Q): the server spends stamina and makes strikes miss for a moment ---
+    const canDodge =
+      !!me && !me.winded && me.stamina >= DODGE_COST && now - d.at >= DODGE_COOLDOWN_MS;
+    if (wantsDodge && !d.active && j.y === 0 && canDodge) {
+      pressed.current.dodge = -1e9;
+      // Roll the way you're walking, or back out of trouble when standing still.
+      const f = length > 0 ? forward / length : -1;
+      const s = length > 0 ? strafe / length : 0;
+      Object.assign(d, {
+        active: true,
+        at: now,
+        dx: -sin * f + cos * s,
+        dz: -cos * f - sin * s,
+        done: 0,
+        lean: -s,
+      });
+      room.send(ClientMessage.Dodge);
+      localAction('dodge');
+      playDodge();
+    }
+
+    const sprinting =
+      (held.has('ShiftLeft') || held.has('ShiftRight')) && !!me && !me.winded && me.stamina > 0;
+    if (d.active) {
+      // Fast start, soft finish.
+      const t = Math.min(1, (now - d.at) / DODGE_MS);
+      const covered = DODGE_DISTANCE * (1 - (1 - t) * (1 - t));
+      walked = stepBy(d.dx * (covered - d.done), d.dz * (covered - d.done));
+      d.done = covered;
+      if (t >= 1) d.active = false;
+    } else if (length > 0) {
+      const step = ((sprinting ? PLAYER_SPRINT_SPEED : PLAYER_WALK_SPEED) * dt) / length;
+      walked = stepBy(
+        (-sin * forward + cos * strafe) * step,
+        (-cos * forward - sin * strafe) * step,
+      );
+    }
+    if (j.y === 0 && !d.active) {
       stride.current += walked;
       if (stride.current > STEP_LENGTH) {
         stride.current = 0;
-        playFootstep(Math.abs(next.x) < HOUSE_HALF.x && Math.abs(next.z) < HOUSE_HALF.z);
+        playFootstep(Math.abs(p.x) < HOUSE_HALF.x && Math.abs(p.z) < HOUSE_HALF.z);
       }
-      p.x = next.x;
-      p.z = next.z;
     }
+    sprintSent.current = sprinting && walked > 0;
 
     // Bob while walking, ease back to still when stopping.
     const b = bob.current;
     b.phase += (walked / STEP_LENGTH) * Math.PI;
     b.amount += ((walked > 0 ? 1 : 0) - b.amount) * Math.min(1, dt * 8);
-    const bobY = Math.abs(Math.sin(b.phase)) * BOB_HEIGHT * b.amount;
-    camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT + bobY, p.z);
+    const bobY = j.y > 0 ? 0 : Math.abs(Math.sin(b.phase)) * BOB_HEIGHT * b.amount;
+    const landing = (now - j.landedAt) / LAND_DIP_MS;
+    const dodgeT = d.active ? (now - d.at) / DODGE_MS : 1;
+    const duck =
+      (landing < 1 ? Math.sin(landing * Math.PI) * LAND_DIP : 0) +
+      (dodgeT < 1 ? Math.sin(dodgeT * Math.PI) * DODGE_DUCK : 0);
+    camera.position.set(p.x, terrainHeight(p.x, p.z) + PLAYER_EYE_HEIGHT + bobY + j.y - duck, p.z);
+    const lean = dodgeT < 1 ? Math.sin(dodgeT * Math.PI) * DODGE_LEAN * d.lean : 0;
     const swing = (performance.now() - swingAt.current) / SWING_MS;
     const nod = swing < 1 ? -Math.sin(swing * Math.PI) * SWING_PITCH : 0;
     const { hurtCount } = getUi();
@@ -228,12 +335,15 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       shake.current = { seen: hurtCount, at: performance.now() };
     const shaking = (performance.now() - shake.current.at) / SHAKE_MS;
     const jolt = shaking < 1 ? Math.sin(shaking * 40) * SHAKE_ANGLE * (1 - shaking) : 0;
-    camera.rotation.set(p.pitch + nod + jolt, p.yaw + jolt * 0.5, 0, 'YXZ');
+    camera.rotation.set(p.pitch + nod + jolt, p.yaw + jolt * 0.5, lean, 'YXZ');
 
     localPose.x = p.x;
     localPose.z = p.z;
     localPose.yaw = p.yaw;
     localPose.pitch = p.pitch;
+    localPose.jumpY = j.y;
+    localPose.walking = b.amount;
+    localPose.bobPhase = b.phase;
 
     const focus =
       findDownedPartner(room, p.x, p.z) ??
@@ -261,7 +371,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       Math.abs(p.yaw - s.yaw) > MOVE_EPSILON ||
       Math.abs(p.pitch - s.pitch) > MOVE_EPSILON;
     if (!changed) return;
-    room.send(ClientMessage.Move, p);
+    room.send(ClientMessage.Move, { ...p, sprint: sprintSent.current });
     s.x = p.x;
     s.z = p.z;
     s.yaw = p.yaw;

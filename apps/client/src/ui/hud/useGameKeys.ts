@@ -6,6 +6,8 @@ import {
   findInteractable,
 } from '@homebound/shared';
 import { isTyping } from '../../game/player/keyboard';
+import { localAction } from '../../game/player/localPose';
+import { pingTarget } from '../../game/player/pingTarget';
 import { getSession } from '../../state/session';
 import { applyVolume } from '../../audio/engine';
 import { getSettings, updateSettings } from '../../state/settings';
@@ -24,6 +26,21 @@ function openPanel(panel: Panel): void {
 export function closePanel(): void {
   updateUi({ panel: 'none' });
   resumePlay();
+}
+
+const HARVEST_ACTION = { tree: 'chop', rock: 'mine', bush: 'pick' } as const;
+
+/** [F]: mark where the crosshair meets the ground for the partner. */
+function ping(): void {
+  const room = getSession().room;
+  const spot = pingTarget();
+  if (!room) return;
+  if (!spot) {
+    showToast('Look at the ground to mark a spot.');
+    return;
+  }
+  room.send(ClientMessage.Ping, spot);
+  localAction('point');
 }
 
 /** Holding [E] repeats at the harvest rhythm; also keeps a revive going (well inside REVIVE_PING_TIMEOUT_MS). */
@@ -62,6 +79,7 @@ function interact(): boolean {
     case 'rock':
     case 'bush':
       room.send(ClientMessage.Interact, { targetId: target.id });
+      localAction(HARVEST_ACTION[target.kind]);
       return true;
   }
   return false;
@@ -108,6 +126,12 @@ export function useGameKeys(): void {
         return;
       }
       if (!locked) return;
+      if (e.code === 'Space') e.preventDefault(); // jump (LocalPlayer), never "click" a button
+      if (e.code === 'KeyF') ping();
+      if (e.code === 'KeyG') {
+        getSession().room?.send(ClientMessage.Emote, { kind: 'wave' });
+        localAction('wave');
+      }
       if (e.code === 'KeyE' && interact() && !hold) {
         hold = setInterval(() => {
           if (document.pointerLockElement === null || !interact()) stopHold();

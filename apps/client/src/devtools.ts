@@ -15,6 +15,7 @@ declare global {
       setTime: typeof setTime;
       hurt: typeof hurt;
       give: typeof give;
+      summon: typeof summon;
       perf: typeof perf;
     };
   }
@@ -33,6 +34,11 @@ function hurt(amount: number): void {
 /** Get items (dev servers only): test weapons and crafting. */
 function give(itemId: string, qty: number): void {
   getSession().room?.send(ClientMessage.DevGive, { itemId, qty });
+}
+
+/** Bring the nearest creature of a kind close (dev servers only): makes AI tests deterministic. */
+function summon(kind: string): void {
+  getSession().room?.send(ClientMessage.DevSummon, { kind });
 }
 
 /** Draw calls, triangles and frames per second over one second (for profiling). */
@@ -61,4 +67,4 @@ async function perf(): Promise<{
   };
 }
 
-window.__homebound = { getSession, getUi, walkTo, setTime, hurt, give, perf };
+window.__homebound = { getSession, getUi, walkTo, setTime, hurt, give, summon, perf };

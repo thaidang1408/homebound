@@ -1,5 +1,5 @@
 import { schema, t, type SchemaType } from '@colyseus/schema';
-import { HEALTH_MAX, HUNGER_START, MAX_PITCH } from './constants.js';
+import { HEALTH_MAX, HUNGER_START, MAX_PITCH, STAMINA_MAX } from './constants.js';
 import { CreatureMode } from './creatures.js';
 import { NEW_HOME_TIME } from './world/time.js';
 
@@ -60,6 +60,22 @@ export const PlayerState = schema(
     level: t.uint8().default(1),
     /** Selected hotbar slot, so the partner sees what you hold. */
     selectedSlot: t.uint8().default(0),
+    /** Stamina for sprinting and dodging (server-owned, rounded up for display). */
+    stamina: t.uint8().default(STAMINA_MAX),
+    staminaExact: t.float64().noSync().default(STAMINA_MAX),
+    /** Emptied out and recovering: no sprint or dodge until STAMINA_RECOVER. */
+    winded: t.boolean().default(false),
+    staminaUsedAt: t.float64().noSync().default(0),
+    dodgeUntil: t.float64().noSync().default(0),
+    dodgeAt: t.float64().noSync().default(-1e9),
+    emoteAt: t.float64().noSync().default(-1e9),
+    pingAt: t.float64().noSync().default(-1e9),
+    /**
+     * The last thing they visibly did (PlayerAction) and a counter that changes each time, so the
+     * partner can animate it once even when the same action repeats.
+     */
+    action: t.string().default(''),
+    actionSeq: t.uint8().default(0),
     /** Fixed-length slot array; the first HOTBAR_SLOTS are the hotbar. */
     inventory: t.array(ItemStack),
   },

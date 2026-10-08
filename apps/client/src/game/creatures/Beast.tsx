@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { MathUtils, type Group, type Mesh, type MeshStandardMaterial } from 'three';
 import type { Room } from '@colyseus/sdk';
@@ -21,6 +21,12 @@ const LUNGE_DISTANCE = 0.25;
 /** Leg swing radians per metre walked. */
 const STRIDE = 7;
 const HEALTH_BAR_WIDTH = 0.8;
+/** Idle sniffing: how often (ms per cycle) and how deep the head dips. */
+const SNIFF_MS = 900;
+const SNIFF_DIP = 0.5;
+/** Coiling before a strike, and the squash of a hit. */
+const COIL = 0.14;
+const HIT_SQUASH = 0.18;
 /** Closer than this the world bar would cover the crosshair; the HUD prompt shows health instead. */
 const HEALTH_BAR_MIN_DISTANCE = 2.5;
 
@@ -120,6 +126,8 @@ export function Beast({
   const torsoSkin = useRef<MeshStandardMaterial>(null);
   const headSkin = useRef<MeshStandardMaterial>(null);
   const anim = useRef({ placed: false, phase: 0, mode: '', modeAt: 0, health: -1, flashAt: -1e9 });
+  // Each creature sniffs on its own beat.
+  const seed = useMemo(() => [...id].reduce((n, ch) => n + ch.charCodeAt(0), 0), [id]);
 
   useFrame(({ camera }, rawDt) => {
     const c = room.state.creatures.get(id);
@@ -183,12 +191,19 @@ export function Beast({
     let lunge = 0;
     let headPitch = 0;
     let hop = Math.abs(Math.sin(a.phase)) * 0.04;
+    let coil = 0;
+    const calm = c.mode === CreatureMode.Idle || c.mode === CreatureMode.Patrol;
+    if (calm && moved < 0.002) {
+      // Standing still: now and then the head dips to sniff the grass.
+      headPitch = -SNIFF_DIP * Math.max(0, Math.sin(now / SNIFF_MS + seed)) ** 6;
+    }
     if (c.mode === CreatureMode.Alert) {
       headPitch = 0.4; // head up: "it noticed you"
       hop = Math.abs(Math.sin(inMode / 90)) * 0.08;
     } else if (c.mode === CreatureMode.Attack) {
       if (inMode < def.attackWindupMs) {
         pitch = 0.22 * (inMode / def.attackWindupMs); // the tell: rearing back
+        coil = COIL * (inMode / def.attackWindupMs); // …and coiling up
         headPitch = -0.2;
       } else if (inMode < def.attackWindupMs + LUNGE_MS) {
         lunge = Math.sin(((inMode - def.attackWindupMs) / LUNGE_MS) * Math.PI) * LUNGE_DISTANCE;
@@ -207,8 +222,10 @@ export function Beast({
     b.position.z = -Math.cos(b.rotation.y) * lunge;
     head.current.rotation.x = MathUtils.damp(head.current.rotation.x, headPitch, 14, dt);
 
-    // --- hit flash ---
+    // --- hit flash and squash ---
     const flash = Math.max(0, 1 - (now - a.flashAt) / FLASH_MS);
+    const squash = dead ? 0 : coil + flash * HIT_SQUASH;
+    b.scale.set(1 + squash * 0.5, 1 - squash, 1 + squash * 0.5);
     if (torsoSkin.current) torsoSkin.current.emissiveIntensity = flash * 1.4;
     if (headSkin.current) headSkin.current.emissiveIntensity = flash * 1.4;
 

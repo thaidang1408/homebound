@@ -47,6 +47,31 @@ export const PLAYER_RADIUS = 0.3; // m, collision circle
 export const MOVE_SPEED_TOLERANCE = 1.5;
 export const MOVE_DISTANCE_SLACK = 0.75; // m
 
+// --- Stamina, jump and dodge (Phase 9) ---
+
+export const STAMINA_MAX = 100;
+/** Sprinting drains this per second (≈ 5.5 s from full); resting refills after a short pause. */
+export const STAMINA_SPRINT_DRAIN = 18;
+export const STAMINA_REGEN = 24;
+export const STAMINA_REGEN_DELAY_MS = 800;
+/** Emptied out: no sprinting or dodging until stamina is back to this. */
+export const STAMINA_RECOVER = 25;
+/** A dodge roll: its cost, length, distance, the part of it that dodges strikes, and cooldown. */
+export const DODGE_COST = 30;
+export const DODGE_MS = 380;
+export const DODGE_DISTANCE = 3.2; // m
+export const DODGE_IFRAMES_MS = 340;
+export const DODGE_COOLDOWN_MS = 650;
+/** Jump: take-off speed and gravity (cosmetic arc; positions stay 2D on the server). */
+export const JUMP_SPEED = 4.6; // m/s
+export const GRAVITY = 14; // m/s²
+/** Emotes and jumps: at most one per this gap per player. */
+export const EMOTE_COOLDOWN_MS = 300;
+/** Pings: how far away you may mark, how long a mark lasts, one per this gap. */
+export const PING_MAX_DISTANCE = 60; // m
+export const PING_MS = 8000;
+export const PING_COOLDOWN_MS = 1000;
+
 /** The playable world is a circle around the house; the terrain rim rises at its edge. */
 export const WORLD_RADIUS = 58; // m
 

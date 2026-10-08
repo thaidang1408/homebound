@@ -18,6 +18,10 @@ day/night, both-players-sleep to advance the day. No accounts, DB, voice, paymen
 | 6   | Game loop                 | Home → prepare → hunt → fight → loot → return → cook → eat → sleep → new day feels like a game                                                                               |
 | 7   | Polish                    | UI, animation, audio, lighting, particles, feedback, loading/error states, multiplayer UX, profiling                                                                         |
 | 8   | Deployment                | Frontend on Cloudflare Pages, game server on a WebSocket-capable Node host; HTTPS/WSS, CORS, health check, logging; Laptop A + Laptop B on the public URL join the same room |
+| 9   | Movement + animation feel | Jump, stamina, dodge roll; first-person arms; partner body animation; creature animation pass; wave + ping. Both players read what the other does at 20 m without chat       |
+
+Phases 10–16 (hunting 2.0, pets, exploration, story, fantasy monsters, home + garden, seasons) are
+proposed in `docs/roadmap.md` and are added here one at a time as the user approves them.
 
 Success milestone: two people on two computers share a room code, cook, fight, revive each other,
 run home at night, sleep, start a new day — and want to play again.

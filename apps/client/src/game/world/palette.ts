@@ -58,6 +58,7 @@ export const PALETTE = {
   fletching: '#e9e2d0',
   bowString: '#efe6cf',
   skin: '#f2d4b0',
+  pants: '#34404a',
 
   rawMeat: '#d4566a',
   cookedMeat: '#7a4426',

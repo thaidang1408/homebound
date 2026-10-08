@@ -2,6 +2,11 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 import { CloseCode } from '@colyseus/sdk';
 import {
   CHAT_COOLDOWN_MS,
+  DODGE_COST,
+  EMOTE_COOLDOWN_MS,
+  PING_COOLDOWN_MS,
+  PING_MAX_DISTANCE,
+  STAMINA_MAX,
   CHAT_MAX_LENGTH,
   ClientMessage,
   GamePhase,
@@ -10,6 +15,7 @@ import {
   ServerMessage,
   isValidRoomCode,
   type ChatBroadcast,
+  type PingBroadcast,
   type HomeState,
   type TeleportPayload,
 } from '@homebound/shared';
@@ -179,5 +185,49 @@ describe('chat', () => {
     host.send(ClientMessage.Chat, { text: 'x'.repeat(500) });
     await waitFor(() => heard.length === 2);
     expect(heard[1]?.text).toHaveLength(CHAT_MAX_LENGTH);
+  });
+});
+
+describe('stamina, emotes and pings', () => {
+  test('a dodge costs stamina and the partner sees it; a second one right away is refused', async () => {
+    const { host, partner } = await createPair();
+    await startGame(host, partner);
+    host.send(ClientMessage.Dodge);
+    await waitFor(() => playerOf(partner, host.sessionId).action === 'dodge');
+    const seen = playerOf(partner, host.sessionId);
+    expect(seen.stamina).toBe(STAMINA_MAX - DODGE_COST);
+    const seq = seen.actionSeq;
+    host.send(ClientMessage.Dodge); // inside the cooldown
+    await new Promise((r) => setTimeout(r, 300));
+    expect(playerOf(partner, host.sessionId).actionSeq).toBe(seq);
+    expect(playerOf(partner, host.sessionId).stamina).toBeLessThan(STAMINA_MAX);
+  });
+
+  test('wave and jump animate for the partner; unknown emotes are ignored', async () => {
+    const { host, partner } = await createPair();
+    await startGame(host, partner);
+    host.send(ClientMessage.Emote, { kind: 'dance' });
+    host.send(ClientMessage.Emote, { kind: 'wave' });
+    await waitFor(() => playerOf(partner, host.sessionId).action === 'wave');
+    await new Promise((r) => setTimeout(r, EMOTE_COOLDOWN_MS + 50));
+    host.send(ClientMessage.Emote, { kind: 'jump' });
+    await waitFor(() => playerOf(partner, host.sessionId).action === 'jump');
+  });
+
+  test('a ping reaches both players and points; one too far away is dropped', async () => {
+    const { host, partner } = await createPair();
+    await startGame(host, partner);
+    const pings: PingBroadcast[] = [];
+    partner.onMessage(ServerMessage.Ping, (p: PingBroadcast) => pings.push(p));
+    const me = playerOf(host, host.sessionId);
+    host.send(ClientMessage.Ping, { x: me.x + PING_MAX_DISTANCE + 5, z: me.z });
+    await new Promise((r) => setTimeout(r, 200));
+    expect(pings).toHaveLength(0);
+    await new Promise((r) => setTimeout(r, PING_COOLDOWN_MS));
+    host.send(ClientMessage.Ping, { x: me.x + 4, z: me.z - 2 });
+    await waitFor(() => pings.length === 1);
+    expect(pings[0]).toMatchObject({ from: host.sessionId });
+    // The message can arrive before the next state patch.
+    await waitFor(() => playerOf(partner, host.sessionId).action === 'point');
   });
 });
