@@ -5,8 +5,12 @@ import {
   CHEST_SLOTS,
   HEALTH_MAX,
   HUNGER_MAX,
+  HATCH_MS,
+  MAX_PLAYERS,
   MAX_TRAPS,
   NEW_HOME_TIME,
+  PETS_PER_PLAYER,
+  PET_ORDERS,
   PLAYER_INVENTORY_SLOTS,
   RESOURCE_KINDS,
   findResourceNode,
@@ -15,9 +19,12 @@ import {
   getItem,
   isGoalKind,
   isItemId,
+  isPetKind,
   isValidPlayerId,
+  sanitizePetName,
   isValidRoomCode,
   type ItemId,
+  type PetOrder,
 } from '@homebound/shared';
 
 /**
@@ -65,6 +72,21 @@ export interface HomeSave {
   today: SavedDayStats;
   /** Traps on the ground by id; missing in pre-Phase 10 saves. */
   traps: Record<string, SavedTrap>;
+  /** Pets and eggs by id; missing in pre-Phase 11 saves. */
+  pets: Record<string, SavedPet>;
+}
+
+export interface SavedPet {
+  /** PetKind, or '' for an egg. */
+  kind: string;
+  name: string;
+  /** playerId of the owner (required: a pet always has someone). */
+  owner: string;
+  order: PetOrder;
+  x: number;
+  z: number;
+  /** Egg: how long it has been hatching. */
+  hatchMs: number;
 }
 
 export interface SavedTrap {
@@ -221,6 +243,7 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
     goals: parseGoals(value.goals),
     today: parseToday(value.today),
     traps: parseTraps(value.traps),
+    pets: parsePets(value.pets),
   };
 }
 
@@ -243,6 +266,39 @@ function parseTraps(value: unknown): Record<string, SavedTrap> {
       z,
       sprung: raw.sprung === true,
       owner: isValidPlayerId(owner) ? owner : '',
+    };
+  }
+  return out;
+}
+
+const PET_ID = /^pet-\d{1,6}$/;
+/** Generous: owners include players who are offline, and claimed characters keep their pets. */
+const MAX_SAVED_PETS = MAX_PLAYERS * PETS_PER_PLAYER * 4;
+
+function parsePets(value: unknown): Record<string, SavedPet> {
+  const out: Record<string, SavedPet> = {};
+  if (!isObject(value)) return out;
+  const perOwner = new Map<string, number>();
+  for (const [id, raw] of Object.entries(value)) {
+    if (Object.keys(out).length >= MAX_SAVED_PETS) break;
+    if (!PET_ID.test(id) || !isObject(raw)) continue;
+    const owner = str(raw.owner);
+    const kind = str(raw.kind);
+    const x = num(raw.x, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+    const z = num(raw.z, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+    if (!isValidPlayerId(owner) || (kind !== '' && !isPetKind(kind))) continue;
+    if (Number.isNaN(x) || Number.isNaN(z)) continue;
+    const owned = perOwner.get(owner) ?? 0;
+    if (owned >= PETS_PER_PLAYER) continue;
+    perOwner.set(owner, owned + 1);
+    out[id] = {
+      kind,
+      name: sanitizePetName(raw.name),
+      owner,
+      order: PET_ORDERS.find((o) => o === raw.order) ?? 'follow',
+      x,
+      z,
+      hatchMs: num(raw.hatchMs, 0, 0, HATCH_MS),
     };
   }
   return out;

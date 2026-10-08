@@ -16,6 +16,8 @@ export interface ItemDefinition {
   buff?: string;
   /** Placed on the ground from the hotbar (left click) as this trap. */
   trap?: 'snare' | 'spike';
+  /** Set down in the yard (left click) to hatch a pet. */
+  egg?: true;
 }
 
 export const ITEMS = {
@@ -44,6 +46,7 @@ export const ITEMS = {
   bear_coat: { name: 'Bear-hide coat', icon: '🧥', maxStack: 1, armor: 0.45 },
   snare: { name: 'Snare', icon: '🪢', maxStack: 5, trap: 'snare' },
   spike_trap: { name: 'Spike trap', icon: '🔺', maxStack: 3, trap: 'spike' },
+  pet_egg: { name: 'Glowing egg', icon: '🥚', maxStack: 2, egg: true },
 } as const satisfies Record<string, ItemDefinition>;
 
 export type ItemId = keyof typeof ITEMS;

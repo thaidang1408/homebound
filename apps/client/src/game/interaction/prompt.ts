@@ -1,5 +1,7 @@
 import {
   CREATURES,
+  PETS,
+  PETS_PER_PLAYER,
   RESOURCE_KINDS,
   StoveStatus,
   canSleepAt,
@@ -8,6 +10,8 @@ import {
   getItem,
   isCreatureKind,
   isItemId,
+  isPetKind,
+  type CreatureDefinition,
   type HomeState,
   type ItemId,
   type PlayerState,
@@ -45,9 +49,28 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
       actionable: true,
     };
   }
+  const pet = state.pets.get(focusId);
+  if (pet && me) {
+    if (!isPetKind(pet.kind)) {
+      return { text: `Egg hatching… ${Math.round(pet.hatch * 100)}%`, actionable: false };
+    }
+    return pet.ownerSession === sessionId
+      ? { text: `Talk to ${pet.name}`, actionable: true }
+      : { text: `Pat ${pet.name}`, actionable: true };
+  }
   const creature = state.creatures.get(focusId);
   if (creature && me && isCreatureKind(creature.kind)) {
-    const def = CREATURES[creature.kind];
+    const def: CreatureDefinition = CREATURES[creature.kind];
+    if (def.tame) {
+      // A wild pet: befriended by feeding it its favorite food from your hand.
+      const { food, feeds } = PETS[def.tame];
+      const mine = [...state.pets.values()].filter((p) => p.ownerSession === sessionId).length;
+      if (mine >= PETS_PER_PLAYER) return { text: 'You already have two pets', actionable: false };
+      if (me.inventory.at(me.selectedSlot)?.itemId !== food) {
+        return { text: `${def.name} loves ${itemName(food)} — hold some`, actionable: false };
+      }
+      return { text: `Feed ${itemName(food)} (${creature.trust}/${feeds})`, actionable: true };
+    }
     const fits = def.loot.every((l) => hasSpaceFor(me, l.itemId));
     return fits
       ? { text: `Butcher ${def.name.toLowerCase()}`, actionable: true }
@@ -98,7 +121,8 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
     case 'tree':
     case 'rock':
     case 'bush':
-    case 'mushroom': {
+    case 'mushroom':
+    case 'nest': {
       const def = RESOURCE_KINDS[target.kind];
       if (!hasSpaceFor(me, def.drop)) return { text: 'Backpack full', actionable: false };
       return { text: `${def.verb} ${itemName(def.drop)}`, actionable: true };

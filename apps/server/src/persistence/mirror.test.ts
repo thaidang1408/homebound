@@ -37,6 +37,7 @@ test.skipIf(!url)('saves survive a wiped disk through Postgres', async () => {
       goals: [],
       today: { hunted: 0, meals: 0, gathered: 0, crafted: 0, revives: 0 },
       traps: {},
+      pets: {},
     });
     await first.flush();
 

@@ -28,7 +28,13 @@ export function closePanel(): void {
   resumePlay();
 }
 
-const HARVEST_ACTION = { tree: 'chop', rock: 'mine', bush: 'pick', mushroom: 'pick' } as const;
+const HARVEST_ACTION = {
+  tree: 'chop',
+  rock: 'mine',
+  bush: 'pick',
+  mushroom: 'pick',
+  nest: 'pick',
+} as const;
 
 /** [F]: mark where the crosshair meets the ground for the partner. */
 function ping(): void {
@@ -54,7 +60,16 @@ function interact(): boolean {
   // In bed, [E] always means "get up".
   const focusId = me.sleeping ? 'bed' : getUi().focusId;
   if (focusId && room.state.creatures.has(focusId)) {
-    room.send(ClientMessage.Interact, { targetId: focusId }); // butcher a carcass
+    room.send(ClientMessage.Interact, { targetId: focusId }); // butcher a carcass / feed a wild pet
+    return false;
+  }
+  const pet = focusId ? room.state.pets.get(focusId) : undefined;
+  if (focusId && pet) {
+    if (pet.hatch < 1) return false; // still an egg
+    if (pet.ownerSession === room.sessionId) {
+      updateUi({ petId: focusId });
+      openPanel('pet');
+    } else room.send(ClientMessage.PetCommand, { petId: focusId, command: 'pat' });
     return false;
   }
   if (focusId && room.state.traps.has(focusId)) {
@@ -83,6 +98,7 @@ function interact(): boolean {
     case 'rock':
     case 'bush':
     case 'mushroom':
+    case 'nest':
       room.send(ClientMessage.Interact, { targetId: target.id });
       localAction(HARVEST_ACTION[target.kind]);
       return true;

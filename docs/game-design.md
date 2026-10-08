@@ -68,6 +68,30 @@ for rendering, client collision, server validation and interaction reach.
   for 2 min), mushroom skewer (2 mushrooms + wood: light-footed for 3 min). Mushrooms grow under the
   northern trees. One buff at a time, shown in the HUD.
 
+## Fantasy pets (Phase 11, ADR-024)
+
+Up to two pets each (eggs count). Pets never get hurt and never get lost.
+
+- **Eggs:** four nests far out in the world (north-east, south-west, south, west) each hold a
+  glowing egg (a new one every 20 min). Left click with the egg in hand sets it down in the yard (or
+  the house); it wobbles more and more and hatches after 45 s into a surprise pet (never a second of
+  a kind you already have).
+- **Wild pets:** one of each roams its corner: baby dragon (north-east crag), little ghost (behind
+  the house, only at night), baby dino (east meadow), unicorn foal (south clearing), tiny alien
+  (south-west hollow). They're shy (they run if you walk up), can't be hurt, and come over to you if
+  you hold their favorite food. [E] feeds one from your hand; three times and it's your friend. A new
+  one shows up later for your partner.
+- **Favorite foods:** dragon cooked meat, ghost mushroom, dino raw meat, unicorn berries, alien
+  stone (it's an alien).
+- **Jobs:** dragon breathes fire at anything hunting a player (10 dmg); dino headbutts (6) and
+  butchers carcasses near you into your backpack; ghost floats through walls, glows at night and
+  marks the nearest animal on your compass (🐾); unicorn heals everyone within 6 m; alien beams up
+  berries and mushrooms near you every 12 s.
+- **Orders** ([E] on your pet): Follow me / Stay here / Go home, rename, pat 💕. Anyone can pat any
+  pet. When you're offline or in bed your pets wait at home; at night the fighters (dragon, dino)
+  go out to meet anything prowling within 22 m of the house.
+- Saved with the home; a character claimed by name (ADR-021) brings their pets along.
+
 ## Combat and survival (Phase 5, ADR-017)
 
 | Weapon   | How                   | Damage | Reach / speed       | Every  | Boar (40 HP) |

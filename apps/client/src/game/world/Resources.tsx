@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import {
   ConeGeometry,
   CylinderGeometry,
+  TorusGeometry,
   DodecahedronGeometry,
   IcosahedronGeometry,
   Object3D,
@@ -24,6 +25,8 @@ import { PALETTE } from './palette';
 interface Part {
   geometry: BufferGeometry;
   color: string;
+  /** Self-lit this much (the egg in a nest glows so you can spot it). */
+  glow?: number;
   /** Instances of this part per node (berries: several per bush). */
   perNode: number;
   /** Place instance `i` of this part for a node; `depleted` swaps to the harvested look. */
@@ -36,6 +39,7 @@ const BURST: Record<ResourceKind, BurstKind> = {
   rock: 'stone',
   bush: 'leaves',
   mushroom: 'leaves',
+  nest: 'leaves',
 };
 /** Mushrooms grow in little clusters of three. */
 const CLUSTER = [
@@ -53,6 +57,28 @@ function base(o: Object3D, n: ResourceNodeDefinition, y: number) {
 }
 
 const PARTS: Record<ResourceKind, Part[]> = {
+  nest: [
+    {
+      geometry: new TorusGeometry(0.32, 0.1, 5, 10),
+      color: PALETTE.nest,
+      perNode: 1,
+      place(o, n) {
+        base(o, n, 0.08);
+        o.rotation.x = -Math.PI / 2;
+      },
+    },
+    {
+      geometry: new IcosahedronGeometry(0.17, 1),
+      color: PALETTE.eggSpot,
+      glow: 0.8,
+      perNode: 1,
+      place(o, n, _i, depleted) {
+        base(o, n, 0.24);
+        o.scale.y *= 1.3;
+        if (depleted) o.scale.setScalar(HIDDEN); // taken: a new one is laid later
+      },
+    },
+  ],
   tree: [
     {
       // Tall trunk so the canopy starts above eye height: you never stand inside the leaves.
@@ -224,7 +250,12 @@ function KindInstances({ kind }: { kind: ResourceKind }) {
           args={[part.geometry, undefined, nodes.length * part.perNode]}
           frustumCulled={false}
         >
-          <meshStandardMaterial color={part.color} flatShading />
+          <meshStandardMaterial
+            color={part.color}
+            emissive={part.color}
+            emissiveIntensity={part.glow ?? 0}
+            flatShading
+          />
         </instancedMesh>
       ))}
     </>
@@ -239,6 +270,7 @@ export function Resources() {
       <KindInstances kind="rock" />
       <KindInstances kind="bush" />
       <KindInstances kind="mushroom" />
+      <KindInstances kind="nest" />
     </>
   );
 }

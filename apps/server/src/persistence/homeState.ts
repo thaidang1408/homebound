@@ -1,10 +1,14 @@
 import {
   GoalState,
+  HATCH_MS,
+  PETS,
+  PetState,
   RESOURCE_KINDS,
   StoveStatus,
   TrapState,
   findResourceNode,
   isItemId,
+  isPetKind,
   levelForXp,
   type HomeState,
   type PlayerState,
@@ -107,6 +111,20 @@ export function buildSave(
         },
       ]),
     ),
+    pets: Object.fromEntries(
+      [...state.pets.entries()].map(([id, p]) => [
+        id,
+        {
+          kind: p.kind,
+          name: p.name,
+          owner: p.owner,
+          order: p.order === 'stay' || p.order === 'home' ? p.order : 'follow',
+          x: p.x,
+          z: p.z,
+          hatchMs: p.hatchMs,
+        },
+      ]),
+    ),
   };
 }
 
@@ -143,5 +161,19 @@ export function applyHome(state: HomeState, save: HomeSave): void {
     const trap = new TrapState();
     Object.assign(trap, saved);
     state.traps.set(id, trap);
+  }
+  state.pets.clear();
+  for (const [id, saved] of Object.entries(save.pets)) {
+    const pet = new PetState();
+    pet.kind = saved.kind;
+    pet.owner = saved.owner;
+    pet.order = saved.order;
+    pet.x = saved.x;
+    pet.z = saved.z;
+    pet.hatchMs = saved.hatchMs;
+    const kind = saved.kind;
+    pet.hatch = isPetKind(kind) ? 1 : saved.hatchMs / HATCH_MS;
+    pet.name = isPetKind(kind) ? saved.name || PETS[kind].name : '';
+    state.pets.set(id, pet);
   }
 }

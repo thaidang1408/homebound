@@ -3,6 +3,7 @@ import {
   CREATURES,
   CreatureMode,
   NOISE_MS,
+  PETS,
   STEALTH_CROUCH,
   STEALTH_NOISY,
   isBuffId,
@@ -23,7 +24,7 @@ import {
   type PlayerState,
   type Point,
 } from '@homebound/shared';
-import { addItem, spaceFor } from '../inventory/inventory.js';
+import { addItem, itemAt, spaceFor } from '../inventory/inventory.js';
 
 /**
  * Creature AI (ADR-016): one finite state machine for every kind, tuned by its definition.
@@ -151,6 +152,30 @@ export function stealthOf(p: PlayerState, now: number): number {
   return movement * (buff && 'stealth' in buff ? buff.stealth : 1);
 }
 
+/** A player holding a wild pet's favorite food: it doesn't run, it comes over (Phase 11). */
+function offersFood(def: CreatureDefinition, p: PlayerState): boolean {
+  return !!def.tame && itemAt(p.inventory, p.selectedSlot) === PETS[def.tame].food;
+}
+
+/** Wild pets walk up to someone offering food; it stops this close (within reach of [E]). */
+const FRIENDLY_DISTANCE = 1.4;
+/** …and notices the food from this many times its detection range. */
+const FOOD_SCENT = 2;
+
+function friendOf(state: HomeState, c: CreatureState, def: CreatureDefinition): PlayerState | null {
+  let best: PlayerState | null = null;
+  let bestDistance = def.detectRange * FOOD_SCENT;
+  for (const p of state.players.values()) {
+    if (!p.connected || p.sleeping || p.health === 0 || !offersFood(def, p)) continue;
+    const d = Math.hypot(p.x - c.x, p.z - c.z);
+    if (d < bestDistance) {
+      best = p;
+      bestDistance = d;
+    }
+  }
+  return best;
+}
+
 const HUNTING: readonly string[] = [
   CreatureMode.Alert,
   CreatureMode.Chase,
@@ -176,7 +201,7 @@ function spot(state: HomeState, c: CreatureState, def: CreatureDefinition, now: 
   let best = '';
   let bestShare = 1; // distance / own detection range: the most noticeable player wins
   for (const [id, p] of state.players) {
-    if (!isPrey(p)) continue;
+    if (!isPrey(p) || offersFood(def, p)) continue;
     // Hunters keep to their territory; anything that spooks prey counts, wherever it stands.
     if (!skittish && Math.hypot(p.x - zone.x, p.z - zone.z) > def.leashRadius) continue;
     if (!skittish && huntersOf(state, c.kind, id) >= maxHunters) continue;
@@ -315,11 +340,17 @@ export function tickCreatures(
       case CreatureMode.Idle:
       case CreatureMode.Patrol: {
         const seen = spot(state, c, def, now);
+        const friend = !seen && def.tame ? friendOf(state, c, def) : null;
         if (seen) {
           c.target = seen;
           const p = state.players.get(seen);
           if (p) face(c, p);
           setMode(c, CreatureMode.Alert, def.alertMs);
+        } else if (friend) {
+          setMode(c, CreatureMode.Idle, between(random, def.idleMs));
+          if (Math.hypot(friend.x - c.x, friend.z - c.z) > FRIENDLY_DISTANCE) {
+            moveToward(c, def, friend, def.walkSpeed * dt);
+          } else face(c, friend);
         } else if (c.mode === CreatureMode.Idle) {
           if (expired) startPatrol(c, def, random);
         } else {
@@ -395,6 +426,18 @@ export function snareCreature(state: HomeState, creatureId: string): boolean {
   return true;
 }
 
+/** A befriended wild pet leaves the world (it's someone's pet now); another turns up later. */
+export function retireCreature(state: HomeState, creatureId: string): void {
+  const c = state.creatures.get(creatureId);
+  const def = c ? defOf(c) : undefined;
+  if (!c || !def) return;
+  c.present = false;
+  c.target = '';
+  c.trust = 0;
+  c.trustBy = '';
+  setMode(c, CreatureMode.Idle, def.respawnMs);
+}
+
 /** Live creatures whose body overlaps a circle (traps). */
 export function creaturesWithin(state: HomeState, p: Point, radius: number): string[] {
   const out: string[] = [];
@@ -422,7 +465,8 @@ export function damageCreature(
 ): HitOutcome {
   const c = state.creatures.get(creatureId);
   const def = c ? defOf(c) : undefined;
-  if (!c || !def || !c.present || c.mode === CreatureMode.Dead) return 'invalid';
+  // Wild pets can't be hurt: you make friends with them.
+  if (!c || !def || def.tame || !c.present || c.mode === CreatureMode.Dead) return 'invalid';
 
   c.health = Math.max(0, c.health - damage);
   if (c.health === 0) {
@@ -466,7 +510,7 @@ export function strikeCreature(
 export function creatureAt(state: HomeState, p: { x: number; y: number; z: number }): string {
   for (const [id, c] of state.creatures) {
     const def = defOf(c);
-    if (!def || !c.present || c.mode === CreatureMode.Dead) continue;
+    if (!def || def.tame || !c.present || c.mode === CreatureMode.Dead) continue; // arrows pass wild pets
     if (Math.hypot(p.x - c.x, p.z - c.z) > def.radius) continue;
     const ground = terrainHeight(c.x, c.z);
     if (p.y >= ground && p.y <= ground + CREATURE_HIT_HEIGHT) return id;

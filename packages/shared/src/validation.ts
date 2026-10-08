@@ -5,12 +5,13 @@ import {
   PLAYER_ID_PATTERN,
   CHAT_MAX_LENGTH,
   PLAYER_NAME_MAX_LENGTH,
+  PET_NAME_MAX_LENGTH,
   PLAYER_SPRINT_SPEED,
   ROOM_CODE_ALPHABET,
   ROOM_CODE_LENGTH,
   WORLD_RADIUS,
 } from './constants.js';
-import { EMOTES } from './protocol.js';
+import { EMOTES, PET_COMMANDS } from './protocol.js';
 import type {
   AttackPayload,
   CraftPayload,
@@ -18,6 +19,8 @@ import type {
   InteractPayload,
   MovePayload,
   MoveSlotPayload,
+  PetCommandPayload,
+  PetNamePayload,
   PingPayload,
   ReadyPayload,
   TransferPayload,
@@ -90,6 +93,21 @@ export function parseEmotePayload(value: unknown): EmotePayload | null {
 export function parsePingPayload(value: unknown): PingPayload | null {
   if (!isRecord(value) || !isFiniteNumber(value.x) || !isFiniteNumber(value.z)) return null;
   return { x: value.x, z: value.z };
+}
+
+/** Empty result means "keep the old name". */
+export const sanitizePetName = (input: unknown): string => cleanText(input, PET_NAME_MAX_LENGTH);
+
+export function parsePetCommandPayload(value: unknown): PetCommandPayload | null {
+  if (!isRecord(value) || typeof value.petId !== 'string') return null;
+  const command = PET_COMMANDS.find((c) => c === value.command);
+  return command ? { petId: value.petId, command } : null;
+}
+
+export function parsePetNamePayload(value: unknown): PetNamePayload | null {
+  if (!isRecord(value) || typeof value.petId !== 'string') return null;
+  const name = sanitizePetName(value.name);
+  return name ? { petId: value.petId, name } : null;
 }
 
 export function parseReadyPayload(value: unknown): ReadyPayload | null {

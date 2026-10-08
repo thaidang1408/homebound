@@ -1,4 +1,5 @@
 import type { ItemId } from './items.js';
+import { PETS, type PetKind } from './pets.js';
 import { ZONES } from './world/layout.js';
 
 /**
@@ -58,7 +59,7 @@ export interface CreatureDefinition {
   roamRadius: number;
   /** Never strays farther than this from its zone centre (m). */
   leashRadius: number;
-  idleMs: [number, number];
+  idleMs: readonly [number, number];
   alertMs: number;
   /** Reach of its strike, measured from its edge (m). */
   attackRange: number;
@@ -79,7 +80,42 @@ export interface CreatureDefinition {
   respawnMs: number;
   zone: keyof typeof ZONES;
   count: number;
+  /**
+   * A wild fantasy pet: can't be hurt, doesn't run from someone holding its favorite food, and
+   * becomes that player's pet of this kind once fed enough (pets.ts).
+   */
+  tame?: PetKind;
 }
+
+/** Shared tuning of the wild pets: shy, gentle, one of each in its own corner of the world. */
+const WILD_PET = {
+  temperament: 'skittish',
+  snareable: false,
+  maxHealth: 20,
+  radius: 0.4,
+  walkSpeed: 1.2,
+  runSpeed: 6,
+  detectRange: 7,
+  nightDetectMultiplier: 1,
+  maxAttackers: [0, 0],
+  giveUpRange: 14,
+  roamRadius: 9,
+  leashRadius: 18,
+  idleMs: [2000, 5000],
+  alertMs: 600,
+  attackRange: 0,
+  attackWindupMs: 0,
+  attackRecoverMs: 0,
+  attackDamage: 0,
+  hurtMs: 0,
+  knockback: 0,
+  loot: [],
+  xp: 0,
+  activeAt: 'always',
+  /** Befriended: another one turns up later (for the partner). */
+  respawnMs: 6 * 60_000,
+  count: 1,
+} as const;
 
 export const CREATURES = {
   boar: {
@@ -247,6 +283,12 @@ export const CREATURES = {
     zone: 'den',
     count: 1,
   },
+  dragon: { ...WILD_PET, name: PETS.dragon.name, zone: 'crag', tame: 'dragon' },
+  /** Only out at night, drifting between the trees behind the house. */
+  ghost: { ...WILD_PET, name: PETS.ghost.name, zone: 'forest', activeAt: 'night', tame: 'ghost' },
+  dino: { ...WILD_PET, name: PETS.dino.name, zone: 'meadow', radius: 0.45, tame: 'dino' },
+  unicorn: { ...WILD_PET, name: PETS.unicorn.name, zone: 'clearing', runSpeed: 7, tame: 'unicorn' },
+  alien: { ...WILD_PET, name: PETS.alien.name, zone: 'hollow', radius: 0.3, tame: 'alien' },
 } as const satisfies Record<string, CreatureDefinition>;
 
 export type CreatureKind = keyof typeof CREATURES;

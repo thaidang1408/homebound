@@ -255,3 +255,46 @@ export function playAmbientCall(night: boolean): void {
 export function playWindGust(): void {
   burst(ambience(), { length: 3.5, gain: 0.6, freq: 400 * vary(0.3), sweepTo: 250, q: 0.5 });
 }
+
+// --- Pets (Phase 11) ---
+
+/** A pet's moment: a happy chirp, a breath of fire, a healing chime, an egg cracking open. */
+export function playPetAt(action: string, x: number, z: number): void {
+  const b = sfxAt(x, z);
+  switch (action) {
+    case 'pat':
+      tone(b, { type: 'triangle', from: 880 * vary(), to: 1320, length: 0.12, gain: 0.22 });
+      tone(b, {
+        type: 'triangle',
+        from: 990 * vary(),
+        to: 1480,
+        length: 0.14,
+        gain: 0.2,
+        delay: 0.12,
+      });
+      break;
+    case 'fire':
+      burst(b, { length: 0.45, gain: 0.45, freq: 500, sweepTo: 1800, q: 0.7 });
+      break;
+    case 'heal':
+    case 'forage':
+      tone(b, { type: 'sine', from: 1568, length: 0.35, gain: 0.12 });
+      tone(b, { type: 'sine', from: 2093, length: 0.4, gain: 0.1, delay: 0.08 });
+      break;
+    case 'hatch':
+      burst(b, { length: 0.08, gain: 0.5, freq: 2400, q: 3 });
+      burst(b, { length: 0.08, gain: 0.5, freq: 2000, q: 3, delay: 0.15 });
+      tone(b, { type: 'triangle', from: 1046, to: 1568, length: 0.2, gain: 0.25, delay: 0.3 });
+      break;
+    case 'fetch':
+      tone(b, {
+        type: 'square',
+        from: 330 * vary(),
+        to: 220,
+        length: 0.12,
+        gain: 0.12,
+        lowpass: 900,
+      });
+      break;
+  }
+}

@@ -19,7 +19,7 @@ describe('random', () => {
 describe('world layout', () => {
   test('has every resource kind with unique ids', () => {
     const kinds = new Set(RESOURCE_NODES.map((n) => n.kind));
-    expect(kinds).toEqual(new Set(['tree', 'rock', 'bush', 'mushroom']));
+    expect(kinds).toEqual(new Set(['tree', 'rock', 'bush', 'mushroom', 'nest']));
     expect(new Set(RESOURCE_NODES.map((n) => n.id)).size).toBe(RESOURCE_NODES.length);
   });
 
@@ -29,6 +29,18 @@ describe('world layout', () => {
     const mushrooms = RESOURCE_NODES.filter((n) => n.kind === 'mushroom');
     expect(mushrooms).toHaveLength(14);
     for (const m of mushrooms) expect(m.z, m.id).toBeLessThan(0); // the northern woods
+  });
+
+  test('egg nests sit far out, clear of every other node', () => {
+    const nests = RESOURCE_NODES.filter((n) => n.kind === 'nest');
+    expect(nests).toHaveLength(4);
+    for (const nest of nests) {
+      expect(Math.hypot(nest.x, nest.z), nest.id).toBeGreaterThan(30);
+      expect(Math.hypot(nest.x, nest.z), nest.id).toBeLessThan(WORLD_RADIUS - 4);
+      const others = RESOURCE_NODES.filter((n) => n !== nest);
+      const nearest = Math.min(...others.map((n) => Math.hypot(n.x - nest.x, n.z - nest.z)));
+      expect(nearest, nest.id).toBeGreaterThanOrEqual(2);
+    }
   });
 
   test('keeps the yard, the road and the clearing free', () => {

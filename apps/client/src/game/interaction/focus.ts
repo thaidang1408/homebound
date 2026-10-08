@@ -4,6 +4,8 @@ import {
   CreatureMode,
   INTERACT_RANGE,
   INTERACTABLES,
+  PET_RADIUS,
+  isPetKind,
   boxCenter,
   distanceToBox,
   findResourceNode,
@@ -74,6 +76,7 @@ export function findCreature(
   let bestDistance = Infinity;
   room.state.creatures.forEach((c, id) => {
     if (!c.present || (c.mode === CreatureMode.Dead) !== dead || !isCreatureKind(c.kind)) return;
+    if (!dead && isPetKind(c.kind)) return; // wild pets are befriended, not fought
     const toX = c.x - x;
     const toZ = c.z - z;
     const centre = Math.hypot(toX, toZ) || 1;
@@ -102,6 +105,32 @@ export function findTrap(room: Room<HomeState>, x: number, z: number, yaw: numbe
     if (d > ALWAYS_FOCUS_DISTANCE && (toX * lookX + toZ * lookZ) / d < FACING_COS) return;
     best = id;
     bestDistance = d;
+  });
+  return best;
+}
+
+/**
+ * The nearest pet in front of the player within reach: a player's pet or egg (`pets`), or a wild
+ * one among the creatures. Pets are small and move, so the look cone is generous.
+ */
+export function findPet(room: Room<HomeState>, x: number, z: number, yaw: number): string | null {
+  const lookX = -Math.sin(yaw);
+  const lookZ = -Math.cos(yaw);
+  let best: string | null = null;
+  let bestDistance = Infinity;
+  const consider = (id: string, px: number, pz: number, radius: number) => {
+    const toX = px - x;
+    const toZ = pz - z;
+    const centre = Math.hypot(toX, toZ) || 1;
+    const edge = centre - radius;
+    if (edge > INTERACT_RANGE || edge >= bestDistance) return;
+    if (edge > ALWAYS_FOCUS_DISTANCE && (toX * lookX + toZ * lookZ) / centre < FACING_COS) return;
+    best = id;
+    bestDistance = edge;
+  };
+  room.state.pets.forEach((p, id) => consider(id, p.x, p.z, PET_RADIUS));
+  room.state.creatures.forEach((c, id) => {
+    if (c.present && isPetKind(c.kind)) consider(id, c.x, c.z, CREATURES[c.kind].radius);
   });
   return best;
 }

@@ -88,6 +88,28 @@ export const TRAP_PLACE_DISTANCE = 1.6; // m
 export const TRAP_RADIUS = 0.55; // m
 export const SPIKE_TRAP_DAMAGE = 25;
 
+// --- Pets (Phase 11) ---
+
+/** Pets (eggs included) one player may have. */
+export const PETS_PER_PLAYER = 2;
+/** An egg set down in the yard hatches after this long. */
+export const HATCH_MS = 45_000;
+export const PET_NAME_MAX_LENGTH = 14;
+/** A following pet keeps about this far from its owner… */
+export const PET_FOLLOW_DISTANCE = 1.6; // m (within reach of [E])
+/** …walks this fast when close, runs this fast to catch up… */
+export const PET_WALK_SPEED = 3; // m/s
+export const PET_RUN_SPEED = 7.5; // m/s
+/** …and pops to your side when farther than this, or stuck behind a wall this long. */
+export const PET_CATCH_UP_DISTANCE = 25; // m
+export const PET_STUCK_MS = 1500;
+/** Collision circle of a pet (and its egg). */
+export const PET_RADIUS = 0.35; // m
+/** At night, fighters at home chase off creatures this far from the house. */
+export const PET_GUARD_RADIUS = 22; // m
+/** Taking an order or a pat from this far away (pets move, so a bit more than INTERACT_RANGE). */
+export const PET_COMMAND_RANGE = 4; // m
+
 /** The playable world is a circle around the house; the terrain rim rises at its edge. */
 export const WORLD_RADIUS = 58; // m
 

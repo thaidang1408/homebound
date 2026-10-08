@@ -8,7 +8,16 @@ import { PALETTE } from '../world/palette';
  * hit puffs and dust. Game code calls `emitBurst()`; this component simulates the pieces.
  */
 
-export type BurstKind = 'wood' | 'stone' | 'leaves' | 'hit' | 'dust';
+export type BurstKind =
+  | 'wood'
+  | 'stone'
+  | 'leaves'
+  | 'hit'
+  | 'dust'
+  /** Pets: a pat, a breath of fire, healing / magic. */
+  | 'hearts'
+  | 'fire'
+  | 'sparkle';
 
 interface Recipe {
   colors: readonly string[];
@@ -66,6 +75,33 @@ const RECIPES: Record<BurstKind, Recipe> = {
     size: 0.12,
     life: 0.9,
     gravity: 0.5,
+  },
+  hearts: {
+    colors: [PALETTE.heart, PALETTE.flowerPink],
+    count: 6,
+    speed: 0.5,
+    lift: 1.4,
+    size: 0.09,
+    life: 1.1,
+    gravity: -0.4, // they float up
+  },
+  fire: {
+    colors: [PALETTE.fire, PALETTE.fireCore, PALETTE.progress],
+    count: 14,
+    speed: 2.4,
+    lift: 0.6,
+    size: 0.1,
+    life: 0.45,
+    gravity: -1,
+  },
+  sparkle: {
+    colors: [PALETTE.sparkle, PALETTE.focus, PALETTE.unicornMane],
+    count: 10,
+    speed: 0.9,
+    lift: 1.2,
+    size: 0.06,
+    life: 0.9,
+    gravity: -0.6,
   },
 };
 

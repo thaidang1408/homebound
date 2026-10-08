@@ -493,3 +493,56 @@ approval (2026-10-08).
 
 - Armor is "carried = worn" (no equipment slot).
 - Tracks only show where animals walked while you were in the home.
+
+## Phase 11 — Fantasy pets
+
+**Status:** Done on one machine (tests + e2e pass), awaiting the user's test + approval
+(2026-10-08). The user changed the roadmap's wolf/fox/owl into fantasy pets and picked both ways
+of getting one (eggs and befriending).
+
+**What was built**
+
+- Five pets as data (`pets.ts`, ADR-024): baby dragon (fire breath, guards the yard at night), little
+  ghost (floats through walls, glows, marks the nearest animal on the compass), baby dino
+  (headbutt, butchers carcasses near you into your backpack), unicorn foal (heals players within
+  6 m), tiny alien (beams up berries and mushrooms near you). Low-poly models with flapping wings,
+  wagging tails, a hover saucer; hearts, fire and sparkle particles; synthesized sounds.
+- Eggs: four nests far out in the world hold a glowing egg (a new one every 20 min); set it down in
+  the yard with left click; it wobbles and hatches after 45 s into a surprise (no duplicate kinds).
+- Wild pets: one of each roams its corner (the ghost only at night). Shy, can't be hurt; they walk
+  up to you if you hold their favorite food; [E] feeds them; three feeds and they're yours.
+- [E] on your pet opens its panel: rename, Follow me / Stay here / Go home, pat. The partner can pat
+  it. Offline or asleep owners' pets wait at home. Up to two pets per player. Saved with the home;
+  claiming a character by name brings its pets (and traps) along.
+
+**Tests**
+
+- `npm test`: 184 passing + 1 skipped. New: eggs only in the yard, two-pet limit, hatching into
+  different kinds; follow, catch-up, stay, go home when the owner leaves; dragon kills a hunting
+  boar (credited), guards the yard at night; unicorn heals; dino fetches; ghost marks; alien
+  forages; befriending (wrong food, three feeds, the wild one respawns), wild pets can't be hurt
+  and come to food; saves round-trip and tampered pets are cleaned; nests placed clear of other
+  nodes; over the network: egg placed and saved, befriend, rename, orders, pat, owner-only orders,
+  pets follow a character claimed by name.
+- `npm run e2e`: new `pets` scenario (egg → hatch → name and orders → befriend the unicorn foal →
+  the first pet followed; screenshots `p11-egg`, `p11-hatched`, `p11-pet-panel`, `p11-unicorn`).
+  In the full run `hunting2`, `feel`, `pets` and `perf` timed out (same load pattern as Phase 10);
+  each passes when re-run on its own.
+
+**Bugs found and fixed**
+
+- Phase 10 regression: mushrooms could not actually be picked (the server's interact switch didn't
+  list them). Every resource kind now goes through one harvest path, so nests and future kinds
+  can't be missed.
+- Claiming a character by name (ADR-021) left their traps credited to the old id.
+- A following pet stopped 2 m away, just out of [E] reach: it now stops at 1.6 m.
+- Name tags filled the view up close: hidden within 3 m.
+
+**Not done**
+
+- Pet hunger, knock-out and levelling up, the creature journal, a pet house (ADR-024).
+
+**Known issues**
+
+- A pet following you into the house goes around by popping to your side when a wall blocks it.
+- Ghost pets leave footprints like every creature.

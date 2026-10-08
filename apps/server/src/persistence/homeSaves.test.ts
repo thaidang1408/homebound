@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, test } from 'vitest';
-import { HEALTH_MAX, HUNGER_MAX } from '@homebound/shared';
+import { HATCH_MS, HEALTH_MAX, HUNGER_MAX } from '@homebound/shared';
 import {
   SAVE_VERSION,
   homeExists,
@@ -49,6 +49,18 @@ function sample(code = 'ABC23'): HomeSave {
     goals: [{ kind: 'hunt', target: 2, progress: 1 }],
     today: { hunted: 1, meals: 2, gathered: 9, crafted: 0, revives: 0 },
     traps: { 'trap-3': { kind: 'snare', x: 20, z: -4, sprung: true, owner: PLAYER } },
+    pets: {
+      'pet-0': {
+        kind: 'dragon',
+        name: 'Đốm',
+        owner: PLAYER,
+        order: 'stay',
+        x: 3,
+        z: 8,
+        hatchMs: 0,
+      },
+      'pet-1': { kind: '', name: '', owner: PLAYER, order: 'follow', x: -2, z: 6, hatchMs: 9000 },
+    },
   };
 }
 
@@ -87,6 +99,45 @@ describe('home saves', () => {
     );
     expect(parsed?.traps).toEqual({
       'trap-4': { kind: 'spike', x: 58, z: 2, sprung: false, owner: '' },
+    });
+  });
+
+  test('pets and eggs round-trip; tampered ones are dropped or cleaned', () => {
+    saveHome(sample());
+    expect(loadHome('ABC23')?.pets).toEqual(sample().pets);
+    const raw = sample() as unknown as Record<string, unknown>;
+    const parsed = parseSave(
+      {
+        ...raw,
+        pets: {
+          'pet-0': { kind: 'kraken', owner: PLAYER, x: 1, z: 1 },
+          'pet-1': { kind: 'ghost', owner: 'nobody', x: 1, z: 1 },
+          'pet-2': { kind: 'ghost', owner: PLAYER, x: 1, z: 1, order: 'attack', name: ' Boo\n ' },
+          'pet-3': { kind: '', owner: PLAYER, x: 900, z: 1, hatchMs: 1e12 },
+          'pet-4': { kind: 'alien', owner: PLAYER, x: 1, z: 1 }, // a third pet: over the limit
+        },
+      },
+      'ABC23',
+    );
+    expect(parsed?.pets).toEqual({
+      'pet-2': {
+        kind: 'ghost',
+        name: 'Boo',
+        owner: PLAYER,
+        order: 'follow',
+        x: 1,
+        z: 1,
+        hatchMs: 0,
+      },
+      'pet-3': {
+        kind: '',
+        name: '',
+        owner: PLAYER,
+        order: 'follow',
+        x: 58,
+        z: 1,
+        hatchMs: HATCH_MS,
+      },
     });
   });
 

@@ -66,6 +66,15 @@ export function Compass({ room }: { room: Room<HomeState> }) {
       const pingMark = marks.get('ping');
       if (pingMark) pingMark.hidden = !ping;
       if (ping) place('ping', bearing(localPose.x, localPose.z, ping.x, ping.z), true);
+      // My little ghost scouts the nearest animal.
+      let scouted: { x: number; z: number } | undefined;
+      room.state.pets.forEach((p) => {
+        if (p.ownerSession === room.sessionId && p.mark)
+          scouted ??= room.state.creatures.get(p.mark);
+      });
+      const scoutMark = marks.get('scout');
+      if (scoutMark) scoutMark.hidden = !scouted;
+      if (scouted) place('scout', bearing(localPose.x, localPose.z, scouted.x, scouted.z), true);
       frame = requestAnimationFrame(update);
     };
     frame = requestAnimationFrame(update);
@@ -84,6 +93,9 @@ export function Compass({ room }: { room: Room<HomeState> }) {
       </span>
       <span data-mark="ping" className={styles.marker} title="Marked spot" hidden>
         📍
+      </span>
+      <span data-mark="scout" className={styles.marker} title="Your ghost found an animal" hidden>
+        🐾
       </span>
       <span data-mark="partner" className={styles.marker} title="Partner">
         ●

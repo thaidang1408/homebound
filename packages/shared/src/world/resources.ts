@@ -53,6 +53,16 @@ export const RESOURCE_KINDS = {
     colliderHalf: 0,
     reachHalf: 0.45,
   },
+  /** A nest with a glowing egg in it; a new egg is laid now and then. */
+  nest: {
+    drop: 'pet_egg',
+    qty: 1,
+    charges: 1,
+    respawnMs: 20 * 60_000,
+    verb: 'Take',
+    colliderHalf: 0,
+    reachHalf: 0.55,
+  },
 } as const satisfies Record<string, ResourceKindDefinition>;
 
 export type ResourceKind = keyof typeof RESOURCE_KINDS;

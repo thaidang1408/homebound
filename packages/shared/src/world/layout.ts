@@ -22,6 +22,10 @@ export const ZONES = {
   forest: { center: { x: 0, z: -38 }, radius: 12 },
   /** North-west deep woods: the bear's den (spawning only, like the forest). */
   den: { center: { x: -30, z: -30 }, radius: 7 },
+  /** North-east rocks where a baby dragon suns itself (spawning only). */
+  crag: { center: { x: 34, z: -34 }, radius: 7 },
+  /** A quiet south-west hollow where something small and green landed (spawning only). */
+  hollow: { center: { x: -36, z: 30 }, radius: 7 },
 } as const satisfies Record<string, { center: Point; radius: number }>;
 
 /** The dirt road from the front door south to the clearing. */
@@ -41,7 +45,7 @@ export interface ResourceNodeDefinition {
   collider: Box | null;
 }
 
-const CAPS: Record<ResourceKind, number> = { tree: 110, rock: 26, bush: 24, mushroom: 0 };
+const CAPS: Record<ResourceKind, number> = { tree: 110, rock: 26, bush: 24, mushroom: 0, nest: 0 };
 const MIN_SPACING = 2.4;
 const INNER = ZONES.yard.radius;
 const OUTER = WORLD_RADIUS - 4;
@@ -67,7 +71,7 @@ function square(c: Point, half: number): Box {
 function generate(): ResourceNodeDefinition[] {
   const random = createRandom(WORLD_SEED);
   const nodes: ResourceNodeDefinition[] = [];
-  const counts: Record<ResourceKind, number> = { tree: 0, rock: 0, bush: 0, mushroom: 0 };
+  const counts: Record<ResourceKind, number> = { tree: 0, rock: 0, bush: 0, mushroom: 0, nest: 0 };
 
   for (let attempt = 0; attempt < 4000; attempt++) {
     // Uniform over the ring between the yard and the rim.
@@ -122,10 +126,45 @@ function generateMushrooms(existing: ResourceNodeDefinition[]): ResourceNodeDefi
   return out;
 }
 
+/**
+ * Egg nests (Phase 11): one near each far corner, nudged outward from its anchor until it's clear
+ * of other nodes. Placed after everything else, so nothing that was there before moves.
+ */
+const NEST_ANCHORS: readonly Point[] = [
+  { x: 28, z: -28 },
+  { x: -26, z: 34 },
+  { x: 14, z: 46 },
+  { x: -40, z: -14 },
+];
+const NEST_CLEARANCE = 2;
+function generateNests(existing: ResourceNodeDefinition[]): ResourceNodeDefinition[] {
+  const def = RESOURCE_KINDS.nest;
+  return NEST_ANCHORS.map((anchor, i) => {
+    let p = anchor;
+    for (let step = 0; step < 40; step++) {
+      const a = step * 2.4; // golden-angle-ish spiral around the anchor
+      const r = step * 0.5;
+      p = { x: anchor.x + Math.cos(a) * r, z: anchor.z + Math.sin(a) * r };
+      if (!existing.some((n) => Math.hypot(n.x - p.x, n.z - p.z) < NEST_CLEARANCE)) break;
+    }
+    return {
+      id: `nest-${i}`,
+      kind: 'nest',
+      x: p.x,
+      z: p.z,
+      scale: 1,
+      rotation: i * 1.3,
+      reach: square(p, def.reachHalf),
+      collider: null,
+    };
+  });
+}
+
 const MAIN_NODES = generate();
+const WITH_MUSHROOMS = [...MAIN_NODES, ...generateMushrooms(MAIN_NODES)];
 export const RESOURCE_NODES: readonly ResourceNodeDefinition[] = [
-  ...MAIN_NODES,
-  ...generateMushrooms(MAIN_NODES),
+  ...WITH_MUSHROOMS,
+  ...generateNests(WITH_MUSHROOMS),
 ];
 
 const nodesById = new Map(RESOURCE_NODES.map((n) => [n.id, n]));

@@ -16,6 +16,7 @@ declare global {
       hurt: typeof hurt;
       give: typeof give;
       summon: typeof summon;
+      pet: typeof pet;
       perf: typeof perf;
     };
   }
@@ -39,6 +40,11 @@ function give(itemId: string, qty: number): void {
 /** Bring the nearest creature of a kind close (dev servers only): makes AI tests deterministic. */
 function summon(kind: string, at?: { x: number; z: number }): void {
   getSession().room?.send(ClientMessage.DevSummon, { kind, ...at });
+}
+
+/** A hatched pet of a kind, right next to you (dev servers only). */
+function pet(kind: string): void {
+  getSession().room?.send(ClientMessage.DevPet, { kind });
 }
 
 /** Draw calls, triangles and frames per second over one second (for profiling). */
@@ -67,4 +73,4 @@ async function perf(): Promise<{
   };
 }
 
-window.__homebound = { getSession, getUi, walkTo, setTime, hurt, give, summon, perf };
+window.__homebound = { getSession, getUi, walkTo, setTime, hurt, give, summon, pet, perf };

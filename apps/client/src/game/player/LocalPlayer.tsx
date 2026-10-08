@@ -17,6 +17,8 @@ import {
   WORLD_COLLIDERS,
   MAX_PITCH,
   MOVE_SEND_INTERVAL_MS,
+  PET_RADIUS,
+  PETS_PER_PLAYER,
   PLAYER_EYE_HEIGHT,
   PLAYER_RADIUS,
   PLAYER_SPRINT_SPEED,
@@ -39,6 +41,7 @@ import {
   findCreature,
   findDownedPartner,
   findFocus,
+  findPet,
   findTrap,
   isAvailable,
 } from '../interaction/focus';
@@ -173,6 +176,26 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
           return;
         }
         room.send(ClientMessage.PlaceTrap, { slot: h.slot });
+        localAction('pick');
+        return;
+      }
+      // An egg in hand is set down in the yard to hatch (where it's safe and warm).
+      if (isItemId(h.itemId) && getItem(h.itemId).egg) {
+        const p = pose.current;
+        const at = {
+          x: p.x - Math.sin(p.yaw) * TRAP_PLACE_DISTANCE,
+          z: p.z - Math.cos(p.yaw) * TRAP_PLACE_DISTANCE,
+        };
+        const mine = [...room.state.pets.values()].filter((x) => x.ownerSession === room.sessionId);
+        if (mine.length >= PETS_PER_PLAYER) {
+          showToast('You already have two pets — keep the egg for your partner.');
+          return;
+        }
+        if (Math.hypot(at.x, at.z) > ZONES.yard.radius - PET_RADIUS) {
+          showToast('Bring the egg home — set it down in the yard to hatch.');
+          return;
+        }
+        room.send(ClientMessage.PlaceEgg, { slot: h.slot });
         localAction('pick');
         return;
       }
@@ -394,6 +417,7 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
     const focus =
       findDownedPartner(room, p.x, p.z) ??
       findCreature(room, p.x, p.z, p.yaw, INTERACT_RANGE, true) ??
+      findPet(room, p.x, p.z, p.yaw) ??
       findTrap(room, p.x, p.z, p.yaw) ??
       findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
     if (focus !== getUi().focusId) updateUi({ focusId: focus });

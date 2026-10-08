@@ -40,6 +40,9 @@ import {
   createRandom,
   isCreatureKind,
   isItemId,
+  isPetKind,
+  PETS,
+  PetState,
   collides,
   distanceToBox,
   findFurniture,
@@ -59,6 +62,9 @@ import {
   parseUseItemPayload,
   parseEmotePayload,
   parsePingPayload,
+  parsePetCommandPayload,
+  parsePetNamePayload,
+  PET_COMMAND_RANGE,
   sanitizeChatText,
   sanitizePlayerName,
   type Box,
@@ -97,6 +103,7 @@ import { harvest, initResources, tickResources } from '../systems/harvest.js';
 import { eatFromSlot, hurtPlayer, tickNeeds } from '../systems/needs.js';
 import { act, drainSprint, isDodging, tickStamina, tryDodge } from '../systems/stamina.js';
 import { pickUpTrap, placeTrap, tickTraps } from '../systems/traps.js';
+import { befriend, orderPet, petAct, placeEgg, tickPets } from '../systems/pets.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
@@ -120,6 +127,7 @@ const HARVEST_ACTION: Record<ResourceKind, PlayerAction> = {
   rock: 'mine',
   bush: 'pick',
   mushroom: 'pick',
+  nest: 'pick',
 };
 
 function option(options: unknown, key: string): unknown {
@@ -147,6 +155,8 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private readonly lastChatAt = new Map<string, number>();
   /** Next free `trap-<n>` id (continues after saved traps). */
   private nextTrapId = 0;
+  /** Next free `pet-<n>` id (continues after saved pets). */
+  private nextPetId = 0;
   /** Creature spawns, wandering and loot rolls. */
   private readonly random = createRandom(Date.now());
   /** sessionId → stable playerId (what saves are keyed by). */
@@ -233,6 +243,40 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       this.nextTrapId += 1;
       act(player, 'pick'); // kneels to set it
     });
+    this.onMessage(ClientMessage.PlaceEgg, (client, message: unknown) => {
+      const payload = parseUseItemPayload(message);
+      const player = this.activePlayer(client);
+      const playerId = this.playerIds.get(client.sessionId);
+      if (!payload || !player || !playerId || player.sleeping || player.downed) return;
+      if (payload.slot >= HOTBAR_SLOTS) return;
+      if (
+        placeEgg(this.state, player, payload.slot, playerId, `pet-${this.nextPetId}`) !== 'placed'
+      ) {
+        return;
+      }
+      this.nextPetId += 1;
+      act(player, 'pick');
+    });
+    this.onMessage(ClientMessage.PetCommand, (client, message: unknown) => {
+      const payload = parsePetCommandPayload(message);
+      const player = this.activePlayer(client);
+      const playerId = this.playerIds.get(client.sessionId);
+      const pet = payload ? this.state.pets.get(payload.petId) : undefined;
+      if (!payload || !player || !playerId || !pet || player.sleeping) return;
+      if (Math.hypot(pet.x - player.x, pet.z - player.z) > PET_COMMAND_RANGE) return;
+      if (payload.command === 'pat') {
+        if (pet.hatch >= 1) petAct(pet, 'pat'); // anyone may pat any pet
+        return;
+      }
+      orderPet(this.state, payload.petId, playerId, payload.command);
+    });
+    this.onMessage(ClientMessage.PetName, (client, message: unknown) => {
+      const payload = parsePetNamePayload(message);
+      const pet = payload ? this.state.pets.get(payload.petId) : undefined;
+      const playerId = this.playerIds.get(client.sessionId);
+      if (!payload || !pet || !playerId || pet.owner !== playerId || pet.hatch < 1) return;
+      pet.name = payload.name;
+    });
 
     if (env.devCommands) {
       this.onMessage(ClientMessage.DevSetTime, (_client, message: unknown) => {
@@ -266,6 +310,16 @@ export class HomeRoom extends Room<{ state: HomeState }> {
           : clampToWorld(player.x + SUMMON_OFFSET.x, player.z + SUMMON_OFFSET.z);
         near.x = spot.x;
         near.z = spot.z;
+      });
+      this.onMessage(ClientMessage.DevPet, (client, message: unknown) => {
+        const kind = option(message, 'kind');
+        const player = this.activePlayer(client);
+        const playerId = this.playerIds.get(client.sessionId);
+        if (typeof kind !== 'string' || !isPetKind(kind) || !player || !playerId) return;
+        const pet = new PetState();
+        Object.assign(pet, { kind, name: PETS[kind].name, owner: playerId, hatch: 1 });
+        Object.assign(pet, { x: player.x, z: player.z + 1 });
+        this.state.pets.set(`pet-${this.nextPetId++}`, pet);
       });
       this.onMessage(ClientMessage.DevGive, (client, message: unknown) => {
         const itemId = option(message, 'itemId');
@@ -311,6 +365,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     // New traps continue after the highest saved id.
     for (const id of this.state.traps.keys()) {
       this.nextTrapId = Math.max(this.nextTrapId, Number(id.slice('trap-'.length)) + 1);
+    }
+    for (const id of this.state.pets.keys()) {
+      this.nextPetId = Math.max(this.nextPetId, Number(id.slice('pet-'.length)) + 1);
     }
     this.savedPlayers = save.players;
     this.createdAt = save.createdAt;
@@ -413,6 +470,10 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       Object.entries(this.savedPlayers).filter(([id]) => id !== oldId),
     );
     this.savedPlayers[playerId] = saved;
+    // What they own comes along: pets and traps are keyed by the old id.
+    for (const thing of [...this.state.pets.values(), ...this.state.traps.values()]) {
+      if (thing.owner === oldId) thing.owner = playerId;
+    }
     return saved;
   }
 
@@ -500,6 +561,16 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       if (isCreatureKind(kind)) this.rewardPlayer(event.owner, CREATURES[kind].xp);
       this.state.today.hunted += 1;
       this.advanceGoal('hunt');
+    }
+    const pets = { sessionOf: (id: string) => this.sessionOf(id), random: this.random };
+    for (const event of tickPets(this.state, dtMs, pets)) {
+      if (event.type === 'hatched') logger.info(`[room ${this.roomId}] ${event.petId} hatched`);
+      else if (event.outcome === 'killed') {
+        const kind = this.state.creatures.get(event.creatureId)?.kind ?? '';
+        if (isCreatureKind(kind)) this.rewardPlayer(event.owner, CREATURES[kind].xp);
+        this.state.today.hunted += 1;
+        this.advanceGoal('hunt');
+      }
     }
     for (const hit of tickProjectiles(this.state, dtMs)) {
       this.confirmHit(hit.owner, hit.creatureId, hit.outcome);
@@ -682,9 +753,20 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.advanceGoal('craft');
   }
 
-  /** [E] on a carcass. Creatures are dynamic, so they aren't in the static interactable list. */
-  private handleButcher(player: PlayerState, creatureId: string) {
+  /**
+   * [E] on a creature: butcher a carcass, or feed a wild pet (Phase 11). Creatures are dynamic, so
+   * they aren't in the static interactable list.
+   */
+  private handleCreature(client: Client, player: PlayerState, creatureId: string) {
     if (creatureReach(this.state, creatureId, player) > INTERACT_RANGE + INTERACT_TOLERANCE) return;
+    const kind = this.state.creatures.get(creatureId)?.kind ?? '';
+    const playerId = this.playerIds.get(client.sessionId);
+    if (isCreatureKind(kind) && 'tame' in CREATURES[kind] && playerId) {
+      const outcome = befriend(this.state, creatureId, player, playerId, `pet-${this.nextPetId}`);
+      if (outcome === 'befriended') this.nextPetId += 1;
+      if (outcome === 'fed' || outcome === 'befriended') act(player, 'pick');
+      return;
+    }
     butcherCreature(this.state, creatureId, player, this.random);
   }
 
@@ -693,7 +775,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     const player = this.activePlayer(client);
     if (!payload || !player || player.downed) return;
     if (!player.sleeping && this.state.creatures.has(payload.targetId)) {
-      this.handleButcher(player, payload.targetId);
+      this.handleCreature(client, player, payload.targetId);
       return;
     }
     // [E] on a trap: pick it back up (to reset it, or move it).
@@ -717,6 +799,11 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     if (!playerId || !target || !this.isNear(player, target.box)) return;
     // In bed, the only thing you can do is get up.
     if (player.sleeping && target.kind !== 'bed') return;
+    // Every resource node kind (trees … nests) harvests the same way, data-driven.
+    if (findResourceNode(target.id)) {
+      this.handleHarvest(client, player, target.id);
+      return;
+    }
 
     switch (target.kind) {
       case 'stove':
@@ -730,11 +817,6 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       // Chest and workbench are opened client-side; chest moves go through Transfer.
       case 'chest':
       case 'workbench':
-        break;
-      case 'tree':
-      case 'rock':
-      case 'bush':
-        this.handleHarvest(client, player, target.id);
         break;
     }
   }

@@ -66,6 +66,12 @@ export const ClientMessage = {
   Ping: 'ping',
   /** Set the trap held in a hotbar slot on the ground ahead: `{ slot }`. */
   PlaceTrap: 'place-trap',
+  /** Set the egg held in a hotbar slot down in the yard to hatch: `{ slot }`. */
+  PlaceEgg: 'place-egg',
+  /** An order for your pet, or a pat for anyone's: `{ petId, command }`. */
+  PetCommand: 'pet',
+  /** Rename your pet: `{ petId, name }`. */
+  PetName: 'pet-name',
   /** Development servers only: jump the clock (playtests). Ignored in production. */
   DevSetTime: 'dev:set-time',
   /** Development servers only: lose health (test downed/revive). Payload `{ amount }`. */
@@ -74,6 +80,8 @@ export const ClientMessage = {
   DevGive: 'dev:give',
   /** Dev servers only: bring the nearest `{ kind }` 12 m from you, or to `{ x, z }` (e2e). */
   DevSummon: 'dev:summon',
+  /** Dev servers only: a hatched pet of `{ kind }` for you, next to you (e2e, screenshots). */
+  DevPet: 'dev:pet',
 } as const;
 
 /** Server → client message names. */
@@ -121,6 +129,20 @@ export interface PingPayload {
 
 export interface PingBroadcast extends PingPayload {
   from: string;
+}
+
+/** Pet orders (PetOrder values) plus a pat, which anyone may give. */
+export const PET_COMMANDS = ['follow', 'stay', 'home', 'pat'] as const;
+export type PetCommand = (typeof PET_COMMANDS)[number];
+
+export interface PetCommandPayload {
+  petId: string;
+  command: PetCommand;
+}
+
+export interface PetNamePayload {
+  petId: string;
+  name: string;
 }
 
 export interface ChatPayload {

@@ -294,3 +294,28 @@ for a private two-person game). Two saved characters with the same name: the fir
 
 **Not done (from the roadmap):** pheasant and feather arrows, backpack upgrade, honey cake and fish.
 They can come back with Phase 12's biomes.
+
+## ADR-024: Fantasy pets — one pet AI as data, two ways to get one (2026-10-08)
+
+**Context:** The user asked for fantasy pets (ghost, dragon, dinosaur, alien, unicorn…) instead of
+the roadmap's wolf/fox/owl, obtained both by hatching eggs and by befriending wild ones.
+
+**Decision:**
+
+- **Pets are data** (`pets.ts`): name, favorite food, feeds needed, and optional abilities
+  (`fight`, `fetch`, `scout`, `heal`, `forage`). One server loop (`systems/pets.ts`) moves every pet
+  by its order and runs whichever abilities its definition has.
+- **Wild pets are creatures** with `tame: <pet kind>`: the existing AI, zones and respawn handle
+  them; they're skittish, can't be damaged, ignore players offering their food and walk up to them.
+  Befriending retires the creature (it respawns later) and creates a `PetState`.
+- **Eggs are pets with an empty kind** (`PetState.kind === ''`), so eggs and pets share one map,
+  one save list and one per-player limit (2). Nests are a resource kind (charges 1), so finding an
+  egg reuses harvesting and its respawn.
+- **Pets can't be hurt** (kid-friendly; no health, hunger or knock-out). Offline/asleep owners'
+  pets wait at home; fighters guard the yard at night.
+- **Owner is server-only** (`owner` = playerId, never sent); clients see `ownerSession`. Claiming a
+  character by name re-owns their pets and traps.
+- Saves: `HomeSave.pets` (validated: id pattern, owner id, kind, order, name cleaned, coordinates
+  clamped, at most 2 per owner); additive, so `SAVE_VERSION` stays 1 like Phase 10's traps.
+
+**Not done:** pet hunger and knock-out, pets levelling up, a creature journal, a pet house (Phase 15).

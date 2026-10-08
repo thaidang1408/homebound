@@ -25,6 +25,7 @@ import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
 import { CraftPanel, InventoryPanel, StoragePanel } from '../panels/InventoryPanels';
 import { useAmbience } from '../../audio/useAmbience';
+import { PetPanel } from '../panels/PetPanel';
 import { SettingsPanel } from '../panels/SettingsPanel';
 import { Compass } from './Compass';
 import { DaySummaryCard, GoalList } from './DayPanels';
@@ -288,6 +289,7 @@ export function GameHud() {
       {openPanel === 'storage' && <StoragePanel />}
       {openPanel === 'workbench' && <CraftPanel station="workbench" />}
       {openPanel === 'stove' && <CraftPanel station="stove" />}
+      {openPanel === 'pet' && <PetPanel />}
 
       {!locked && openPanel === 'none' && (
         <div className={`${panel.overlay} ${styles.interactive}`} onClick={resumePlay}>

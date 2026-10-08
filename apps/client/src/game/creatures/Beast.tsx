@@ -8,6 +8,7 @@ import {
   terrainHeight,
   type CreatureKind,
   type HomeState,
+  type PetKind,
 } from '@homebound/shared';
 import { MAX_FRAME_DT, REMOTE_SMOOTHING } from '../../config/controls';
 import { playGruntAt, playThudAt } from '../../audio/sounds';
@@ -63,7 +64,10 @@ interface Look {
   barY: number;
 }
 
-const LOOKS: Record<CreatureKind, Look> = {
+/** Wild pets are drawn by pets/Pets.tsx; everything else is a beast. */
+export type BeastKind = Exclude<CreatureKind, PetKind>;
+
+const LOOKS: Record<BeastKind, Look> = {
   boar: {
     fur: PALETTE.boar,
     dark: PALETTE.boarDark,
@@ -180,15 +184,7 @@ const LOOKS: Record<CreatureKind, Look> = {
  * A low-poly four-legged creature driven by synced state. Reads the server state every frame,
  * smooths toward it and acts out its mode: trot, alert, wind-up and lunge, flinch, keel over.
  */
-export function Beast({
-  room,
-  id,
-  kind,
-}: {
-  room: Room<HomeState>;
-  id: string;
-  kind: CreatureKind;
-}) {
+export function Beast({ room, id, kind }: { room: Room<HomeState>; id: string; kind: BeastKind }) {
   const def = CREATURES[kind];
   const look = LOOKS[kind];
   const root = useRef<Group>(null);

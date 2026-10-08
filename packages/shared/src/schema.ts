@@ -145,10 +145,44 @@ export const CreatureState = schema(
     /** Where a patrol is walking to. */
     goalX: t.float32().noSync().default(0),
     goalZ: t.float32().noSync().default(0),
+    /** Wild pets: times fed by `trustBy` (playerId), toward befriending it (pets.ts). */
+    trust: t.uint8().default(0),
+    trustBy: t.string().noSync().default(''),
   },
   'CreatureState',
 );
 export type CreatureState = SchemaType<typeof CreatureState>;
+
+/** A player's pet (or its egg, while `kind` is ''). Saved with the home (ADR-024). */
+export const PetState = schema(
+  {
+    /** PetKind, or '' while it's still an egg. */
+    kind: t.string().default(''),
+    name: t.string().default(''),
+    /** The owner's sessionId while they're in the home ('' when offline). */
+    ownerSession: t.string().default(''),
+    /** PetOrder. */
+    order: t.string().default('follow'),
+    x: t.float32().default(0),
+    z: t.float32().default(0),
+    yaw: t.angle().default(0),
+    /** Egg: 0 → 1 while hatching; 1 once hatched. */
+    hatch: t.quantized({ min: 0, max: 1, bits: 8 }).default(0),
+    /** Last visible action (PetAction) and a counter that changes each time. */
+    action: t.string().default(''),
+    actionSeq: t.uint8().default(0),
+    /** Scouts (ghost): the creature it marks on the owner's compass ('' = none). */
+    mark: t.string().default(''),
+    // --- server-only ---
+    /** The owner's playerId (saves are keyed by it). */
+    owner: t.string().noSync().default(''),
+    hatchMs: t.float64().noSync().default(0),
+    cooldownMs: t.float64().noSync().default(0),
+    stuckMs: t.float64().noSync().default(0),
+  },
+  'PetState',
+);
+export type PetState = SchemaType<typeof PetState>;
 
 /** A trap on the ground (snare or spike), set by a player. Saved with the home. */
 export const TrapState = schema(
@@ -227,6 +261,8 @@ export const HomeState = schema(
     projectiles: t.map(ProjectileState),
     /** Traps on the ground, keyed `trap-<n>`. */
     traps: t.map(TrapState),
+    /** Pets and eggs, keyed `pet-<n>`. */
+    pets: t.map(PetState),
     /** Today's shared goals (ADR-018). */
     goals: t.array(GoalState),
     today: DayStats,

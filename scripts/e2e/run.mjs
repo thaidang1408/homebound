@@ -11,6 +11,7 @@ import hunting from './hunting.mjs';
 import hunting2 from './hunting2.mjs';
 import outdoors from './outdoors.mjs';
 import perf from './perf.mjs';
+import pets from './pets.mjs';
 import soloSave from './solo-save.mjs';
 import twoPlayers from './two-players.mjs';
 
@@ -26,6 +27,7 @@ const SCENARIOS = {
   backpack,
   chat,
   feel,
+  pets,
   perf,
 };
 

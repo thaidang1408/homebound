@@ -4,6 +4,7 @@ import {
   GOALS,
   GOAL_XP,
   GamePhase,
+  PETS,
   ServerMessage,
   StoveStatus,
   clockLabel,
@@ -14,6 +15,7 @@ import {
   isCreatureKind,
   isGoalKind,
   isItemId,
+  isPetKind,
   type ChatBroadcast,
   type PingBroadcast,
   type DayPhase,
@@ -60,6 +62,8 @@ interface Snapshot {
   /** Traps that have gone off. */
   sprung: Set<string>;
   myBuff: string;
+  /** Pet id → kind ('' = egg), for hatch and befriend toasts. */
+  pets: Map<string, string>;
 }
 
 function slots(list: Iterable<{ itemId: string; qty: number }>): string {
@@ -91,6 +95,12 @@ function snapshot(room: Room<HomeState>): Snapshot {
     // Health and presence change only in fights; patrol movement doesn't re-render the UI.
     ...[...s.creatures.entries()].map(([id, c]) => `${id}:${c.health}:${c.present}`),
     ...[...s.traps.entries()].map(([id, t]) => `${id}:${t.kind}:${t.sprung}`),
+    // Pets: hatching in 5% steps, names, orders and who's home; wild pets' trust.
+    ...[...s.pets.entries()].map(
+      ([id, p]) =>
+        `${id}:${p.kind}:${p.name}:${p.order}:${p.ownerSession}:${Math.round(p.hatch * 20)}`,
+    ),
+    ...[...s.creatures.values()].map((c) => c.trust),
   ].join(';');
   return {
     key,
@@ -112,6 +122,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     items: totals(s.players.get(room.sessionId)?.inventory ?? []),
     sprung: new Set([...s.traps.entries()].filter(([, t]) => t.sprung).map(([id]) => id)),
     myBuff: s.players.get(room.sessionId)?.buff ?? '',
+    pets: new Map([...s.pets.entries()].map(([id, p]) => [id, p.kind])),
   };
 }
 
@@ -136,6 +147,27 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
     if (prev.sprung.has(id)) continue;
     const kind = room.state.traps.get(id)?.kind;
     showToast(kind === 'snare' ? '🪢 A snare caught something!' : '🔺 A spike trap hit something!');
+  }
+  for (const [id, kind] of next.pets) {
+    const pet = room.state.pets.get(id);
+    if (!pet || !isPetKind(kind) || prev.pets.get(id) === kind) continue;
+    const mine = pet.ownerSession === room.sessionId;
+    const owner = room.state.players.get(pet.ownerSession)?.name ?? 'Your partner';
+    const what = `${PETS[kind].icon} ${PETS[kind].name.toLowerCase()}`;
+    if (prev.pets.has(id)) {
+      showToast(
+        mine
+          ? `🐣 Your egg hatched: a ${what}! Press E to talk to it`
+          : `🐣 ${owner}’s egg hatched: a ${what}!`,
+      );
+    } else {
+      showToast(
+        mine
+          ? `💕 The ${what} is your friend now! Press E to talk to it`
+          : `💕 ${owner} made friends with a ${what}!`,
+      );
+    }
+    playFanfare();
   }
   if (next.myBuff && next.myBuff !== prev.myBuff && isBuffId(next.myBuff)) {
     const buff = getBuff(next.myBuff);

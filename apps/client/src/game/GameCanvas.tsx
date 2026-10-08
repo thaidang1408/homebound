@@ -6,6 +6,7 @@ import { useSession } from '../state/session';
 import { Arrows } from './combat/Arrows';
 import { HeldItem } from './combat/HeldItem';
 import { PingMarkers } from './fx/PingMarkers';
+import { Pets } from './pets/Pets';
 import { Tracks } from './world/Tracks';
 import { Traps } from './world/Traps';
 import { Creatures } from './creatures/Creatures';
@@ -49,6 +50,7 @@ function Players() {
       <HeldItem room={room} />
       <PingMarkers room={room} />
       <Traps room={room} />
+      <Pets room={room} />
       <Tracks room={room} />
       {partners.map(([id, p]) => (
         <RemotePlayer
