@@ -9,6 +9,13 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
+    # Client-only pushes must not restart the server (it would drop everyone playing).
+    buildFilter:
+      paths:
+        - apps/server/**
+        - packages/shared/**
+        - package.json
+        - package-lock.json
     envVars:
       - key: NODE_ENV
         value: production

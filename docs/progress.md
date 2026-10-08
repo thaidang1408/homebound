@@ -392,5 +392,8 @@ https://homebound-server.onrender.com), awaiting the user's two-laptop test + ap
 - Fixed live: Cloudflare stripped Colyseus' HTTP 52x errors, so re-opening a saved home by code,
   wrong codes and full homes failed in production; now sent as 42x. Verified live after a redeploy
   (disk wiped): the old home came back from Neon by its code.
+- Fixed live: behind Render's proxy the server's close frame after "Leave" could be lost, so the
+  client waited forever; it now finishes leaving locally after 1.5 s (the server already let go).
+- Render only rebuilds for server/shared/dependency changes (`buildFilter`).
 - Two real laptops on the public URL: pending on the user's side (required for the DoD).
 - Render free sleeps after 15 min idle (~1 min first load) and has 750 free hours/month.
