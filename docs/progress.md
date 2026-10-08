@@ -355,8 +355,9 @@ approval (2026-10-08)
 
 ## Phase 8 — Deployment
 
-**Status:** Code ready; waiting for the user to create the GitHub / Neon / Render / Cloudflare
-accounts and deploy (2026-10-08). Hosting chosen by the user: Render + Neon (ADR-020).
+**Status:** Live at https://homebound-wild-world.pages.dev (server
+https://homebound-server.onrender.com), awaiting the user's two-laptop test + approval
+(2026-10-08). Hosting chosen by the user: Render + Neon (ADR-020).
 
 **What was built**
 
@@ -366,6 +367,10 @@ accounts and deploy (2026-10-08). Hosting chosen by the user: Render + Neon (ADR
 - Production warnings in the log when `ALLOWED_ORIGINS` or `DATABASE_URL` is missing.
 - Landing screen: "Waking up the server… (up to a minute)" and retries for a sleeping free host.
 - `render.yaml` (Singapore, free plan, health check), README deploy guide, `.env.example`.
+- `npm run deploy -- db | server | client | check`: guided deploy; the user only does the browser
+  steps (sign-ups, Render blueprint, one env var). The client is a direct upload to Pages, so
+  client changes need `npm run deploy -- client`; server changes deploy on push.
+- Landing-screen name placeholder in Vietnamese (user request).
 
 **Tests**
 
@@ -373,9 +378,15 @@ accounts and deploy (2026-10-08). Hosting chosen by the user: Render + Neon (ADR
   New: every save reaches the mirror; restore fills only missing homes, ignores bad codes.
 - Production smoke test on a temp port: `/health` ok, allowed origin echoed, other origins refused.
 - Production bundle contains no dev hooks.
+- Real Neon database: save round-trip + restore after a wiped disk passes.
+- `deploy -- check` on the live URLs: health, page, CORS allowed for the page, refused for others.
+- Live smoke test (two headless browsers on the public URL): build a home, join by code, both
+  enter the world over WSS, no console errors. (It left one test home in the database.)
 
 **Known issues**
 
 - One unidentified test failed once in 8 full runs (timing under load); not reproduced.
-- Not yet run against a real Postgres (Docker Desktop was off): run the skipped test with the Neon URL.
+- wrangler 4.14x delegates new Pages projects to Workers and fails at a monorepo root; the
+  script creates the project with `--force` (classic Pages).
+- Two real laptops on the public URL: pending on the user's side (required for the DoD).
 - Render free sleeps after 15 min idle (~1 min first load) and has 750 free hours/month.
