@@ -388,5 +388,8 @@ https://homebound-server.onrender.com), awaiting the user's two-laptop test + ap
 - One unidentified test failed once in 8 full runs (timing under load); not reproduced.
 - wrangler 4.14x delegates new Pages projects to Workers and fails at a monorepo root; the
   script creates the project with `--force` (classic Pages).
+- Fixed live: Cloudflare stripped Colyseus' HTTP 52x errors, so re-opening a saved home by code,
+  wrong codes and full homes failed in production; now sent as 42x. Verified live after a redeploy
+  (disk wiped): the old home came back from Neon by its code.
 - Two real laptops on the public URL: pending on the user's side (required for the DoD).
 - Render free sleeps after 15 min idle (~1 min first load) and has 750 free hours/month.

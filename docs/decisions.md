@@ -225,6 +225,9 @@ behind a Cloudflare Tunnel and an Oracle Cloud VM.
   missing from disk are restored. The queue is flushed on graceful shutdown. The data is validated
   on load exactly like a file.
 - CORS: `ALLOWED_ORIGINS` (exact origins) in production.
+- Matchmaking errors leave the server as HTTP 420–429 instead of Colyseus' 520–529: Render sits
+  behind Cloudflare, which replaces 52x with its own bodiless, CORS-less errors. Found live: re-opening
+  a saved home by code failed (the client never saw "not running" and so never re-opened the save).
 
 **Trade-off:** first visit after 15 idle minutes waits ~1 minute (the landing screen says so). A
 save written in the last seconds before a crash (not a graceful stop) can miss the database.

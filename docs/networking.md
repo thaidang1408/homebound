@@ -19,7 +19,8 @@ onAuth: playerId must be valid and not already in this home (two tabs)
 onJoin: returning playerId → their items, hunger, XP and position; new playerId → fresh
 ```
 
-`maxClients = 2`; a full room fails with `522 … is locked` → "This home already has two players."
+`maxClients = 2`; a full room fails with `522 … is locked` (sent over HTTP as 422: Cloudflare in
+front of Render strips 52x responses; `toHttpSafeStatus` / `fromHttpSafeStatus` in `protocol.ts`) → "This home already has two players."
 Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `already-in-home`,
 `invalid-player`) that the client maps to friendly text.
 
