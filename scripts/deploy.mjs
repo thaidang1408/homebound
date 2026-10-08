@@ -2,7 +2,7 @@
 // Usage: npm run deploy -- db | server | client | check
 // Settings are kept in the git-ignored .env as DEPLOY_* (never DATABASE_URL: local dev must not
 // write into the production database).
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, execSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 
@@ -12,7 +12,7 @@ const PAGES_PROJECT = 'homebound-wild-world';
 const NEONCTL = 'neonctl@8';
 const WRANGLER = 'wrangler@4';
 
-const isWindows = process.platform === 'win32';
+const isWindows = process.platform === 'win32'; // clipboard only
 
 function readEnv() {
   if (!existsSync(ENV_FILE)) return {};
@@ -36,19 +36,15 @@ function setEnv(key, value) {
   writeFileSync(ENV_FILE, next);
 }
 
-function run(cmd, args, opts = {}) {
-  const res = spawnSync(cmd, args, { stdio: 'inherit', shell: isWindows, ...opts });
-  if (res.status !== 0) throw new Error(`${cmd} ${args.join(' ')} failed`);
-  return res;
+// Commands are whole strings (none of ours has spaces or quotes): npm/npx are .cmd files on
+// Windows and need a shell, and Node warns about args arrays passed through one (DEP0190).
+function run(command, opts = {}) {
+  const res = spawnSync(command, { stdio: 'inherit', shell: true, ...opts });
+  if (res.status !== 0) throw new Error(`${command} failed`);
 }
-
-const npx = (args, opts) => run('npx', ['-y', ...args], opts);
-const capture = (args) =>
-  execFileSync('npx', ['-y', ...args], {
-    encoding: 'utf8',
-    shell: isWindows,
-    stdio: ['inherit', 'pipe', 'inherit'],
-  });
+const tryRun = (command) => spawnSync(command, { stdio: 'inherit', shell: true }).status === 0;
+const capture = (command) =>
+  execSync(command, { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] });
 
 function copy(text) {
   try {
@@ -67,19 +63,11 @@ async function db() {
   say(
     '[1/2] Logging in to Neon: a browser tab opens. Sign up / log in (GitHub works), then come back.',
   );
-  npx([NEONCTL, 'auth']);
+  run(`npx -y ${NEONCTL} auth`);
   say('[2/2] Creating the Neon project "homebound" in Singapore…');
-  const created = capture([
-    NEONCTL,
-    'projects',
-    'create',
-    '--name',
-    'homebound',
-    '--region-id',
-    NEON_REGION,
-    '--output',
-    'json',
-  ]);
+  const created = capture(
+    `npx -y ${NEONCTL} projects create --name homebound --region-id ${NEON_REGION} --output json`,
+  );
   // Take the first connection string in the output, whatever the CLI version's JSON shape.
   const url = created.match(/postgres(?:ql)?:\/\/[^"\s]+/)?.[0];
   if (!url)
@@ -87,7 +75,7 @@ async function db() {
   setEnv('DEPLOY_DATABASE_URL', url);
   say('✅ Database ready. Saved to .env as DEPLOY_DATABASE_URL (git-ignored, not printed here).');
   say('Testing a real save round-trip against it…');
-  run('npx', ['vitest', 'run', 'apps/server/src/persistence/mirror'], {
+  run('npx vitest run apps/server/src/persistence/mirror', {
     env: { ...process.env, TEST_DATABASE_URL: url },
   });
   say('Next: npm run deploy -- server');
@@ -116,35 +104,34 @@ async function client() {
   const { DEPLOY_SERVER_URL: serverUrl } = readEnv();
   if (!serverUrl) throw new Error('Run "npm run deploy -- server" first.');
   say('[1/3] Building the client for ' + serverUrl);
-  run('npm', ['run', 'build', '-w', '@homebound/shared']);
-  run('npm', ['run', 'build', '-w', '@homebound/client'], {
+  run('npm run build -w @homebound/shared');
+  run('npm run build -w @homebound/client', {
     env: { ...process.env, VITE_SERVER_URL: serverUrl },
   });
   say(
     '[2/3] Logging in to Cloudflare: a browser tab opens. Sign up / log in, click Allow, come back.',
   );
-  npx([WRANGLER, 'login']);
-  // Creating an existing project fails harmlessly on re-runs.
-  spawnSync(
-    'npx',
-    ['-y', WRANGLER, 'pages', 'project', 'create', PAGES_PROJECT, '--production-branch', 'main'],
-    {
-      stdio: 'inherit',
-      shell: isWindows,
-    },
-  );
+  if (!tryRun(`npx -y ${WRANGLER} whoami`)) run(`npx -y ${WRANGLER} login`);
+  const projects = () => capture(`npx -y ${WRANGLER} pages project list`);
+  if (!projects().includes(PAGES_PROJECT)) {
+    // --force: classic Pages. Without it wrangler 4.14x delegates to Workers, which refuses a
+    // monorepo root. Only the create needs it; later commands target the existing project.
+    tryRun(
+      `npx -y ${WRANGLER} pages project create ${PAGES_PROJECT} --production-branch main --force`,
+    );
+    // Without a project, `pages deploy` would stop to ask for one (it can't: output is captured).
+    if (!projects().includes(PAGES_PROJECT))
+      throw new Error(`Cloudflare could not create the Pages project. A new account usually needs:
+  1. Verify your email (link in the Cloudflare sign-up mail).
+  2. Open https://dash.cloudflare.com → Workers & Pages once, accept what it asks.
+  Then run this step again. Still failing? Create it by hand: Workers & Pages → Create →
+  Pages → "Use direct upload" → name: ${PAGES_PROJECT} → Create project (skip the upload),
+  then run this step again.`);
+  }
   say('[3/3] Uploading…');
-  const out = capture([
-    WRANGLER,
-    'pages',
-    'deploy',
-    'apps/client/dist',
-    '--project-name',
-    PAGES_PROJECT,
-    '--branch',
-    'main',
-    '--commit-dirty=true',
-  ]);
+  const out = capture(
+    `npx -y ${WRANGLER} pages deploy apps/client/dist --project-name ${PAGES_PROJECT} --branch main --commit-dirty=true`,
+  );
   console.log(out);
   // "https://<hash>.<project>.pages.dev" → production URL "https://<project>.pages.dev"
   const host = out.match(/https:\/\/[\w-]+\.([\w-]+\.pages\.dev)/)?.[1];
