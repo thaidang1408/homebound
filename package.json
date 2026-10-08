@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "e2e": "node scripts/e2e/run.mjs",
+    "deploy": "node scripts/deploy.mjs",
     "typecheck": "npm run build -w @homebound/shared && tsc -p packages/shared/tsconfig.test.json && tsc -p apps/server/tsconfig.test.json && tsc -b apps/client"
   },
   "devDependencies": {
