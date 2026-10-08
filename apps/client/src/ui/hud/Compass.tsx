@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Room } from '@colyseus/sdk';
-import type { HomeState } from '@homebound/shared';
+import { LANDMARKS, type HomeState } from '@homebound/shared';
 import { localPose } from '../../game/player/localPose';
 import { playerColor } from '../../game/player/playerColors';
 import { getPings } from '../../state/pings';
@@ -72,6 +72,19 @@ export function Compass({ room }: { room: Room<HomeState> }) {
         if (p.ownerSession === room.sessionId && p.mark)
           scouted ??= room.state.creatures.get(p.mark);
       });
+      // The nearest landmark nobody has found yet: a gentle nudge toward the wilds.
+      let unknown: { x: number; z: number } | undefined;
+      let nearest = Infinity;
+      for (const l of LANDMARKS) {
+        const d = Math.hypot(l.x - localPose.x, l.z - localPose.z);
+        if (!room.state.discovered.has(l.id) && d < nearest) {
+          nearest = d;
+          unknown = l;
+        }
+      }
+      const unknownMark = marks.get('unknown');
+      if (unknownMark) unknownMark.hidden = !unknown;
+      if (unknown) place('unknown', bearing(localPose.x, localPose.z, unknown.x, unknown.z), false);
       const scoutMark = marks.get('scout');
       if (scoutMark) scoutMark.hidden = !scouted;
       if (scouted) place('scout', bearing(localPose.x, localPose.z, scouted.x, scouted.z), true);
@@ -93,6 +106,9 @@ export function Compass({ room }: { room: Room<HomeState> }) {
       </span>
       <span data-mark="ping" className={styles.marker} title="Marked spot" hidden>
         📍
+      </span>
+      <span data-mark="unknown" className={styles.marker} title="Something to discover" hidden>
+        ❔
       </span>
       <span data-mark="scout" className={styles.marker} title="Your ghost found an animal" hidden>
         🐾

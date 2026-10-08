@@ -17,6 +17,7 @@ declare global {
       give: typeof give;
       summon: typeof summon;
       pet: typeof pet;
+      teleport: typeof teleport;
       perf: typeof perf;
     };
   }
@@ -47,6 +48,11 @@ function pet(kind: string): void {
   getSession().room?.send(ClientMessage.DevPet, { kind });
 }
 
+/** Jump anywhere (dev servers only): the wilds are a long walk for a headless browser. */
+function teleport(x: number, z: number): void {
+  getSession().room?.send(ClientMessage.DevTeleport, { x, z });
+}
+
 /** Draw calls, triangles and frames per second over one second (for profiling). */
 async function perf(): Promise<{
   calls: number;
@@ -73,4 +79,15 @@ async function perf(): Promise<{
   };
 }
 
-window.__homebound = { getSession, getUi, walkTo, setTime, hurt, give, summon, pet, perf };
+window.__homebound = {
+  getSession,
+  getUi,
+  walkTo,
+  setTime,
+  hurt,
+  give,
+  summon,
+  pet,
+  teleport,
+  perf,
+};

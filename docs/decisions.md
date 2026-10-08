@@ -319,3 +319,28 @@ the roadmap's wolf/fox/owl, obtained both by hatching eggs and by befriending wi
   clamped, at most 2 per owner); additive, so `SAVE_VERSION` stays 1 like Phase 10's traps.
 
 **Not done:** pet hunger and knock-out, pets levelling up, a creature journal, a pet house (Phase 15).
+
+## ADR-025: A bigger world around an unchanged valley; biomes, landmarks and the map as data (2026-10-08)
+
+**Decision:**
+
+- **The valley stays exactly as it was:** its generator still uses the old radius
+  (`HOME_RADIUS` = 58); `WORLD_RADIUS` grows to 100 (≈3× the area). The wilds are one more
+  generation pass with their own seed and ids that continue after the valley's, so saved homes
+  keep every tree, rock and nest in place and their resource charges still match.
+- **Biomes by direction** past a ridge with four passes (`biomes.ts`): ground colors, leaf/rock
+  tints, hill height and how thickly things grow. `biomeMix` blends them so terrain heights and
+  colors never jump; trees and rocks keep one instanced draw call per part (instance colors tint
+  them).
+- **Landmarks are data** (`landmarks.ts`): position, colliders, a cache with a loot table, a
+  waystone. Discovery is proximity (14 m) and shared by the home; travel only between lit
+  waystones and only from one you stand at; caches empty once per day per home.
+- **Fog of war is server state** (8 m cells, a map of revealed indices, 22 m around each player,
+  the tower 75 m), so both players share it and it is saved. The client draws the map on a canvas:
+  the land once, fog and marks every 400 ms while it's open.
+- The lake is shallow water you wade through (no swimming or raft); mute moved to N so M is the
+  map.
+
+**Not done (from the roadmap):** the raft, the glider cloak (Phase 13), journal pages (Phase 13),
+biome animals (Phase 14 brings monsters to the biomes), biome ambience. No LOD or chunking was
+needed: the wilds measured 30 draw calls and 116k triangles looking out from the north pass.

@@ -6,12 +6,15 @@ import {
   TorusGeometry,
   DodecahedronGeometry,
   IcosahedronGeometry,
+  Color,
   Object3D,
   type BufferGeometry,
   type InstancedMesh,
 } from 'three';
 import {
+  BIOMES,
   RESOURCE_NODES,
+  biomeAt,
   terrainHeight,
   type ResourceKind,
   type ResourceNodeDefinition,
@@ -27,6 +30,8 @@ interface Part {
   color: string;
   /** Self-lit this much (the egg in a nest glows so you can spot it). */
   glow?: number;
+  /** Which biome tint applies: leaves (trees, bushes) or rock. None: always its own color. */
+  tint?: 'leafTint' | 'rockTint';
   /** Instances of this part per node (berries: several per bush). */
   perNode: number;
   /** Place instance `i` of this part for a node; `depleted` swaps to the harvested look. */
@@ -93,6 +98,7 @@ const PARTS: Record<ResourceKind, Part[]> = {
     {
       geometry: new ConeGeometry(1.15, 1.9, 7),
       color: PALETTE.leaves,
+      tint: 'leafTint',
       perNode: 1,
       place(o, n, _i, depleted) {
         base(o, n, 3.0);
@@ -102,6 +108,7 @@ const PARTS: Record<ResourceKind, Part[]> = {
     {
       geometry: new ConeGeometry(0.8, 1.5, 7),
       color: PALETTE.leavesLight,
+      tint: 'leafTint',
       perNode: 1,
       place(o, n, _i, depleted) {
         base(o, n, 3.9);
@@ -113,6 +120,7 @@ const PARTS: Record<ResourceKind, Part[]> = {
     {
       geometry: new DodecahedronGeometry(0.65, 0),
       color: PALETTE.rock,
+      tint: 'rockTint',
       perNode: 1,
       place(o, n, _i, depleted) {
         base(o, n, 0.3);
@@ -125,6 +133,7 @@ const PARTS: Record<ResourceKind, Part[]> = {
     {
       geometry: new IcosahedronGeometry(0.6, 0),
       color: PALETTE.bush,
+      tint: 'leafTint',
       perNode: 1,
       place(o, n, _i, depleted) {
         base(o, n, 0.45);
@@ -203,6 +212,18 @@ function KindInstances({ kind }: { kind: ResourceKind }) {
 
   useLayoutEffect(() => {
     nodes.forEach((_, i) => placeNode(i, false));
+    // Each biome tints its trees and rocks (one draw call per part still: instance colors).
+    const color = new Color();
+    parts.forEach((part, p) => {
+      const mesh = meshes.current[p];
+      if (!mesh) return;
+      nodes.forEach((node, index) => {
+        color.set(part.color);
+        if (part.tint) color.multiply(new Color(BIOMES[biomeAt(node.x, node.z)][part.tint]));
+        for (let i = 0; i < part.perNode; i++) mesh.setColorAt(index * part.perNode + i, color);
+      });
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    });
     // placeNode only reads refs and static data
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes]);
@@ -251,7 +272,7 @@ function KindInstances({ kind }: { kind: ResourceKind }) {
           frustumCulled={false}
         >
           <meshStandardMaterial
-            color={part.color}
+            color={PALETTE.white}
             emissive={part.color}
             emissiveIntensity={part.glow ?? 0}
             flatShading

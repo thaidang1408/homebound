@@ -546,3 +546,56 @@ of getting one (eggs and befriending).
 
 - A pet following you into the house goes around by popping to your side when a wall blocks it.
 - Ghost pets leave footprints like every creature.
+
+## Phase 12 — Exploration and a bigger world
+
+**Status:** Done on one machine (tests + e2e pass), awaiting the user's test + approval
+(2026-10-08).
+
+**What was built**
+
+- The world is ~3× bigger (radius 58 → 100) around an **unchanged home valley** (same trees,
+  rocks, nests and ids; saves still match). A ridge rings the valley with low passes N/E/S/W;
+  trails lead from them to the landmarks.
+- Four biomes past the ridge (ADR-025): Deep Forest (north, dense dark woods, mushrooms), Rocky
+  Hills (east, steep, boulders), Misty Lake (south, a shallow lake to wade through, sandy shore),
+  Old Ruins (west, broken walls). Ground colors and tree/rock tints per biome, blended at borders.
+- Five landmarks: the Giant Tree, Echo Cave, the Abandoned Camp, the Old Watchtower ([E] climb:
+  maps 75 m around) and the Spirit Shrine (a beam of light; resting there heals fully). Four have
+  a loot cache that refills every morning.
+- Waystones: one in the front yard, one per landmark, lit when the landmark is discovered (walk
+  within 14 m); [E] travels between lit ones.
+- The shared map [M]: biomes, trails, landmarks, lit waystones, both players; fog of war lifted
+  by either player (saved); click to mark a spot (up to 8). The compass shows ❔ toward the
+  nearest undiscovered landmark. Mute moved from M to N.
+
+**Tests**
+
+- `npm test`: 195 passing + 1 skipped. New: fog lifts around players, discovery once, the tower
+  reveals, markers toggle and cap; waystone travel rules; caches once a day, full backpack keeps
+  them closed; the shrine heals; saves round-trip and tampered map data is dropped; the valley
+  layout unchanged, wild ids continue, trails/lake/landmarks/waystones clear; biomes by direction,
+  no cliffs, low passes; over the network: discover, loot once, travel home, mark, all saved.
+- `npm run e2e`: new `explore` scenario (north pass view, all five landmarks, cache, tower, map,
+  waystone home; screenshots `p12-*`). Frame budget looking out over the wilds: 30 calls, 116k
+  triangles; `perf`: 82–139 calls, ~105k triangles. In the full run `two-players` (once),
+  `feel`, `pets`, `explore` and `perf` timed out; each passes on its own after the fix below.
+
+**Bugs found and fixed**
+
+- Sandy-shore colors extrapolated into a garish red patch on the hills by the camp (an unclamped
+  lerp) — clamped.
+- The map didn't fit short screens — the canvas now fits the panel.
+- `feel` e2e: at headless frame rates a jump lasts ~1.6 s, so the dodge pressed after 800 ms was
+  dropped; the test now waits for the landing. Terrain facets 150 → 128 per side (−12k triangles).
+
+**Not done (roadmap items cut)**
+
+- The raft and glider cloak, journal pages (Phase 13), biome animals (Phase 14), biome ambience.
+
+**Known issues**
+
+- No trail through the valley's own forest to the north/east/west passes (the valley layout is
+  kept as it was); the compass ❔ points the way.
+- Triangles grew from ~47k (Phase 7) to ~105k: within budget, but slow software renderers drop
+  to 5–8 fps.

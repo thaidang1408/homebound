@@ -90,8 +90,18 @@ function interact(): boolean {
     case 'workbench':
       openPanel('workbench');
       break;
+    case 'waystone':
+      updateUi({ waystoneId: target.id });
+      openPanel('travel');
+      break;
+    case 'tower':
+      showToast('From up here you can see far — the map fills in. [M] to look.');
+      room.send(ClientMessage.Interact, { targetId: target.id });
+      break;
     case 'stove':
     case 'bed':
+    case 'cache':
+    case 'shrine':
       room.send(ClientMessage.Interact, { targetId: target.id });
       break;
     case 'tree':
@@ -139,11 +149,16 @@ export function useGameKeys(): void {
         closePanel();
         return;
       }
-      if (e.code === 'KeyM') {
+      if (e.code === 'KeyN') {
         const muted = !getSettings().muted;
         updateSettings({ muted });
         applyVolume();
-        showToast(muted ? '🔇 Sound off (M)' : '🔊 Sound on (M)');
+        showToast(muted ? '🔇 Sound off (N)' : '🔊 Sound on (N)');
+        return;
+      }
+      if (e.code === 'KeyM') {
+        if (panel === 'none') openPanel('map');
+        else if (panel === 'map') closePanel();
         return;
       }
       if (!locked) return;

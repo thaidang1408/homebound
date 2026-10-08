@@ -1,6 +1,7 @@
 import {
   GoalState,
   HATCH_MS,
+  MarkerState,
   PETS,
   PetState,
   RESOURCE_KINDS,
@@ -125,6 +126,10 @@ export function buildSave(
         },
       ]),
     ),
+    explored: [...state.explored.keys()].map(Number),
+    discovered: [...state.discovered.keys()],
+    caches: [...state.caches.keys()],
+    markers: [...state.markers.values()].map((m) => ({ x: m.x, z: m.z })),
   };
 }
 
@@ -176,4 +181,16 @@ export function applyHome(state: HomeState, save: HomeSave): void {
     pet.name = isPetKind(kind) ? saved.name || PETS[kind].name : '';
     state.pets.set(id, pet);
   }
+  state.explored.clear();
+  for (const i of save.explored) state.explored.set(String(i), true);
+  state.discovered.clear();
+  for (const id of save.discovered) state.discovered.set(id, true);
+  state.caches.clear();
+  for (const id of save.caches) state.caches.set(id, true);
+  state.markers.clear();
+  save.markers.forEach((m, i) => {
+    const marker = new MarkerState();
+    Object.assign(marker, m);
+    state.markers.set(`mark-${i}`, marker); // re-keyed in order: new ids continue at the size
+  });
 }

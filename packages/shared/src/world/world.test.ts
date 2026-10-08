@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { PLAYER_RADIUS, SPAWN_POINTS, WORLD_RADIUS } from '../constants.js';
+import { HOME_RADIUS, PLAYER_RADIUS, SPAWN_POINTS, WORLD_RADIUS } from '../constants.js';
+import { biomeAt, inLake } from './biomes.js';
+import { LANDMARKS, WAYSTONES } from './landmarks.js';
 import { createRandom } from '../random.js';
 import { collides } from './collision.js';
 import { findInteractable, INTERACTABLES, WORLD_COLLIDERS } from './interactables.js';
-import { RESOURCE_NODES, ROAD, ZONES } from './layout.js';
+import { RESOURCE_NODES, ROAD, TRAIL_HALF_WIDTH, ZONES, trailDistance } from './layout.js';
 import { terrainHeight } from './terrain.js';
 import { advanceTime, canSleepAt, clockLabel, dayPhase, NEW_HOME_TIME, SUNRISE } from './time.js';
 
@@ -24,9 +26,10 @@ describe('world layout', () => {
   });
 
   test('mushrooms are an extra pass: the original layout is unchanged', () => {
-    const count = (kind: string) => RESOURCE_NODES.filter((n) => n.kind === kind).length;
+    const valley = RESOURCE_NODES.filter((n) => Math.hypot(n.x, n.z) < HOME_RADIUS);
+    const count = (kind: string) => valley.filter((n) => n.kind === kind).length;
     expect([count('tree'), count('rock'), count('bush')]).toEqual([110, 26, 24]);
-    const mushrooms = RESOURCE_NODES.filter((n) => n.kind === 'mushroom');
+    const mushrooms = valley.filter((n) => n.kind === 'mushroom');
     expect(mushrooms).toHaveLength(14);
     for (const m of mushrooms) expect(m.z, m.id).toBeLessThan(0); // the northern woods
   });
@@ -40,6 +43,42 @@ describe('world layout', () => {
       const others = RESOURCE_NODES.filter((n) => n !== nest);
       const nearest = Math.min(...others.map((n) => Math.hypot(n.x - nest.x, n.z - nest.z)));
       expect(nearest, nest.id).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  test('the wilds: ids continue after the valley; trails, landmarks and waystones stay clear', () => {
+    const wilds = RESOURCE_NODES.filter((n) => Math.hypot(n.x, n.z) > HOME_RADIUS);
+    expect(wilds.length).toBeGreaterThan(300);
+    // The valley's last tree keeps its id; the first wild tree comes right after it.
+    expect(RESOURCE_NODES.find((n) => n.id === 'tree-110')?.x).toBe(
+      wilds.find((n) => n.kind === 'tree')?.x,
+    );
+    for (const n of wilds) {
+      expect(trailDistance(n), n.id).toBeGreaterThan(TRAIL_HALF_WIDTH);
+      expect(inLake(n), n.id).toBe(false);
+      for (const l of LANDMARKS) expect(Math.hypot(l.x - n.x, l.z - n.z), n.id).toBeGreaterThan(6);
+    }
+    for (const w of WAYSTONES) {
+      // You can stand next to every waystone (on its home side).
+      const d = Math.hypot(w.at.x, w.at.z) || 1;
+      const stand = { x: w.at.x - (w.at.x / d) * 1.4, z: w.at.z - (w.at.z / d) * 1.4 };
+      expect(collides(stand, PLAYER_RADIUS, WORLD_COLLIDERS), w.id).toBe(false);
+    }
+  });
+
+  test('biomes by direction past the ridge; the terrain is continuous', () => {
+    expect(biomeAt(0, 0)).toBe('valley');
+    expect(biomeAt(0, -82)).toBe('forest');
+    expect(biomeAt(82, 0)).toBe('hills');
+    expect(biomeAt(0, 84)).toBe('lake');
+    expect(biomeAt(-80, 0)).toBe('ruins');
+    // No cliffs (short of the world rim): points 0.5 m apart never differ by more than 0.8 m.
+    for (let a = 0; a < Math.PI * 2; a += 0.05) {
+      for (let r = 10; r < WORLD_RADIUS - 10; r += 0.5) {
+        const h = terrainHeight(Math.cos(a) * r, Math.sin(a) * r);
+        const h2 = terrainHeight(Math.cos(a) * (r + 0.5), Math.sin(a) * (r + 0.5));
+        expect(Math.abs(h - h2)).toBeLessThan(0.8);
+      }
     }
   });
 
@@ -76,6 +115,14 @@ describe('terrain', () => {
     expect(terrainHeight(0, 0)).toBe(0);
     expect(terrainHeight(8, -8)).toBe(0);
     expect(terrainHeight(WORLD_RADIUS, 0)).toBeGreaterThan(3);
+  });
+
+  test('a ridge rings the valley, with low passes north, east, south and west', () => {
+    const at = (bearing: number) =>
+      terrainHeight(Math.sin(bearing) * (HOME_RADIUS + 1), -Math.cos(bearing) * (HOME_RADIUS + 1));
+    for (const pass of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      expect(at(pass)).toBeLessThan(at(pass + Math.PI / 4) - 2.5);
+    }
   });
 });
 

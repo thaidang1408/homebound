@@ -218,6 +218,16 @@ export const ProjectileState = schema(
 );
 export type ProjectileState = SchemaType<typeof ProjectileState>;
 
+/** A spot someone marked on the shared map (Phase 12). Saved. */
+export const MarkerState = schema(
+  {
+    x: t.float32().default(0),
+    z: t.float32().default(0),
+  },
+  'MarkerState',
+);
+export type MarkerState = SchemaType<typeof MarkerState>;
+
 /** One of today's shared goals (goals.ts). */
 export const GoalState = schema(
   {
@@ -263,6 +273,13 @@ export const HomeState = schema(
     traps: t.map(TrapState),
     /** Pets and eggs, keyed `pet-<n>`. */
     pets: t.map(PetState),
+    /** The shared map (Phase 12): revealed cells (by index), discovered landmarks (by id). */
+    explored: t.map('boolean'),
+    discovered: t.map('boolean'),
+    /** Landmark caches already emptied today (refilled every morning). */
+    caches: t.map('boolean'),
+    /** Spots marked on the map, keyed `mark-<n>`. */
+    markers: t.map(MarkerState),
     /** Today's shared goals (ADR-018). */
     goals: t.array(GoalState),
     today: DayStats,

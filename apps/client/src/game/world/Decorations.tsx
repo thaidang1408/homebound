@@ -6,14 +6,16 @@ import {
   ROAD,
   WORLD_RADIUS,
   createRandom,
+  inLake,
   terrainHeight,
 } from '@homebound/shared';
 import { PALETTE } from './palette';
 
 /** Client-only seed: decorations are cosmetic and never affect gameplay. */
 const DECOR_SEED = 7;
-const GRASS = 900;
-const FLOWERS = 140;
+/** Tufts and flowers over the whole world (the wilds are 3× the valley, Phase 12). */
+const GRASS = 2400;
+const FLOWERS = 380;
 
 function scatter(count: number, seed: number) {
   const random = createRandom(seed);
@@ -25,7 +27,7 @@ function scatter(count: number, seed: number) {
     const z = Math.sin(a) * d;
     const inHouse = Math.abs(x) < HOUSE_HALF_WIDTH + 0.5 && Math.abs(z) < HOUSE_HALF_DEPTH + 0.5;
     const onRoad = Math.abs(x) < ROAD.halfWidth && z > ROAD.fromZ && z < ROAD.toZ;
-    if (inHouse || onRoad) continue;
+    if (inHouse || onRoad || inLake({ x, z })) continue;
     points.push({ x, z, s: 0.6 + random() * 0.8, r: random() * Math.PI });
   }
   return points;

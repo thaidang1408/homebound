@@ -88,6 +88,15 @@ export const TRAP_PLACE_DISTANCE = 1.6; // m
 export const TRAP_RADIUS = 0.55; // m
 export const SPIKE_TRAP_DAMAGE = 25;
 
+// --- Exploration (Phase 12) ---
+
+/** Spots on the shared map at once (the oldest goes when a new one is added). */
+export const MAX_MAP_MARKERS = 8;
+/** Clicking the map within this distance of a marker removes it instead. */
+export const MARKER_TOGGLE_DISTANCE = 4; // m
+/** Arriving by waystone: this far in front of it (toward home). */
+export const WAYSTONE_ARRIVE_OFFSET = 1.4; // m
+
 // --- Pets (Phase 11) ---
 
 /** Pets (eggs included) one player may have. */
@@ -110,8 +119,12 @@ export const PET_GUARD_RADIUS = 22; // m
 /** Taking an order or a pat from this far away (pets move, so a bit more than INTERACT_RANGE). */
 export const PET_COMMAND_RANGE = 4; // m
 
-/** The playable world is a circle around the house; the terrain rim rises at its edge. */
-export const WORLD_RADIUS = 58; // m
+/**
+ * The home valley (the original world, Phases 3–11) is ringed by a ridge; past it lie the wilds
+ * (Phase 12). The playable world is a circle around the house; the terrain rim rises at its edge.
+ */
+export const HOME_RADIUS = 58; // m
+export const WORLD_RADIUS = 100; // m
 
 export const MAX_PITCH = Math.PI / 2 - 0.01;
 

@@ -36,8 +36,14 @@ export default async function feel(t) {
   await waitForAction(b, 'jump');
   t.check('partner sees the jump', true);
 
-  await a.waitForTimeout(800); // land first (Q mid-air waits only a moment)
-  await a.keyboard.press('KeyQ');
+  // Q mid-air waits only a moment; at headless frame rates the jump lasts a while, so press
+  // again until it lands and the roll goes through.
+  for (let i = 0; i < 12; i++) {
+    await a.waitForTimeout(400);
+    await a.keyboard.press('KeyQ');
+    const seen = await seenBy(b);
+    if (seen.action === 'dodge') break;
+  }
   await waitForAction(b, 'dodge');
   const afterDodge = await seenBy(b);
   t.check('a dodge costs stamina', afterDodge.stamina < 100, `stamina ${afterDodge.stamina}`);

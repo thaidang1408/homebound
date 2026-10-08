@@ -43,7 +43,7 @@ export function SettingsPanel() {
             applyVolume();
           }}
         />
-        Mute (M)
+        Mute (N)
       </label>
     </div>
   );

@@ -1,5 +1,6 @@
 import {
   CREATURES,
+  HEALTH_MAX,
   PETS,
   PETS_PER_PLAYER,
   RESOURCE_KINDS,
@@ -118,6 +119,18 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
     }
     case 'workbench':
       return { text: 'Craft', actionable: true };
+    case 'cache':
+      return state.caches.has(focusId.slice('cache-'.length))
+        ? { text: 'Empty — it fills up again every morning', actionable: false }
+        : { text: 'Open the cache', actionable: true };
+    case 'tower':
+      return { text: 'Climb up and look around (maps the land)', actionable: true };
+    case 'shrine':
+      return me.health < HEALTH_MAX
+        ? { text: 'Rest at the shrine (heals you)', actionable: true }
+        : { text: 'The shrine hums softly', actionable: false };
+    case 'waystone':
+      return { text: 'Travel to another waystone', actionable: true };
     case 'tree':
     case 'rock':
     case 'bush':

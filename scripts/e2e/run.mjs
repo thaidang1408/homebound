@@ -3,6 +3,7 @@
 import backpack from './backpack.mjs';
 import chat from './chat.mjs';
 import combat from './combat.mjs';
+import explore from './explore.mjs';
 import feel from './feel.mjs';
 import gameLoop from './game-loop.mjs';
 import { createRun } from './lib.mjs';
@@ -28,6 +29,7 @@ const SCENARIOS = {
   chat,
   feel,
   pets,
+  explore,
   perf,
 };
 

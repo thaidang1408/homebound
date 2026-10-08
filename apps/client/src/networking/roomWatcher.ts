@@ -16,6 +16,7 @@ import {
   isGoalKind,
   isItemId,
   isPetKind,
+  findLandmark,
   type ChatBroadcast,
   type PingBroadcast,
   type DayPhase,
@@ -64,6 +65,8 @@ interface Snapshot {
   myBuff: string;
   /** Pet id → kind ('' = egg), for hatch and befriend toasts. */
   pets: Map<string, string>;
+  /** Landmarks discovered so far. */
+  discovered: Set<string>;
 }
 
 function slots(list: Iterable<{ itemId: string; qty: number }>): string {
@@ -101,6 +104,10 @@ function snapshot(room: Room<HomeState>): Snapshot {
         `${id}:${p.kind}:${p.name}:${p.order}:${p.ownerSession}:${Math.round(p.hatch * 20)}`,
     ),
     ...[...s.creatures.values()].map((c) => c.trust),
+    // Exploration: discoveries, emptied caches and map markers (the fog is drawn by the map).
+    [...s.discovered.keys()].join(','),
+    [...s.caches.keys()].join(','),
+    s.markers.size,
   ].join(';');
   return {
     key,
@@ -123,6 +130,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
     sprung: new Set([...s.traps.entries()].filter(([, t]) => t.sprung).map(([id]) => id)),
     myBuff: s.players.get(room.sessionId)?.buff ?? '',
     pets: new Map([...s.pets.entries()].map(([id, p]) => [id, p.kind])),
+    discovered: new Set(s.discovered.keys()),
   };
 }
 
@@ -147,6 +155,12 @@ function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
     if (prev.sprung.has(id)) continue;
     const kind = room.state.traps.get(id)?.kind;
     showToast(kind === 'snare' ? '🪢 A snare caught something!' : '🔺 A spike trap hit something!');
+  }
+  for (const id of next.discovered) {
+    const l = findLandmark(id);
+    if (prev.discovered.has(id) || !l) continue;
+    showToast(`🗺️ Discovered: ${l.icon} ${l.name} — its waystone is lit`);
+    playFanfare();
   }
   for (const [id, kind] of next.pets) {
     const pet = room.state.pets.get(id);

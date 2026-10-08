@@ -2,7 +2,7 @@ import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, test } from 'vitest';
-import { HATCH_MS, HEALTH_MAX, HUNGER_MAX } from '@homebound/shared';
+import { HATCH_MS, HEALTH_MAX, HUNGER_MAX, MAX_MAP_MARKERS, WORLD_RADIUS } from '@homebound/shared';
 import {
   SAVE_VERSION,
   homeExists,
@@ -61,6 +61,10 @@ function sample(code = 'ABC23'): HomeSave {
       },
       'pet-1': { kind: '', name: '', owner: PLAYER, order: 'follow', x: -2, z: 6, hatchMs: 9000 },
     },
+    explored: [0, 312, 313],
+    discovered: ['cave'],
+    caches: ['cave'],
+    markers: [{ x: 10, z: -20 }],
   };
 }
 
@@ -98,7 +102,7 @@ describe('home saves', () => {
       'ABC23',
     );
     expect(parsed?.traps).toEqual({
-      'trap-4': { kind: 'spike', x: 58, z: 2, sprung: false, owner: '' },
+      'trap-4': { kind: 'spike', x: WORLD_RADIUS, z: 2, sprung: false, owner: '' },
     });
   });
 
@@ -134,11 +138,40 @@ describe('home saves', () => {
         name: '',
         owner: PLAYER,
         order: 'follow',
-        x: 58,
+        x: WORLD_RADIUS,
         z: 1,
         hatchMs: HATCH_MS,
       },
     });
+  });
+
+  test('the shared map round-trips; tampered entries are dropped', () => {
+    saveHome(sample());
+    const loaded = loadHome('ABC23');
+    expect(loaded?.explored).toEqual([0, 312, 313]);
+    expect(loaded?.discovered).toEqual(['cave']);
+    expect(loaded?.caches).toEqual(['cave']);
+    expect(loaded?.markers).toEqual([{ x: 10, z: -20 }]);
+    const raw = sample() as unknown as Record<string, unknown>;
+    const parsed = parseSave(
+      {
+        ...raw,
+        explored: [1, 1, -4, 99999, 2.5, 'x', 7],
+        discovered: ['cave', 'atlantis', 3],
+        caches: 'all',
+        markers: [
+          { x: 500, z: 1 },
+          { x: 'a', z: 1 },
+          ...Array.from({ length: 12 }, (_, k) => ({ x: k, z: 0 })),
+        ],
+      },
+      'ABC23',
+    );
+    expect(parsed?.explored).toEqual([1, 7]);
+    expect(parsed?.discovered).toEqual(['cave']);
+    expect(parsed?.caches).toEqual([]);
+    expect(parsed?.markers).toHaveLength(MAX_MAP_MARKERS);
+    expect(parsed?.markers.at(-1)).toEqual({ x: 11, z: 0 });
   });
 
   test('unknown or invalid codes are simply missing', () => {

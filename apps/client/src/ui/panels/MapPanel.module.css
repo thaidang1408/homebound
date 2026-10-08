@@ -1,0 +1,23 @@
+.wide {
+  width: min(520px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  gap: var(--space-4);
+}
+
+.map {
+  /* Fits short screens: the panel's text and button stay visible. */
+  width: min(100%, 52vh);
+  align-self: center;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  border: var(--border-panel);
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+
+.trips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}

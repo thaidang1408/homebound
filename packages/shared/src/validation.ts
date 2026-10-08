@@ -21,6 +21,7 @@ import type {
   MoveSlotPayload,
   PetCommandPayload,
   PetNamePayload,
+  TravelPayload,
   PingPayload,
   ReadyPayload,
   TransferPayload,
@@ -108,6 +109,11 @@ export function parsePetNamePayload(value: unknown): PetNamePayload | null {
   if (!isRecord(value) || typeof value.petId !== 'string') return null;
   const name = sanitizePetName(value.name);
   return name ? { petId: value.petId, name } : null;
+}
+
+export function parseTravelPayload(value: unknown): TravelPayload | null {
+  if (!isRecord(value) || typeof value.to !== 'string') return null;
+  return { to: value.to };
 }
 
 export function parseReadyPayload(value: unknown): ReadyPayload | null {

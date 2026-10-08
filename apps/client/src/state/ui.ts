@@ -1,7 +1,8 @@
 import type { DaySummaryPayload } from '@homebound/shared';
 import { createStore } from './createStore';
 
-export type Panel = 'none' | 'inventory' | 'storage' | 'workbench' | 'stove' | 'chat' | 'pet';
+export type Panel =
+  'none' | 'inventory' | 'storage' | 'workbench' | 'stove' | 'chat' | 'pet' | 'map' | 'travel';
 
 export interface Toast {
   id: number;
@@ -29,6 +30,8 @@ interface UiState {
   crouching: boolean;
   /** The pet whose panel is open. */
   petId: string | null;
+  /** The waystone whose travel panel is open. */
+  waystoneId: string | null;
   toasts: Toast[];
 }
 
@@ -43,6 +46,7 @@ const store = createStore<UiState>({
   summary: null,
   crouching: false,
   petId: null,
+  waystoneId: null,
   toasts: [],
 });
 

@@ -14,6 +14,8 @@ export * from './world/collision.js';
 export * from './world/house.js';
 export * from './random.js';
 export * from './world/interactables.js';
+export * from './world/biomes.js';
+export * from './world/landmarks.js';
 export * from './world/layout.js';
 export * from './world/resources.js';
 export * from './world/terrain.js';

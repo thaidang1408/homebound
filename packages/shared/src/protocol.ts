@@ -66,6 +66,10 @@ export const ClientMessage = {
   Ping: 'ping',
   /** Set the trap held in a hotbar slot on the ground ahead: `{ slot }`. */
   PlaceTrap: 'place-trap',
+  /** At a lit waystone: travel to another lit one, `{ to: waystoneId }`. */
+  Travel: 'travel',
+  /** Mark (or unmark, if one is close) a spot on the shared map: `{ x, z }`. */
+  MapMark: 'map-mark',
   /** Set the egg held in a hotbar slot down in the yard to hatch: `{ slot }`. */
   PlaceEgg: 'place-egg',
   /** An order for your pet, or a pat for anyone's: `{ petId, command }`. */
@@ -82,6 +86,8 @@ export const ClientMessage = {
   DevSummon: 'dev:summon',
   /** Dev servers only: a hatched pet of `{ kind }` for you, next to you (e2e, screenshots). */
   DevPet: 'dev:pet',
+  /** Dev servers only: jump to `{ x, z }` (e2e: the wilds are a long walk). */
+  DevTeleport: 'dev:teleport',
 } as const;
 
 /** Server → client message names. */
@@ -120,6 +126,10 @@ export type Emote = (typeof EMOTES)[number];
 
 export interface EmotePayload {
   kind: Emote;
+}
+
+export interface TravelPayload {
+  to: string;
 }
 
 export interface PingPayload {

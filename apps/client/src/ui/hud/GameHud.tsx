@@ -25,6 +25,7 @@ import { ItemSlot } from '../components/ItemSlot';
 import panel from '../components/Panel.module.css';
 import { CraftPanel, InventoryPanel, StoragePanel } from '../panels/InventoryPanels';
 import { useAmbience } from '../../audio/useAmbience';
+import { MapPanel, TravelPanel } from '../panels/MapPanel';
 import { PetPanel } from '../panels/PetPanel';
 import { SettingsPanel } from '../panels/SettingsPanel';
 import { Compass } from './Compass';
@@ -71,7 +72,8 @@ const CONTROLS: readonly [string, string][] = [
   ['R', 'Stove recipes (at the stove)'],
   ['G', 'Wave'],
   ['Enter', 'Chat'],
-  ['M', 'Mute'],
+  ['M', 'Map (click it to mark a spot)'],
+  ['N', 'Mute'],
   ['Esc', 'Pause'],
 ];
 
@@ -290,6 +292,8 @@ export function GameHud() {
       {openPanel === 'workbench' && <CraftPanel station="workbench" />}
       {openPanel === 'stove' && <CraftPanel station="stove" />}
       {openPanel === 'pet' && <PetPanel />}
+      {openPanel === 'map' && <MapPanel />}
+      {openPanel === 'travel' && <TravelPanel />}
 
       {!locked && openPanel === 'none' && (
         <div className={`${panel.overlay} ${styles.interactive}`} onClick={resumePlay}>

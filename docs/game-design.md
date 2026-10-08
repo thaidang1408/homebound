@@ -68,6 +68,27 @@ for rendering, client collision, server validation and interaction reach.
   for 2 min), mushroom skewer (2 mushrooms + wood: light-footed for 3 min). Mushrooms grow under the
   northern trees. One buff at a time, shown in the HUD.
 
+## The wilds (Phase 12, ADR-025)
+
+The home valley (everything up to Phase 11) is unchanged; a ridge rings it, with low **passes** to
+the north, east, south and west. Past it the world is about three times bigger:
+
+- **Deep Forest** (north): thick dark woods, mushrooms; **the Giant Tree** towers over it.
+- **Rocky Hills** (east): steep hills and boulders; **Echo Cave**, open toward home.
+- **Misty Lake** (south): a shallow lake you wade through, a sandy shore; **the Abandoned Camp**.
+- **Old Ruins** (west): broken walls and pillars; **the Old Watchtower** — climb it ([E]) and the
+  map fills in for 75 m around.
+- **The Spirit Shrine** (north-east): a beam of light over the forest; resting there heals you fully.
+
+Trails lead from the passes to the landmarks. Walk close to a landmark to **discover** it (for both
+of you): its **waystone** lights up. [E] at any lit waystone travels to another lit one; there's
+one in the front yard. Each landmark (but the shrine) has a **cache** of loot that fills up again
+every morning (the giant tree's sometimes holds a pet egg). The compass shows ❔ toward the nearest
+landmark nobody has found yet.
+
+**The shared map** ([M]) shows the biomes, trails, landmarks, lit waystones and both players; the
+fog lifts wherever either of you has been, and a click marks a spot for both (up to 8).
+
 ## Fantasy pets (Phase 11, ADR-024)
 
 Up to two pets each (eggs count). Pets never get hurt and never get lost.
@@ -155,7 +176,7 @@ morning goals → chop / mine → workbench → hunt boar → butcher → home b
 - **Sound:** swings, bow twangs, hits (deeper on a kill), boar grunts and wolf growls from where
   they are (left/right), chopping/mining/picking, pickups, eating, the stove bell, fanfares for
   goals and levels, a howl at nightfall, footsteps (wood indoors, grass outside), and ambience:
-  birds by day, crickets at night, wind. M mutes.
+  birds by day, crickets at night, wind. N mutes.
 - **Particles:** wood chips, stone grit and leaves when harvesting; a puff on every hit; dust when
   a creature falls or an arrow lands.
 - **Movement:** gentle head bob while walking.
@@ -174,4 +195,4 @@ position. Creatures are not saved: a re-opened home has a fresh herd. A player i
 WASD move · Mouse look · Shift sprint (uses stamina) · Space jump · Q dodge roll (stamina; strikes
 miss you for a moment) · F mark a spot for your partner · G wave · C sneak · R stove recipes · Enter chat · E interact (hold to keep harvesting / reviving) · Left click
 use the held item (food: eat; spear/bow/fists: attack; a creature in your face: punch) · 1–5 / wheel
-hotbar · Tab backpack (drag to rearrange) · M mute · Esc pause (settings).
+hotbar · Tab backpack (drag to rearrange) · M map · N mute · Esc pause (settings).

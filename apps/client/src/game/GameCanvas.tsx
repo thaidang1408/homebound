@@ -7,6 +7,7 @@ import { Arrows } from './combat/Arrows';
 import { HeldItem } from './combat/HeldItem';
 import { PingMarkers } from './fx/PingMarkers';
 import { Pets } from './pets/Pets';
+import { Landmarks } from './world/Landmarks';
 import { Tracks } from './world/Tracks';
 import { Traps } from './world/Traps';
 import { Creatures } from './creatures/Creatures';
@@ -51,6 +52,7 @@ function Players() {
       <PingMarkers room={room} />
       <Traps room={room} />
       <Pets room={room} />
+      <Landmarks room={room} />
       <Tracks room={room} />
       {partners.map(([id, p]) => (
         <RemotePlayer
@@ -74,7 +76,7 @@ function Players() {
 export function GameCanvas() {
   const { screen } = useSession();
   return (
-    <Canvas camera={{ fov: CAMERA_FOV, near: 0.05, far: 200 }} dpr={[1, 2]}>
+    <Canvas camera={{ fov: CAMERA_FOV, near: 0.05, far: 320 }} dpr={[1, 2]}>
       <World />
       {screen !== 'game' && <MenuCamera />}
       <Players />

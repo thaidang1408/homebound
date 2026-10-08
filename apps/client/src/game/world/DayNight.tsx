@@ -7,6 +7,7 @@ import {
   Fog,
   type DirectionalLight,
   type HemisphereLight,
+  type Points,
   type PointsMaterial,
 } from 'three';
 import { useSession } from '../../state/session';
@@ -52,8 +53,9 @@ const KEYS: readonly Key[] = [
   key(0.0, PALETTE.skyNight, 0.45, 0.55, 6, 45, 1),
   key(0.2, PALETTE.skyNight, 0.45, 0.55, 6, 45, 1),
   key(0.27, PALETTE.skyDawn, 0.6, 0.6, 15, 80, 0),
-  key(0.36, PALETTE.sky, 1.6, 0.9, 30, 120, 0),
-  key(0.66, PALETTE.sky, 1.6, 0.9, 30, 120, 0),
+  // By day you see far: the landmarks out in the wilds show from the ridge (Phase 12).
+  key(0.36, PALETTE.sky, 1.6, 0.9, 40, 170, 0),
+  key(0.66, PALETTE.sky, 1.6, 0.9, 40, 170, 0),
   key(0.76, PALETTE.skyDusk, 0.6, 0.6, 15, 80, 0.2),
   key(0.84, PALETTE.skyNight, 0.45, 0.55, 6, 45, 1),
   key(1.0, PALETTE.skyNight, 0.45, 0.55, 6, 45, 1),
@@ -91,9 +93,12 @@ export function DayNight() {
   const sun = useRef<DirectionalLight>(null);
   const hemi = useRef<HemisphereLight>(null);
   const starMaterial = useRef<PointsMaterial>(null);
+  const starField = useRef<Points>(null);
   const starGeometry = useMemo(() => stars(), []);
 
-  useFrame(({ scene }) => {
+  useFrame(({ scene, camera }) => {
+    // The sky goes with you: stars stay far away wherever you walk.
+    starField.current?.position.copy(camera.position);
     const t = room ? room.state.timeOfDay : MENU_TIME;
     const i = Math.max(0, KEYS.findIndex((k) => k.t > t) - 1);
     const a = KEYS[i];
@@ -133,7 +138,7 @@ export function DayNight() {
     <>
       <hemisphereLight ref={hemi} args={[PALETTE.hemiSky, PALETTE.hemiGround, 0.9]} />
       <directionalLight ref={sun} color={PALETTE.sun} intensity={1.6} />
-      <points geometry={starGeometry}>
+      <points ref={starField} geometry={starGeometry}>
         <pointsMaterial
           ref={starMaterial}
           color={PALETTE.star}

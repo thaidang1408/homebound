@@ -1,6 +1,8 @@
-import { WORLD_RADIUS } from '../constants.js';
+import { HOME_RADIUS, WORLD_RADIUS } from '../constants.js';
 import { createRandom } from '../random.js';
+import { BIOMES, biomeAt, inLake } from './biomes.js';
 import type { Box, Point } from './collision.js';
+import { LANDMARKS, WAYSTONES } from './landmarks.js';
 import { RESOURCE_KINDS, type ResourceKind } from './resources.js';
 
 /**
@@ -48,7 +50,8 @@ export interface ResourceNodeDefinition {
 const CAPS: Record<ResourceKind, number> = { tree: 110, rock: 26, bush: 24, mushroom: 0, nest: 0 };
 const MIN_SPACING = 2.4;
 const INNER = ZONES.yard.radius;
-const OUTER = WORLD_RADIUS - 4;
+/** The home valley's generation is fixed: it ignored the wilds when they were added (Phase 12). */
+const OUTER = HOME_RADIUS - 4;
 
 const inside = (p: Point, zone: { center: Point; radius: number }) =>
   Math.hypot(p.x - zone.center.x, p.z - zone.center.z) < zone.radius;
@@ -160,11 +163,100 @@ function generateNests(existing: ResourceNodeDefinition[]): ResourceNodeDefiniti
   });
 }
 
+/**
+ * Trails from the ridge's four passes to the landmarks: kept clear of trees and drawn on the
+ * ground, so the way out is easy to find.
+ */
+export const TRAILS: readonly (readonly [Point, Point])[] = [
+  [{ x: 0, z: -HOME_RADIUS + 2 }, LANDMARKS[0]?.waystone ?? { x: 0, z: -76 }],
+  [{ x: HOME_RADIUS - 2, z: 0 }, LANDMARKS[1]?.waystone ?? { x: 75, z: 4 }],
+  [{ x: 0, z: ROAD.toZ }, LANDMARKS[2]?.waystone ?? { x: 9, z: 63 }],
+  [{ x: -HOME_RADIUS + 2, z: 0 }, LANDMARKS[3]?.waystone ?? { x: -73, z: -6 }],
+];
+export const TRAIL_HALF_WIDTH = 1.2;
+
+/** Distance from a point to a segment. */
+function toSegment(p: Point, [a, b]: readonly [Point, Point]): number {
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.z - a.z) * dz) / (dx * dx + dz * dz)));
+  return Math.hypot(p.x - (a.x + dx * t), p.z - (a.z + dz * t));
+}
+
+export const trailDistance = (p: Point) => Math.min(...TRAILS.map((s) => toSegment(p, s)));
+
+/** Keep this clear around landmarks and waystones. */
+const LANDMARK_CLEARANCE = 7;
+const WAYSTONE_CLEARANCE = 2.5;
+const WILDS_SEED = WORLD_SEED + 2;
+const WILD_CAPS: Record<ResourceKind, number> = {
+  tree: 300,
+  rock: 70,
+  bush: 50,
+  mushroom: 16,
+  nest: 0,
+};
+/** Mushrooms only grow in the Deep Forest's shade. */
+const FOREST_MUSHROOMS = 0.04;
+
+/**
+ * The wilds past the ridge (Phase 12): one more pass with its own seed, each biome as thick as
+ * its definition says. Ids continue after the valley's, so nothing that existed changes.
+ */
+function generateWilds(existing: ResourceNodeDefinition[]): ResourceNodeDefinition[] {
+  const random = createRandom(WILDS_SEED);
+  const out: ResourceNodeDefinition[] = [];
+  const counts: Record<ResourceKind, number> = { tree: 0, rock: 0, bush: 0, mushroom: 0, nest: 0 };
+  const next: Record<ResourceKind, number> = { tree: 0, rock: 0, bush: 0, mushroom: 0, nest: 0 };
+  for (const n of existing) next[n.kind] += 1;
+  const inner = HOME_RADIUS + 2;
+  const outer = WORLD_RADIUS - 5;
+  for (let attempt = 0; attempt < 9000; attempt++) {
+    const angle = random() * Math.PI * 2;
+    const r = Math.sqrt(inner ** 2 + random() * (outer ** 2 - inner ** 2));
+    const p = { x: Math.cos(angle) * r, z: Math.sin(angle) * r };
+    const roll = random();
+    const scale = 0.85 + random() * 0.5;
+    const rotation = random() * Math.PI * 2;
+    const biome = BIOMES[biomeAt(p.x, p.z)];
+    let kind: ResourceKind | null =
+      roll < biome.trees
+        ? 'tree'
+        : roll < biome.trees + biome.rocks
+          ? 'rock'
+          : roll < biome.trees + biome.rocks + biome.bushes
+            ? 'bush'
+            : null;
+    if (!kind && biomeAt(p.x, p.z) === 'forest' && roll > 1 - FOREST_MUSHROOMS) kind = 'mushroom';
+    if (!kind || counts[kind] >= WILD_CAPS[kind] || inLake(p)) continue;
+    if (trailDistance(p) < TRAIL_HALF_WIDTH + 1.4) continue;
+    if (LANDMARKS.some((l) => Math.hypot(l.x - p.x, l.z - p.z) < LANDMARK_CLEARANCE)) continue;
+    if (WAYSTONES.some((w) => Math.hypot(w.at.x - p.x, w.at.z - p.z) < WAYSTONE_CLEARANCE))
+      continue;
+    if ([...existing, ...out].some((n) => Math.hypot(n.x - p.x, n.z - p.z) < MIN_SPACING)) continue;
+    const def = RESOURCE_KINDS[kind];
+    out.push({
+      id: `${kind}-${next[kind]}`,
+      kind,
+      x: p.x,
+      z: p.z,
+      scale,
+      rotation,
+      reach: square(p, def.reachHalf * scale),
+      collider: def.colliderHalf > 0 ? square(p, def.colliderHalf * scale) : null,
+    });
+    counts[kind] += 1;
+    next[kind] += 1;
+  }
+  return out;
+}
+
 const MAIN_NODES = generate();
 const WITH_MUSHROOMS = [...MAIN_NODES, ...generateMushrooms(MAIN_NODES)];
+const VALLEY = [...WITH_MUSHROOMS, ...generateNests(WITH_MUSHROOMS)];
 export const RESOURCE_NODES: readonly ResourceNodeDefinition[] = [
-  ...WITH_MUSHROOMS,
-  ...generateNests(WITH_MUSHROOMS),
+  ...VALLEY,
+  ...generateWilds(VALLEY),
 ];
 
 const nodesById = new Map(RESOURCE_NODES.map((n) => [n.id, n]));

@@ -6,6 +6,9 @@ import {
   HEALTH_MAX,
   HUNGER_MAX,
   HATCH_MS,
+  LANDMARKS,
+  MAP_CELLS,
+  MAX_MAP_MARKERS,
   MAX_PLAYERS,
   MAX_TRAPS,
   NEW_HOME_TIME,
@@ -18,7 +21,9 @@ import {
   WORLD_RADIUS,
   getItem,
   isGoalKind,
+  findLandmark,
   isItemId,
+  isMapCell,
   isPetKind,
   isValidPlayerId,
   sanitizePetName,
@@ -74,6 +79,12 @@ export interface HomeSave {
   traps: Record<string, SavedTrap>;
   /** Pets and eggs by id; missing in pre-Phase 11 saves. */
   pets: Record<string, SavedPet>;
+  /** The shared map (Phase 12; missing before): revealed cells, discovered landmark ids… */
+  explored: number[];
+  discovered: string[];
+  /** …landmark caches emptied today, and marked spots. */
+  caches: string[];
+  markers: { x: number; z: number }[];
 }
 
 export interface SavedPet {
@@ -244,6 +255,10 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
     today: parseToday(value.today),
     traps: parseTraps(value.traps),
     pets: parsePets(value.pets),
+    explored: parseList(value.explored, isMapCell, MAP_CELLS * MAP_CELLS),
+    discovered: parseList(value.discovered, isLandmarkId, LANDMARKS.length),
+    caches: parseList(value.caches, isLandmarkId, LANDMARKS.length),
+    markers: parseMarkers(value.markers),
   };
 }
 
@@ -269,6 +284,25 @@ function parseTraps(value: unknown): Record<string, SavedTrap> {
     };
   }
   return out;
+}
+
+/** A list of distinct valid values (anything else dropped). */
+function parseList<T>(value: unknown, valid: (v: never) => boolean, max: number): T[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value)].filter((v) => valid(v as never)).slice(0, max) as T[];
+}
+const isLandmarkId = (v: unknown) => typeof v === 'string' && !!findLandmark(v);
+
+function parseMarkers(value: unknown): { x: number; z: number }[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .flatMap((m: unknown) => {
+      if (!isObject(m)) return [];
+      const x = num(m.x, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+      const z = num(m.z, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+      return Number.isNaN(x) || Number.isNaN(z) ? [] : [{ x, z }];
+    })
+    .slice(-MAX_MAP_MARKERS);
 }
 
 const PET_ID = /^pet-\d{1,6}$/;

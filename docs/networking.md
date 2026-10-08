@@ -48,6 +48,8 @@ Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `al
 | `PlayerState.action` / `actionSeq`                           | string / uint8 (wraps)            | last visible action; the counter replays repeats                                 |
 | `PlayerState.crouching` / `buff` / `buffLeft`                | boolean / string / uint16 s       | sneaking; food buff and seconds left (ADR-023)                                   |
 | `HomeState.traps`                                            | map&lt;id, TrapState&gt;          | kind, x, z, sprung (owner is server-only); saved                                 |
+| `HomeState.explored` / `discovered` / `caches`               | map&lt;string, boolean&gt;        | revealed map cells, discovered landmarks, caches emptied today; saved            |
+| `HomeState.markers`                                          | map&lt;id, MarkerState&gt;        | x, z of spots marked on the map (≤ 8); saved                                     |
 | `HomeState.pets`                                             | map&lt;id, PetState&gt;           | kind ('' = egg), name, ownerSession, order, pose, hatch, action/seq, mark; saved |
 | `CreatureState.trust`                                        | uint8                             | wild pets: times fed toward befriending                                          |
 | `PlayerState.xp` / `level`                                   | uint32 / uint8                    | level derived from xp                                                            |
@@ -86,6 +88,10 @@ on the client (regression test in `HomeRoom.test.ts`).
 | C→S       | `pet`                    | `{ petId, command }`                     | follow / stay / home (owner only), pat (anyone); within 4 m                                                                                 |
 | C→S       | `pet-name`               | `{ petId, name }`                        | owner only, hatched, cleaned name ≤ 14 characters                                                                                           |
 | C→S       | `interact` on a wild pet | `{ targetId: "unicorn-0" }`              | within reach, holding its favorite food, ≤ 2 pets: feeds it; the third feed makes it your pet                                               |
+| C→S       | `travel`                 | `{ to }`                                 | standing at a lit waystone; `to` is another lit one: you're moved there (teleport)                                                          |
+| C→S       | `map-mark`               | `{ x, z }`                               | toggles a marker (removes one within 4 m, else adds; the oldest goes past 8)                                                                |
+| C→S       | `interact` on a landmark | `{ targetId: "cache-cave" }`             | within reach: open a cache (once a day), climb the tower (reveals the map), rest at the shrine (heals)                                      |
+| C→S       | `dev:teleport`           | `{ x, z }`                               | **dev servers only**: jump anywhere (e2e)                                                                                                   |
 | C→S       | `dev:pet`                | `{ kind }`                               | **dev servers only**: a hatched pet of that kind next to you (e2e, screenshots)                                                             |
 | C→S       | `dev:summon`             | `{ kind, x?, z? }`                       | **dev servers only**: moves the nearest live creature of that kind 12 m from you, or to x/z (e2e)                                           |
 | C→S       | `dev:set-time`           | `{ timeOfDay }`                          | **dev servers only** (`NODE_ENV !== production`)                                                                                            |

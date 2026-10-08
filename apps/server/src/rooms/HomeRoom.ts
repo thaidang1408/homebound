@@ -64,6 +64,8 @@ import {
   parsePingPayload,
   parsePetCommandPayload,
   parsePetNamePayload,
+  parseTravelPayload,
+  parsePingPayload as parseMapPoint,
   PET_COMMAND_RANGE,
   sanitizeChatText,
   sanitizePlayerName,
@@ -104,6 +106,14 @@ import { eatFromSlot, hurtPlayer, tickNeeds } from '../systems/needs.js';
 import { act, drainSprint, isDodging, tickStamina, tryDodge } from '../systems/stamina.js';
 import { pickUpTrap, placeTrap, tickTraps } from '../systems/traps.js';
 import { befriend, orderPet, petAct, placeEgg, tickPets } from '../systems/pets.js';
+import {
+  climbTower,
+  openCache,
+  pray,
+  tickExplore,
+  toggleMarker,
+  travel,
+} from '../systems/explore.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
 import { tickStove, useStove } from '../systems/stove.js';
@@ -157,6 +167,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   private nextTrapId = 0;
   /** Next free `pet-<n>` id (continues after saved pets). */
   private nextPetId = 0;
+  private nextMarkerId = 0;
   /** Creature spawns, wandering and loot rolls. */
   private readonly random = createRandom(Date.now());
   /** sessionId → stable playerId (what saves are keyed by). */
@@ -243,6 +254,22 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       this.nextTrapId += 1;
       act(player, 'pick'); // kneels to set it
     });
+    this.onMessage(ClientMessage.Travel, (client, message: unknown) => {
+      const payload = parseTravelPayload(message);
+      const player = this.activePlayer(client);
+      if (!payload || !player || player.sleeping || player.downed) return;
+      const arrive = travel(this.state, player, payload.to);
+      if (!arrive) return;
+      player.x = arrive.x;
+      player.z = arrive.z;
+      this.teleport(client, arrive);
+      logger.info(`[room ${this.roomId}] ${client.sessionId} travelled to ${payload.to}`);
+    });
+    this.onMessage(ClientMessage.MapMark, (client, message: unknown) => {
+      const at = parseMapPoint(message);
+      if (!at || !this.activePlayer(client)) return;
+      toggleMarker(this.state, clampToWorld(at.x, at.z), `mark-${this.nextMarkerId++}`);
+    });
     this.onMessage(ClientMessage.PlaceEgg, (client, message: unknown) => {
       const payload = parseUseItemPayload(message);
       const player = this.activePlayer(client);
@@ -311,6 +338,15 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         near.x = spot.x;
         near.z = spot.z;
       });
+      this.onMessage(ClientMessage.DevTeleport, (client, message: unknown) => {
+        const at = parseMapPoint(message);
+        const player = this.activePlayer(client);
+        if (!at || !player) return;
+        const spot = clampToWorld(at.x, at.z);
+        player.x = spot.x;
+        player.z = spot.z;
+        this.teleport(client, spot);
+      });
       this.onMessage(ClientMessage.DevPet, (client, message: unknown) => {
         const kind = option(message, 'kind');
         const player = this.activePlayer(client);
@@ -369,6 +405,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     for (const id of this.state.pets.keys()) {
       this.nextPetId = Math.max(this.nextPetId, Number(id.slice('pet-'.length)) + 1);
     }
+    this.nextMarkerId = this.state.markers.size;
     this.savedPlayers = save.players;
     this.createdAt = save.createdAt;
     // A saved home was already started: players walk straight in.
@@ -563,6 +600,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       this.advanceGoal('hunt');
     }
     const pets = { sessionOf: (id: string) => this.sessionOf(id), random: this.random };
+    for (const id of tickExplore(this.state)) {
+      logger.info(`[room ${this.roomId}] discovered ${id}`);
+    }
     for (const event of tickPets(this.state, dtMs, pets)) {
       if (event.type === 'hatched') logger.info(`[room ${this.roomId}] ${event.petId} hatched`);
       else if (event.outcome === 'killed') {
@@ -642,6 +682,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.broadcast(ServerMessage.DaySummary, summary);
     setGoals(this.state, goalSeed(this.roomId));
     this.goalDay = this.state.day;
+    this.state.caches.clear(); // every morning the landmark caches are full again
   }
 
   /** XP for a playerId, whether they're in the room or offline (their save is updated). */
@@ -815,8 +856,23 @@ export class HomeRoom extends Room<{ state: HomeState }> {
         this.scheduleNewDay();
         break;
       // Chest and workbench are opened client-side; chest moves go through Transfer.
+      // Waystones open the travel panel; the trip itself is a Travel message.
       case 'chest':
       case 'workbench':
+      case 'waystone':
+        break;
+      case 'cache':
+        if (
+          openCache(this.state, target.id.slice('cache-'.length), player, this.random) === 'opened'
+        ) {
+          act(player, 'pick');
+        }
+        break;
+      case 'tower':
+        if (climbTower(this.state, target.id.slice('tower-'.length))) act(player, 'point');
+        break;
+      case 'shrine':
+        if (pray(player)) act(player, 'wave');
         break;
     }
   }
