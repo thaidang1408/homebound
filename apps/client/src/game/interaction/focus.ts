@@ -91,13 +91,18 @@ export function findCreature(
   return best;
 }
 
-/** The nearest trap in front of the player, within reach (to pick it up). */
-export function findTrap(room: Room<HomeState>, x: number, z: number, yaw: number): string | null {
+/** The nearest thing on the ground (a trap, a dropped bag) in front of the player, within reach. */
+export function findOnGround(
+  things: { forEach(cb: (t: { x: number; z: number }, id: string) => void): void },
+  x: number,
+  z: number,
+  yaw: number,
+): string | null {
   const lookX = -Math.sin(yaw);
   const lookZ = -Math.cos(yaw);
   let best: string | null = null;
   let bestDistance = Infinity;
-  room.state.traps.forEach((t, id) => {
+  things.forEach((t, id) => {
     const toX = t.x - x;
     const toZ = t.z - z;
     const d = Math.hypot(toX, toZ) || 1;

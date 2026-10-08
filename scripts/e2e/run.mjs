@@ -6,6 +6,7 @@ import combat from './combat.mjs';
 import explore from './explore.mjs';
 import feel from './feel.mjs';
 import gameLoop from './game-loop.mjs';
+import gear, { gearPartner } from './gear.mjs';
 import { createRun } from './lib.mjs';
 import homeLoop from './home-loop.mjs';
 import hunting from './hunting.mjs';
@@ -32,6 +33,8 @@ const SCENARIOS = {
   pets,
   explore,
   story,
+  gear,
+  'gear-partner': gearPartner,
   perf,
 };
 

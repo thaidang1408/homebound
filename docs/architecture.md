@@ -62,8 +62,10 @@ src/
                           downed (bleed-out, revive, respawn), crafting, goals (daily goals, day stats), progression,
                           stamina, traps, pets (eggs, befriending, follow/stay/home, abilities; ADR-024),
                           explore (fog of war, discovery, caches, waystones, map markers; ADR-025),
+                          drops (bags on the ground; ADR-027), stove (three pans),
                           quests (the shared story step, Đốm, great lanterns; ADR-026)
   inventory/inventory.ts  slot inventories, atomic add/remove/move (unit-tested)
+  inventory/equipment.ts  wear / take off gear; a bag resizes the backpack (ADR-027)
   persistence/            homeSaves.ts (file I/O + validation), homeState.ts (state ↔ save mapping)
   test/harness.ts         real server + SDK clients for integration tests (temp save dir)
 ```

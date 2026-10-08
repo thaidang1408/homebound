@@ -42,7 +42,7 @@ import {
   findDownedPartner,
   findFocus,
   findPet,
-  findTrap,
+  findOnGround,
   isAvailable,
 } from '../interaction/focus';
 import { heldItem, heldWeaponId } from './held';
@@ -418,7 +418,8 @@ export function LocalPlayer({ room }: { room: Room<HomeState> }) {
       findDownedPartner(room, p.x, p.z) ??
       findCreature(room, p.x, p.z, p.yaw, INTERACT_RANGE, true) ??
       findPet(room, p.x, p.z, p.yaw) ??
-      findTrap(room, p.x, p.z, p.yaw) ??
+      findOnGround(room.state.drops, p.x, p.z, p.yaw) ??
+      findOnGround(room.state.traps, p.x, p.z, p.yaw) ??
       findFocus(p.x, p.z, p.yaw, (id) => isAvailable(room, id));
     if (focus !== getUi().focusId) updateUi({ focusId: focus });
     const weapon = getWeapon(heldWeaponId(room));

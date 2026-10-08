@@ -4,7 +4,7 @@ import styles from './SettingsPanel.module.css';
 
 /** Mouse sensitivity, volume and mute: shown in the pause menu, remembered in this browser. */
 export function SettingsPanel() {
-  const { sensitivity, volume, muted } = useSettings();
+  const { sensitivity, volume, muted, hints } = useSettings();
   return (
     <div className={styles.settings} onClick={(e) => e.stopPropagation()}>
       <label className={styles.row}>
@@ -44,6 +44,14 @@ export function SettingsPanel() {
           }}
         />
         Mute (N)
+      </label>
+      <label className={styles.check}>
+        <input
+          type="checkbox"
+          checked={hints}
+          onChange={(e) => updateSettings({ hints: e.target.checked })}
+        />
+        Key hints on screen (H)
       </label>
     </div>
   );

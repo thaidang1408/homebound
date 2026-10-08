@@ -39,7 +39,8 @@ function sample(code = 'ABC23'): HomeSave {
     day: 4,
     timeOfDay: 0.8,
     chest: [{ itemId: 'raw_meat', qty: 3 }, null],
-    stove: { status: 'cooking', itemId: 'raw_meat', elapsedMs: 1200, cookedBy: PLAYER },
+    pans: [{ status: 'cooking', itemId: 'raw_meat', elapsedMs: 1200, cookedBy: PLAYER }],
+    drops: { 'drop-2': { itemId: 'wood', qty: 7, x: 4, z: 9 } },
     resources: { 'tree-0': 1, 'not-a-node': 3 },
     players: {
       [PLAYER]: {
@@ -51,6 +52,7 @@ function sample(code = 'ABC23'): HomeSave {
         z: 2,
         yaw: 0.5,
         inventory: [null, { itemId: 'cooked_meat', qty: 2 }],
+        equipment: [null, { itemId: 'bear_coat', qty: 1 }],
       },
     },
     goals: [{ kind: 'hunt', target: 2, progress: 1 }],
@@ -85,7 +87,9 @@ describe('home saves', () => {
     expect(loaded?.day).toBe(4);
     expect(loaded?.chest[0]).toEqual({ itemId: 'raw_meat', qty: 3 });
     expect(loaded?.players[PLAYER]?.inventory[1]).toEqual({ itemId: 'cooked_meat', qty: 2 });
-    expect(loaded?.stove.status).toBe('cooking');
+    expect(loaded?.pans.map((p) => p.status)).toEqual(['cooking', 'idle', 'idle']);
+    expect(loaded?.drops).toEqual({ 'drop-2': { itemId: 'wood', qty: 7, x: 4, z: 9 } });
+    expect(loaded?.players[PLAYER]?.equipment[1]).toEqual({ itemId: 'bear_coat', qty: 1 });
     expect(loaded?.timeOfDay).toBe(0.8);
     expect(loaded?.resources).toEqual({ 'tree-0': 1 }); // unknown node ids dropped
     expect(loaded?.players[PLAYER]?.health).toBe(64);
@@ -94,6 +98,34 @@ describe('home saves', () => {
     expect(loaded?.traps).toEqual({
       'trap-3': { kind: 'snare', x: 20, z: -4, sprung: true, owner: PLAYER },
     });
+  });
+
+  test('gear only in its own slot; a big bag keeps its extra slots; old saves wear their armor', () => {
+    const raw = sample() as unknown as { players: Record<string, Record<string, unknown>> };
+    const player = raw.players[PLAYER] ?? {};
+    player.equipment = [
+      { itemId: 'bear_coat', qty: 1 }, // not a hat: dropped
+      null,
+      null,
+      { itemId: 'big_backpack', qty: 1 },
+    ];
+    player.inventory = Array.from({ length: 20 }, (_, i) =>
+      i === 19 ? { itemId: 'stone', qty: 4 } : null,
+    );
+    const save = parseSave(raw, 'ABC23');
+    const loaded = save?.players[PLAYER];
+    expect(loaded?.equipment[0]).toBeNull();
+    expect(loaded?.inventory).toHaveLength(20);
+    expect(loaded?.inventory[19]).toEqual({ itemId: 'stone', qty: 4 });
+
+    delete player.equipment; // a pre-Phase 14 save carrying armor
+    player.inventory = [
+      { itemId: 'leather_armor', qty: 1 },
+      { itemId: 'bear_coat', qty: 1 },
+    ];
+    const old = parseSave(raw, 'ABC23')?.players[PLAYER];
+    expect(old?.equipment[1]).toEqual({ itemId: 'bear_coat', qty: 1 });
+    expect(old?.inventory.slice(0, 2)).toEqual([{ itemId: 'leather_armor', qty: 1 }, null]);
   });
 
   test('tampered traps are dropped or cleaned', () => {

@@ -365,3 +365,26 @@ needed: the wilds measured 30 draw calls and 116k triangles looking out from the
 
 **Not done:** side quests (lost hedgehog, spirit merchant), carvings in the world, the glider
 cloak and raft.
+
+## ADR-027: Gear is worn, bags resize the backpack, drops are saved state, the stove has pans (2026-10-08)
+
+**Decision:**
+
+- **Equipment slots** (`PlayerState.equipment`, EQUIP_SLOTS: head, body, feet, back, weapon) are
+  synced (the partner draws them) and saved. Items say where they go (`wear`, or `weapon` for
+  weapons) and what they do (`armor`, `stealth`, `slots`). **Supersedes ADR-023's "armor is
+  carried":** only worn pieces count; armor adds up to ARMOR_MAX 0.6 (blows always hurt a little).
+- **Bags resize the backpack array** (10 → 15/20). Equipping or removing a bag is refused while the
+  slots that would disappear hold anything: nothing is ever silently lost. Saves store the
+  equipment and validate the inventory against `backpackSize(equipment)`.
+- **The weapon slot is a fallback**, not a second hand: an empty hotbar slot holds the worn weapon
+  (`handItem`, used by client and server alike). Hotbar weapons work as before.
+- **Drops are `HomeState.drops`** (a bag per dropped stack, ≤ MAX_DROPS 40, saved): refusing a drop
+  beats despawning someone's items. Picking up takes what fits and leaves the rest.
+- **The stove is STOVE_PANS (3) `StoveState`s** (`HomeState.pans`). [E] collects everything done,
+  else fills every free pan with the held cookable food or raw meat — never mushrooms you aren't
+  holding (chapter 1 asks for them). Old saves' single `stove` loads as the first pan.
+- **Descriptions are data** (`ItemDefinition.description`); the client words the numbers.
+
+**Not done:** dropping from the chest or straight from the hotbar, a durability system, gear stats
+beyond armor/stealth/slots.

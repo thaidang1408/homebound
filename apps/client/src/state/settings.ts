@@ -7,10 +7,12 @@ export interface Settings {
   /** Master volume 0–1. */
   volume: number;
   muted: boolean;
+  /** The small key hints in the corner of the screen (H). */
+  hints: boolean;
 }
 
 const KEY = 'homebound.settings';
-const DEFAULTS: Settings = { sensitivity: 1, volume: 0.7, muted: false };
+const DEFAULTS: Settings = { sensitivity: 1, volume: 0.7, muted: false, hints: true };
 
 export const SENSITIVITY_RANGE = { min: 0.3, max: 2.5 } as const;
 
@@ -26,6 +28,7 @@ function load(): Settings {
       sensitivity: clamp(r.sensitivity, SENSITIVITY_RANGE.min, SENSITIVITY_RANGE.max, 1),
       volume: clamp(r.volume, 0, 1, DEFAULTS.volume),
       muted: typeof r.muted === 'boolean' ? r.muted : false,
+      hints: typeof r.hints === 'boolean' ? r.hints : true,
     };
   } catch {
     return DEFAULTS; // private mode / blocked storage: defaults are fine

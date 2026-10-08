@@ -382,3 +382,41 @@
   font-weight: var(--font-weight-bold);
   text-align: center;
 }
+
+/* --- Key hints (always on while playing; H hides them) --- */
+
+.hints {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-6);
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px var(--space-3);
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  background: var(--color-scrim);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.hintKey {
+  display: inline-block;
+  min-width: 1.8em;
+  padding: 0 var(--space-1);
+  border: var(--border-panel);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: inherit;
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .hints {
+    display: none;
+  }
+}

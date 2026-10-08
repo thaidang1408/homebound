@@ -17,11 +17,12 @@ import { eatFromSlot, tickNeeds } from './needs.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from './sleep.js';
 import { harvest, initResources, tickResources } from './harvest.js';
 import { tickClock } from './clock.js';
-import { tickStove, useStove } from './stove.js';
+import { createPans, tickStove, useStove } from './stove.js';
 
 function setup() {
   const state = new HomeState();
   state.chest = createSlots(4);
+  createPans(state);
   const players = [1, 2].map((slot) => {
     const p = new PlayerState();
     p.slot = slot;
@@ -68,22 +69,46 @@ describe('needs', () => {
 });
 
 describe('stove', () => {
+  const pan = (state: HomeState, i: number) => state.pans.at(i);
+
   test('raw meat → cooking → cooked meat, collected by the other player', () => {
     const { state, a, b } = setup();
-    addItem(a.inventory, 'raw_meat', 2);
+    addItem(a.inventory, 'raw_meat', 1);
 
     expect(useStove(state, a, 'player-a')).toBe('started');
-    expect(countItem(a.inventory, 'raw_meat')).toBe(1);
-    expect(useStove(state, b, 'player-b')).toBe('busy');
-
+    expect(countItem(a.inventory, 'raw_meat')).toBe(0);
     tickStove(state, COOK_TIME_MS / 2);
-    expect(state.stove.progress).toBeCloseTo(0.5, 1);
-    expect(tickStove(state, COOK_TIME_MS / 2)).toBe('player-a'); // the cook gets the XP
-    expect(state.stove.status).toBe(StoveStatus.Done);
+    expect(pan(state, 0)?.progress).toBeCloseTo(0.5, 1);
+    expect(tickStove(state, COOK_TIME_MS / 2)).toEqual(['player-a']); // the cook gets the XP
+    expect(pan(state, 0)?.status).toBe(StoveStatus.Done);
 
     expect(useStove(state, b, 'player-b')).toBe('collected');
     expect(countItem(b.inventory, 'cooked_meat')).toBe(1);
-    expect(state.stove.status).toBe(StoveStatus.Idle);
+    expect(pan(state, 0)?.status).toBe(StoveStatus.Idle);
+  });
+
+  test('cooks on every free pan at once; then the stove is busy', () => {
+    const { state, a, b } = setup();
+    addItem(a.inventory, 'raw_meat', 5);
+    expect(useStove(state, a, 'player-a')).toBe('started');
+    expect(countItem(a.inventory, 'raw_meat')).toBe(2);
+    expect([...state.pans].every((p) => p.status === StoveStatus.Cooking)).toBe(true);
+    expect(useStove(state, b, 'player-b')).toBe('busy');
+    expect(tickStove(state, COOK_TIME_MS)).toEqual(['player-a', 'player-a', 'player-a']);
+    expect(useStove(state, b, 'player-b')).toBe('collected');
+    expect(countItem(b.inventory, 'cooked_meat')).toBe(3);
+  });
+
+  test('grills the held mushroom, but never mushrooms you aren’t holding', () => {
+    const { state, a } = setup();
+    addItem(a.inventory, 'mushroom', 2); // slot 0
+    a.selectedSlot = 1;
+    expect(useStove(state, a, 'player-a')).toBe('nothing-to-cook');
+    a.selectedSlot = 0;
+    expect(useStove(state, a, 'player-a')).toBe('started');
+    tickStove(state, COOK_TIME_MS);
+    useStove(state, a, 'player-a');
+    expect(countItem(a.inventory, 'grilled_mushroom')).toBe(2);
   });
 
   test('needs something cookable', () => {
@@ -99,7 +124,7 @@ describe('stove', () => {
     tickStove(state, COOK_TIME_MS);
     for (let i = 0; i < 5; i++) addItem(b.inventory, 'raw_meat', 10);
     expect(useStove(state, b, 'player-b')).toBe('inventory-full');
-    expect(state.stove.status).toBe(StoveStatus.Done);
+    expect(pan(state, 0)?.status).toBe(StoveStatus.Done);
   });
 });
 

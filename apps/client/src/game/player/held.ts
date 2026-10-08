@@ -1,6 +1,7 @@
 import type { Room } from '@colyseus/sdk';
 import {
   getWeapon,
+  handItem,
   weaponOf,
   type HomeState,
   type WeaponDefinition,
@@ -8,9 +9,10 @@ import {
 } from '@homebound/shared';
 import { getUi } from '../../state/ui';
 
-/** Item id in the selected hotbar slot ('' when empty). */
+/** Item id in your hand: the selected hotbar slot, or the worn weapon when it's empty. */
 export function heldItemId(room: Room<HomeState>): string {
-  return room.state.players.get(room.sessionId)?.inventory.at(getUi().selectedSlot)?.itemId ?? '';
+  const me = room.state.players.get(room.sessionId);
+  return me ? handItem(me, getUi().selectedSlot) : '';
 }
 
 /** The weapon the local player holds (fists for empty hands or non-weapons). Allocation-free. */

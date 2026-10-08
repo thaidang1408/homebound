@@ -1,4 +1,5 @@
 import {
+  DropState,
   GoalState,
   HATCH_MS,
   MarkerState,
@@ -14,6 +15,7 @@ import {
   type HomeState,
   type PlayerState,
 } from '@homebound/shared';
+import { fitBackpack } from '../inventory/equipment.js';
 import type { Slots } from '../inventory/inventory.js';
 import { SAVE_VERSION, type HomeSave, type SavedPlayer, type SavedSlots } from './homeSaves.js';
 
@@ -48,6 +50,7 @@ export function snapshotPlayer(p: PlayerState): SavedPlayer {
     z: p.z,
     yaw: p.yaw,
     inventory: toSavedSlots(p.inventory),
+    equipment: toSavedSlots(p.equipment),
   };
 }
 
@@ -62,6 +65,8 @@ export function applyPlayer(p: PlayerState, saved: SavedPlayer): void {
   p.x = saved.x;
   p.z = saved.z;
   p.yaw = saved.yaw;
+  applySlots(p.equipment, saved.equipment);
+  fitBackpack(p); // a bag on your back: more slots
   applySlots(p.inventory, saved.inventory);
 }
 
@@ -71,7 +76,6 @@ export function buildSave(
   createdAt: string,
   players: Record<string, SavedPlayer>,
 ): HomeSave {
-  const { stove } = state;
   return {
     version: SAVE_VERSION,
     code,
@@ -80,12 +84,17 @@ export function buildSave(
     day: state.day,
     timeOfDay: state.timeOfDay,
     chest: toSavedSlots(state.chest),
-    stove: {
-      status: stove.status,
-      itemId: stove.itemId,
-      elapsedMs: stove.elapsedMs,
-      cookedBy: stove.cookedBy,
-    },
+    pans: [...state.pans].map((p) => ({
+      status: p.status,
+      itemId: p.itemId,
+      elapsedMs: p.elapsedMs,
+      cookedBy: p.cookedBy,
+    })),
+    drops: Object.fromEntries(
+      [...state.drops.entries()].flatMap(([id, d]) =>
+        isItemId(d.itemId) ? [[id, { itemId: d.itemId, qty: d.qty, x: d.x, z: d.z }]] : [],
+      ),
+    ),
     resources: Object.fromEntries(
       [...state.resources.entries()]
         .filter(([id, r]) => r.charges < fullCharges(id))
@@ -148,12 +157,21 @@ export function applyHome(state: HomeState, save: HomeSave): void {
     live.respawnMs = charges === 0 ? RESOURCE_KINDS[node.kind].respawnMs : 0;
   }
   applySlots(state.chest, save.chest);
-  const { stove } = state;
-  const hasFood = save.stove.itemId !== '';
-  stove.status = hasFood ? save.stove.status : StoveStatus.Idle;
-  stove.itemId = save.stove.itemId;
-  stove.elapsedMs = hasFood ? save.stove.elapsedMs : 0;
-  stove.cookedBy = save.stove.cookedBy;
+  // Call after createPans().
+  state.pans.forEach((pan, i) => {
+    const saved = save.pans[i];
+    const hasFood = !!saved?.itemId;
+    pan.status = hasFood ? saved.status : StoveStatus.Idle;
+    pan.itemId = saved?.itemId ?? '';
+    pan.elapsedMs = hasFood ? saved.elapsedMs : 0;
+    pan.cookedBy = saved?.cookedBy ?? '';
+  });
+  state.drops.clear();
+  for (const [id, saved] of Object.entries(save.drops)) {
+    const drop = new DropState();
+    Object.assign(drop, saved);
+    state.drops.set(id, drop);
+  }
   state.goals.clear();
   for (const saved of save.goals) {
     const g = new GoalState();

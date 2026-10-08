@@ -72,3 +72,10 @@ button.slot:focus-visible {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+.placeholder {
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  opacity: 0.35;
+  filter: grayscale(1);
+}

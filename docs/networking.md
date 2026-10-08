@@ -37,7 +37,8 @@ Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `al
 | `HomeState.creatures`                                        | map&lt;id, CreatureState&gt;            | kind, mode, x/z/yaw, health, present (ADR-016)                                   |
 | `HomeState.goals` / `today`                                  | array&lt;GoalState&gt; / DayStats       | today's shared goals and counters (ADR-018)                                      |
 | `HomeState.chest`                                            | array&lt;ItemStack&gt; (16)             | shared storage                                                                   |
-| `HomeState.stove`                                            | StoveState                              | status, itemId, progress (8-bit)                                                 |
+| `HomeState.pans`                                             | array&lt;StoveState&gt; (3)             | one per pan: status, itemId, progress (8-bit); saved (ADR-027)                   |
+| `HomeState.drops`                                            | map&lt;id, DropState&gt;                | itemId, qty, x, z of bags dropped on the ground (≤ 40); saved                    |
 | `PlayerState.name`, `slot`, `ready`, `connected`, `sleeping` |                                         |                                                                                  |
 | `PlayerState.x`, `z` / `yaw` / `pitch`                       | float32 / angle / quantized             |                                                                                  |
 | `PlayerState.hunger`                                         | uint8                                   | rounded up from server-only `hungerExact`                                        |
@@ -54,9 +55,10 @@ Refusals carry a `JoinError` message (`home-not-found`, `home-already-open`, `al
 | `HomeState.pets`                                             | map&lt;id, PetState&gt;                 | kind ('' = egg), name, ownerSession, order, pose, hatch, action/seq, mark; saved |
 | `CreatureState.trust`                                        | uint8                                   | wild pets: times fed toward befriending                                          |
 | `PlayerState.xp` / `level`                                   | uint32 / uint8                          | level derived from xp                                                            |
-| `PlayerState.inventory`                                      | array&lt;ItemStack&gt; (10)             | first 5 = hotbar                                                                 |
+| `PlayerState.inventory`                                      | array&lt;ItemStack&gt; (10/15/20)       | first 5 = hotbar; +5/+10 with a bag on your back (ADR-027)                       |
+| `PlayerState.equipment`                                      | array&lt;ItemStack&gt; (5)              | worn gear: head, body, feet, back, weapon                                        |
 
-`.noSync()` fields (`hungerExact`, `healthExact`, `stove.elapsedMs`, `stove.cookedBy`, creature
+`.noSync()` fields (`hungerExact`, `healthExact`, `pans[].elapsedMs`, `pans[].cookedBy`, creature
 AI timers/targets/patrol goals) stay on the server.
 Every primitive has an explicit `.default()`: schema-builder numbers otherwise start `undefined`
 on the client (regression test in `HomeRoom.test.ts`).
@@ -86,6 +88,9 @@ on the client (regression test in `HomeRoom.test.ts`).
 | C→S       | `chat`                        | `{ text }`                               | any player in the home; cleaned (control chars, whitespace), ≤ 120 chars, one per 0.4 s; not saved                                          |
 | C→S       | `dev:hurt` / `dev:give`       | `{ amount }` / `{ itemId, qty }`         | **dev servers only**                                                                                                                        |
 | C→S       | `place-egg`                   | `{ slot }`                               | hotbar egg item, ≤ 2 pets per player, 1.6 m ahead and inside the yard, not in a wall                                                        |
+| C→S       | `equip` / `unequip`           | `{ slot }`                               | backpack slot holding gear (swaps with what's worn) / an equipment slot; a smaller bag only when the slots it removes are empty             |
+| C→S       | `drop-item`                   | `{ slot }`                               | a non-empty backpack slot; the stack becomes a bag 0.9 m ahead (at your feet if a wall is there); ≤ 40 bags                                 |
+| C→S       | `interact` on a bag           | `{ targetId: "drop-2" }`                 | within reach: as much as fits goes into the backpack                                                                                        |
 | C→S       | `pet`                         | `{ petId, command }`                     | follow / stay / home (owner only), pat (anyone); within 4 m                                                                                 |
 | C→S       | `pet-name`                    | `{ petId, name }`                        | owner only, hatched, cleaned name ≤ 14 characters                                                                                           |
 | C→S       | `interact` on a wild pet      | `{ targetId: "unicorn-0" }`              | within reach, holding its favorite food, ≤ 2 pets: feeds it; the third feed makes it your pet                                               |

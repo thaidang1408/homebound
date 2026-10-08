@@ -1,6 +1,7 @@
 export * from './buffs.js';
 export * from './constants.js';
 export * from './creatures.js';
+export * from './equipment.js';
 export * from './goals.js';
 export * from './items.js';
 export * from './pets.js';

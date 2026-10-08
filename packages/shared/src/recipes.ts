@@ -56,6 +56,36 @@ export const RECIPES = {
       { itemId: 'bear_claw', qty: 1 },
     ],
   },
+  leather_cap: {
+    station: 'workbench',
+    output: 'leather_cap',
+    qty: 1,
+    inputs: [{ itemId: 'hide', qty: 2 }],
+  },
+  soft_boots: {
+    station: 'workbench',
+    output: 'soft_boots',
+    qty: 1,
+    inputs: [{ itemId: 'hide', qty: 2 }],
+  },
+  satchel: {
+    station: 'workbench',
+    output: 'satchel',
+    qty: 1,
+    inputs: [
+      { itemId: 'hide', qty: 2 },
+      { itemId: 'wood', qty: 1 },
+    ],
+  },
+  big_backpack: {
+    station: 'workbench',
+    output: 'big_backpack',
+    qty: 1,
+    inputs: [
+      { itemId: 'hide', qty: 5 },
+      { itemId: 'wood', qty: 2 },
+    ],
+  },
   snare: {
     station: 'workbench',
     output: 'snare',
@@ -91,6 +121,22 @@ export const RECIPES = {
     inputs: [
       { itemId: 'mushroom', qty: 2 },
       { itemId: 'wood', qty: 1 },
+    ],
+  },
+  berry_tart: {
+    station: 'stove',
+    output: 'berry_tart',
+    qty: 1,
+    inputs: [{ itemId: 'berries', qty: 4 }],
+  },
+  hunters_feast: {
+    station: 'stove',
+    output: 'hunters_feast',
+    qty: 1,
+    inputs: [
+      { itemId: 'raw_meat', qty: 2 },
+      { itemId: 'berries', qty: 2 },
+      { itemId: 'mushroom', qty: 2 },
     ],
   },
 } as const satisfies Record<string, RecipeDefinition>;

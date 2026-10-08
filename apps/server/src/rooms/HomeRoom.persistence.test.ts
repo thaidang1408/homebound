@@ -8,6 +8,7 @@ import {
   JoinError,
   NEW_DAY_DELAY_MS,
   ROOM_NAME,
+  STOVE_PANS,
   XP_REWARDS,
   type HomeState,
   type Point,
@@ -189,12 +190,17 @@ describe('XP and levels', () => {
     await waitFor(() => countIn(self(room).inventory, 'raw_meat') > 0);
     await walk(room, [{ x: -3.5, z: 2.0 }, ...TO_STOVE.slice(1)]);
     room.send(ClientMessage.Interact, { targetId: 'stove' });
-    await waitFor(() => self(room).xp === XP_REWARDS.cookMeal, COOK_TIME_MS + 2000);
+    // Six raw meat from the chest: one on each pan, each meal earns XP.
+    const meals = XP_REWARDS.cookMeal * STOVE_PANS;
+    // (≥: three meals may also finish today's "cook" goal, which gives everyone XP.)
+    await waitFor(() => self(room).xp >= meals, COOK_TIME_MS + 2000);
+    await sleep(150);
+    const earned = self(room).xp;
 
     const code = await leaveAndWaitForSave(room);
     const back = await reopen(code, id);
     await waitFor(() => back.state?.players?.size === 1);
-    expect(self(back).xp).toBe(XP_REWARDS.cookMeal);
+    expect(self(back).xp).toBe(earned);
   }, 15000);
 
   test('sleeping through the night grants XP', async () => {

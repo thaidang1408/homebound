@@ -84,8 +84,10 @@ export const PlayerState = schema(
     buff: t.string().default(''),
     buffLeft: t.uint16().default(0),
     buffMs: t.float64().noSync().default(0),
-    /** Fixed-length slot array; the first HOTBAR_SLOTS are the hotbar. */
+    /** Slot array (backpackSize: more with a bag on your back); the first HOTBAR_SLOTS are the hotbar. */
     inventory: t.array(ItemStack),
+    /** Worn gear, one stack per EQUIP_SLOTS entry (Phase 14). */
+    equipment: t.array(ItemStack),
   },
   'PlayerState',
 );
@@ -98,7 +100,7 @@ export const StoveStatus = {
 } as const;
 export type StoveStatus = (typeof StoveStatus)[keyof typeof StoveStatus];
 
-/** The kitchen stove: one item at a time, anyone can collect the result. */
+/** One pan on the kitchen stove (STOVE_PANS of them); anyone can collect the result. */
 export const StoveState = schema(
   {
     status: t.string().default(StoveStatus.Idle),
@@ -183,6 +185,18 @@ export const PetState = schema(
   'PetState',
 );
 export type PetState = SchemaType<typeof PetState>;
+
+/** Something dropped out of a backpack (Phase 14): a little bag anyone can pick up. Saved. */
+export const DropState = schema(
+  {
+    itemId: t.string().default(''),
+    qty: t.uint8().default(0),
+    x: t.float32().default(0),
+    z: t.float32().default(0),
+  },
+  'DropState',
+);
+export type DropState = SchemaType<typeof DropState>;
 
 /** A trap on the ground (snare or spike), set by a player. Saved with the home. */
 export const TrapState = schema(
@@ -274,7 +288,10 @@ export const HomeState = schema(
     players: t.map(PlayerState),
     /** Shared storage chest, fixed-length slot array. */
     chest: t.array(ItemStack),
-    stove: StoveState,
+    /** The stove's pans (STOVE_PANS). */
+    pans: t.array(StoveState),
+    /** Things dropped on the ground, keyed `drop-<n>`. */
+    drops: t.map(DropState),
     /** Keyed by resource node id. */
     resources: t.map(ResourceState),
     /** Keyed by creature id (`boar-0`…). Not saved: a re-opened home has fresh creatures. */

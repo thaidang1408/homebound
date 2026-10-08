@@ -72,8 +72,8 @@ function interact(): boolean {
     } else room.send(ClientMessage.PetCommand, { petId: focusId, command: 'pat' });
     return false;
   }
-  if (focusId && room.state.traps.has(focusId)) {
-    room.send(ClientMessage.Interact, { targetId: focusId }); // pick the trap back up
+  if (focusId && (room.state.traps.has(focusId) || room.state.drops.has(focusId))) {
+    room.send(ClientMessage.Interact, { targetId: focusId }); // pick the trap / bag back up
     return false;
   }
   if (focusId && room.state.players.has(focusId)) {
@@ -160,6 +160,10 @@ export function useGameKeys(): void {
         updateSettings({ muted });
         applyVolume();
         showToast(muted ? '🔇 Sound off (N)' : '🔊 Sound on (N)');
+        return;
+      }
+      if (e.code === 'KeyH') {
+        updateSettings({ hints: !getSettings().hints });
         return;
       }
       if (e.code === 'KeyJ') {

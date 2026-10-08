@@ -51,7 +51,8 @@ const STORY_TOAST_MS = 8000;
 interface Snapshot {
   key: string;
   day: number;
-  stoveStatus: string;
+  /** Pans with food ready to take. */
+  stoveDone: number;
   myHunger: number;
   myHealth: number;
   /** Creature ids currently lying dead. */
@@ -94,13 +95,13 @@ function snapshot(room: Room<HomeState>): Snapshot {
     s.day,
     // 10-minute clock resolution: the HUD clock re-renders ~every 5 s, not every tick.
     clockLabel(s.timeOfDay),
-    s.stove.status,
-    s.stove.itemId,
+    [...s.pans].map((p) => `${p.status}:${p.itemId}`).join(','),
+    ...[...s.drops.entries()].map(([id, d]) => `${id}:${d.itemId}:${d.qty}`),
     [...s.goals].map((g) => `${g.kind}:${g.progress}/${g.target}`).join(','),
     slots(s.chest),
     ...players.map(
       ([id, p]) =>
-        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.downed}|${p.downed ? `${Math.round(p.bleedOut * 20)}/${Math.round(p.revive * 20)}` : ''}|${p.xp}|${p.level}|${p.selectedSlot}|${slots(p.inventory)}|${p.crouching}|${p.buff}:${p.buffLeft}`,
+        `${id}|${p.name}|${p.slot}|${p.ready}|${p.connected}|${p.hunger}|${p.health}|${p.sleeping}|${p.downed}|${p.downed ? `${Math.round(p.bleedOut * 20)}/${Math.round(p.revive * 20)}` : ''}|${p.xp}|${p.level}|${p.selectedSlot}|${slots(p.inventory)}|${slots(p.equipment)}|${p.crouching}|${p.buff}:${p.buffLeft}`,
     ),
     // Health and presence change only in fights; patrol movement doesn't re-render the UI.
     ...[...s.creatures.entries()].map(([id, c]) => `${id}:${c.health}:${c.present}`),
@@ -121,7 +122,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
   return {
     key,
     day: s.day,
-    stoveStatus: s.stove.status,
+    stoveDone: [...s.pans].filter((p) => p.status === StoveStatus.Done).length,
     myHunger: s.players.get(room.sessionId)?.hunger ?? 0,
     myHealth: s.players.get(room.sessionId)?.health ?? 0,
     carcasses: new Set(
@@ -148,7 +149,7 @@ function snapshot(room: Room<HomeState>): Snapshot {
 function announce(room: Room<HomeState>, prev: Snapshot, next: Snapshot): void {
   if (room.state.phase !== GamePhase.Playing) return;
   if (next.day > prev.day) showToast(`Day ${next.day} — good morning!`);
-  if (next.stoveStatus === StoveStatus.Done && prev.stoveStatus !== StoveStatus.Done) {
+  if (next.stoveDone > prev.stoveDone) {
     showToast('The food is ready!');
     playBell();
   }

@@ -643,3 +643,40 @@ of getting one (eggs and befriending).
 **Requested during this phase (not started; proposed as the next phase):** drop items from the
 backpack, equipment slots (hat, coat, boots, weapon…), a craftable bigger backpack, item
 descriptions, small on-screen control hints, more stove dishes and cooking several at once.
+
+## Phase 14 — Backpack, gear and kitchen
+
+**Status:** Done on one machine (tests + e2e pass), awaiting the user's test + approval
+(2026-10-08). Requested by the user during Phase 13; the monsters phase moves to 15 (roadmap).
+
+**What was built** (ADR-027)
+
+- **Equipment:** head, body, feet, back and weapon slots beside the backpack. Wear by
+  double-click, drag, or _Wear_; take off by drag or _Take off_. Only worn gear counts (armor adds
+  up to −60%). New gear: leather cap (−10%), soft boots (quieter), satchel (+5 slots), big backpack
+  (+10 slots). An empty hotbar slot holds the worn weapon. The partner sees cap, vest/coat, boots
+  and bag. Old saves put the best carried armor on automatically.
+- **Dropping:** drag a stack out of the backpack window (or _Drop_) → a little sack a step ahead;
+  [E] picks it up (what fits). Saved; at most 40 on the ground.
+- **Item descriptions:** every item has one; pointing at an item shows name, description and its
+  numbers (hunger, buff, damage, armor, slots); recipes show what they make.
+- **Key hints:** small, always on while playing (bottom right); [H] or the pause menu hides them.
+- **Kitchen:** three pans: [E] puts food on every free pan (raw meat, or the mushroom you hold) and
+  takes all that's done. New: grilled mushroom (pan), berry tart (stamina buff), hunter's feast
+  (+80 hunger, long healing buff).
+
+**Tests**
+
+- `npm test`: 215 passing + 1 skipped. New: wearing, swapping, bags resizing (refused while the extra slots hold
+  something), the hand item, drops and pick-up limits, three pans, held-mushroom rule, armor cap,
+  save validation (gear in its own slot, a 20-slot bag, old saves wearing their armor); over the
+  network: wear a satchel and spear, drop and pick up, out-of-reach bag, gear and bags saved.
+- `npm run e2e`: new `gear` (hints, item details, wear by double-click and drag, drag out to drop,
+  pick up, three pans, collect all) and `gear-partner` (the partner's gear syncs; screenshot
+  `p14-partner-gear`). `home-loop` updated for three pans. Full run: all passed except `pets` and `gear` under load;
+  both pass on a re-run. `gear` was a real flake — the item details didn't show when the backpack
+  opened with the pointer already on a slot — fixed (hover also on mouse move).
+
+**Not done**
+
+- Dropping from the chest or straight from the hotbar, durability, more gear stats.

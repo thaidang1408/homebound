@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { getItem, isItemId } from '@homebound/shared';
 import styles from './ItemSlot.module.css';
 
-/** dataTransfer type for dragging stacks between slots. */
-const DRAG_TYPE = 'application/x-homebound-slot';
+/** dataTransfer type for dragging stacks between slots (and out of the backpack, to drop). */
+export const DRAG_TYPE = 'application/x-homebound-slot';
 
 interface Props {
   itemId: string;
@@ -16,6 +16,11 @@ interface Props {
   /** Makes the slot draggable and a drop target; `dragId` identifies it (e.g. "player:3"). */
   dragId?: string;
   onDropItem?: (fromDragId: string) => void;
+  /** Pointer or keyboard focus on the slot (shows its details). */
+  onHover?: () => void;
+  onDoubleClick?: () => void;
+  /** Faint glyph in an empty slot (what goes there: 🧢 on the head slot). */
+  placeholder?: string;
 }
 
 /** One inventory cell. Clickable cells are buttons (keyboard + screen-reader friendly). */
@@ -28,14 +33,23 @@ export function ItemSlot({
   label,
   dragId,
   onDropItem,
+  onHover,
+  onDoubleClick,
+  placeholder,
 }: Props) {
   const [over, setOver] = useState(false);
   const item = qty > 0 && isItemId(itemId) ? getItem(itemId) : null;
   const title = item ? `${item.name} ×${qty}` : 'Empty';
+  const tooltip = item ? `${item.name}${qty > 1 ? ` ×${qty}` : ''} — ${item.description}` : title;
   const content = (
     <>
       {hint && <span className={styles.hint}>{hint}</span>}
       {item && <span className={styles.icon}>{item.icon}</span>}
+      {!item && placeholder && (
+        <span className={styles.placeholder} aria-hidden>
+          {placeholder}
+        </span>
+      )}
       {item && qty > 1 && <span className={styles.qty}>{qty}</span>}
     </>
   );
@@ -50,7 +64,7 @@ export function ItemSlot({
 
   if (!onClick && !onDropItem) {
     return (
-      <div className={className} title={title}>
+      <div className={className} title={tooltip}>
         {content}
       </div>
     );
@@ -60,9 +74,14 @@ export function ItemSlot({
     <button
       type="button"
       className={className}
-      title={item && droppable ? `${title} — drag to move` : title}
+      title={tooltip}
       aria-label={label ? `${label}: ${title}` : title}
       onClick={item ? onClick : undefined}
+      onDoubleClick={item ? onDoubleClick : undefined}
+      onMouseEnter={onHover}
+      // Also on move: the panel can open with the pointer already resting on a slot.
+      onMouseMove={onHover}
+      onFocus={onHover}
       // Empty slots stay enabled when they can receive a dragged stack.
       disabled={!item && !droppable}
       draggable={droppable && item !== null}

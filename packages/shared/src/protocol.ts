@@ -48,6 +48,12 @@ export const ClientMessage = {
   Transfer: 'transfer',
   /** Rearrange one container: move/swap/merge the stack in `from` onto slot `to`. */
   MoveSlot: 'move-slot',
+  /** Wear the gear in a backpack slot `{ slot }` (swaps with what you had on). */
+  Equip: 'equip',
+  /** Take off what's in an equipment slot `{ slot }` (EQUIP_SLOTS index) into the backpack. */
+  Unequip: 'unequip',
+  /** Drop the whole stack in a backpack slot `{ slot }` on the ground as a bag. */
+  DropItem: 'drop-item',
   /** Use the item in an inventory slot (eat food). */
   UseItem: 'use-item',
   /** The hotbar slot you hold (cosmetic: the server reads attacks from their own slot). */

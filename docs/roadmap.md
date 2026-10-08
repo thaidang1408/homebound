@@ -128,7 +128,12 @@ _Goal: a reason to keep coming back that ends somewhere._
 
 _Done when:_ chapter 1 can be played start to finish and both players know what to do next.
 
-### Phase 14 — Fantasy monsters and bosses
+### Phase 14 — Backpack, gear and kitchen (requested by the user; done, ADR-027)
+
+Drop items, equipment slots, craftable bags, item descriptions, on-screen key hints, a three-pan
+stove and new dishes.
+
+### Phase 15 — Fantasy monsters and bosses
 
 _Goal: nights and ruins hold magical creatures that are exciting, not scary-gross._
 
@@ -148,7 +153,7 @@ _Goal: nights and ruins hold magical creatures that are exciting, not scary-gros
 _Done when:_ each boss needs both players and can be beaten in 5–10 minutes on the first try with
 some deaths.
 
-### Phase 15 — Home that grows, garden and comfort
+### Phase 16 — Home that grows, garden and comfort
 
 _Goal: the home is the reward for everything you do outside._
 
@@ -161,7 +166,7 @@ _Goal: the home is the reward for everything you do outside._
 
 _Done when:_ players spend time at home by choice and argue about where the trophy goes.
 
-### Phase 16 — Weather, seasons and events (optional)
+### Phase 17 — Weather, seasons and events (optional)
 
 - Rain (fewer animals out, fire goes out), fog, snow in winter (warm clothes matter).
 - Seasons change food and animals; a **festival night** each season with lantern decorations and a

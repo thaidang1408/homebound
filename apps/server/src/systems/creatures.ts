@@ -1,4 +1,5 @@
 import {
+  gearStealth,
   BUFFS,
   CREATURES,
   CreatureMode,
@@ -169,7 +170,8 @@ function reach(c: CreatureState, def: CreatureDefinition, p: Point): number {
 export function stealthOf(p: PlayerState, now: number): number {
   const movement = p.crouching ? STEALTH_CROUCH : now - p.noisyAt < NOISE_MS ? STEALTH_NOISY : 1;
   const buff = isBuffId(p.buff) ? BUFFS[p.buff] : undefined;
-  return movement * (buff && 'stealth' in buff ? buff.stealth : 1);
+  // Soft boots (worn gear) help too.
+  return movement * (buff && 'stealth' in buff ? buff.stealth : 1) * gearStealth(p.equipment);
 }
 
 /** A player holding a wild pet's favorite food: it doesn't run, it comes over (Phase 11). */

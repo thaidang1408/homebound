@@ -15,7 +15,11 @@ import {
   NEW_HOME_TIME,
   PETS_PER_PLAYER,
   PET_ORDERS,
-  PLAYER_INVENTORY_SLOTS,
+  EQUIP_SLOTS,
+  MAX_DROPS,
+  STOVE_PANS,
+  backpackSize,
+  wearSlotOf,
   RESOURCE_KINDS,
   findResourceNode,
   StoveStatus,
@@ -56,7 +60,24 @@ export interface SavedPlayer {
   x: number;
   z: number;
   yaw: number;
+  /** Length backpackSize(equipment): a bag on your back adds slots. */
   inventory: SavedSlots;
+  /** Worn gear by EQUIP_SLOTS index; missing before Phase 14 (nothing worn). */
+  equipment: SavedSlots;
+}
+
+export interface SavedPan {
+  status: string;
+  itemId: string;
+  elapsedMs: number;
+  cookedBy: string;
+}
+
+export interface SavedDrop {
+  itemId: ItemId;
+  qty: number;
+  x: number;
+  z: number;
 }
 
 export interface HomeSave {
@@ -68,7 +89,10 @@ export interface HomeSave {
   /** 0–1, see world/time.ts. */
   timeOfDay: number;
   chest: SavedSlots;
-  stove: { status: string; itemId: string; elapsedMs: number; cookedBy: string };
+  /** The stove's pans (before Phase 14 a single `stove`, read as the first pan). */
+  pans: SavedPan[];
+  /** Bags on the ground by id; missing before Phase 14. */
+  drops: Record<string, SavedDrop>;
   /** Remaining charges per resource node id; nodes not listed are full. */
   resources: Record<string, number>;
   /** Keyed by playerId, including players who are offline right now. */
@@ -203,6 +227,8 @@ const num = (v: unknown, fallback: number, min = -Infinity, max = Infinity) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback;
 const str = (v: unknown, fallback = '') => (typeof v === 'string' ? v : fallback);
 
+const EMPTY = { itemId: '', qty: 0 };
+
 function parseSlots(value: unknown, length: number): SavedSlots {
   const list = Array.isArray(value) ? value : [];
   return Array.from({ length }, (_, i) => {
@@ -213,8 +239,63 @@ function parseSlots(value: unknown, length: number): SavedSlots {
   });
 }
 
+/** Each piece only in the slot it's worn in. */
+function parseEquipment(value: unknown): SavedSlots {
+  return parseSlots(value, EQUIP_SLOTS.length).map((s, i) =>
+    s && wearSlotOf(s.itemId) === EQUIP_SLOTS[i] ? { itemId: s.itemId, qty: 1 } : null,
+  );
+}
+
+function parsePan(value: unknown): SavedPan {
+  const pan = isObject(value) ? value : {};
+  const status = Object.values(StoveStatus).find((s) => s === pan.status) ?? StoveStatus.Idle;
+  return {
+    status,
+    itemId: isItemId(str(pan.itemId)) ? str(pan.itemId) : '',
+    elapsedMs: num(pan.elapsedMs, 0, 0),
+    cookedBy: str(pan.cookedBy),
+  };
+}
+
+function parsePans(value: Json): SavedPan[] {
+  const list: unknown[] = Array.isArray(value.pans) ? value.pans : [value.stove];
+  return Array.from({ length: STOVE_PANS }, (_, i) => parsePan(list[i]));
+}
+
+const DROP_ID = /^drop-\d{1,6}$/;
+
+function parseDrops(value: unknown): Record<string, SavedDrop> {
+  const out: Record<string, SavedDrop> = {};
+  if (!isObject(value)) return out;
+  for (const [id, raw] of Object.entries(value)) {
+    if (Object.keys(out).length >= MAX_DROPS) break;
+    if (!DROP_ID.test(id) || !isObject(raw)) continue;
+    const [stack] = parseSlots([raw], 1);
+    const x = num(raw.x, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+    const z = num(raw.z, NaN, -WORLD_RADIUS, WORLD_RADIUS);
+    if (!stack || Number.isNaN(x) || Number.isNaN(z)) continue;
+    out[id] = { ...stack, x, z };
+  }
+  return out;
+}
+
+/** Before Phase 14 armor worked from the backpack: an old save puts its best piece on. */
+function wearCarriedArmor(inventory: SavedSlots, equipment: SavedSlots): void {
+  const body = EQUIP_SLOTS.indexOf('body');
+  const armor = (s: SavedStack | null) =>
+    s && wearSlotOf(s.itemId) === 'body' ? (getItem(s.itemId).armor ?? 0) : 0;
+  const best = inventory.reduce((b, s, i) => (armor(s) > armor(inventory[b] ?? null) ? i : b), 0);
+  const piece = inventory[best];
+  if (!piece || armor(piece) === 0) return;
+  equipment[body] = { itemId: piece.itemId, qty: 1 };
+  inventory[best] = piece.qty > 1 ? { ...piece, qty: piece.qty - 1 } : null;
+}
+
 function parsePlayer(value: unknown): SavedPlayer | null {
   if (!isObject(value)) return null;
+  const equipment = parseEquipment(value.equipment);
+  const inventory = parseSlots(value.inventory, backpackSize(equipment.map((s) => s ?? EMPTY)));
+  if (!Array.isArray(value.equipment)) wearCarriedArmor(inventory, equipment);
   return {
     name: str(value.name).slice(0, 32),
     hunger: num(value.hunger, HUNGER_MAX, 0, HUNGER_MAX),
@@ -224,14 +305,13 @@ function parsePlayer(value: unknown): SavedPlayer | null {
     x: num(value.x, 0),
     z: num(value.z, 0),
     yaw: num(value.yaw, 0),
-    inventory: parseSlots(value.inventory, PLAYER_INVENTORY_SLOTS),
+    inventory,
+    equipment,
   };
 }
 
 export function parseSave(value: unknown, code: string): HomeSave | null {
   if (!isObject(value) || value.version !== SAVE_VERSION || value.code !== code) return null;
-  const stove = isObject(value.stove) ? value.stove : {};
-  const status = Object.values(StoveStatus).find((s) => s === stove.status) ?? StoveStatus.Idle;
   const players: Record<string, SavedPlayer> = {};
   if (isObject(value.players)) {
     for (const [id, raw] of Object.entries(value.players)) {
@@ -247,12 +327,8 @@ export function parseSave(value: unknown, code: string): HomeSave | null {
     day: Math.floor(num(value.day, 1, 1, 65535)),
     timeOfDay: num(value.timeOfDay, NEW_HOME_TIME, 0, 0.9999),
     chest: parseSlots(value.chest, CHEST_SLOTS),
-    stove: {
-      status,
-      itemId: isItemId(str(stove.itemId)) ? str(stove.itemId) : '',
-      elapsedMs: num(stove.elapsedMs, 0, 0),
-      cookedBy: str(stove.cookedBy),
-    },
+    pans: parsePans(value),
+    drops: parseDrops(value.drops),
     resources: parseResources(value.resources),
     players,
     goals: parseGoals(value.goals),

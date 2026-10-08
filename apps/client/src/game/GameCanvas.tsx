@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { armorOf, weaponOf } from '@homebound/shared';
+import { EQUIP_SLOTS, handItem, weaponOf } from '@homebound/shared';
 import { CAMERA_FOV } from '../config/controls';
 import { useSession } from '../state/session';
 import { Arrows } from './combat/Arrows';
@@ -9,6 +9,7 @@ import { PingMarkers } from './fx/PingMarkers';
 import { Pets } from './pets/Pets';
 import { Landmarks } from './world/Landmarks';
 import { Tracks } from './world/Tracks';
+import { Drops } from './world/Drops';
 import { Traps } from './world/Traps';
 import { Creatures } from './creatures/Creatures';
 import { LocalPlayer } from './player/LocalPlayer';
@@ -51,6 +52,7 @@ function Players() {
       <HeldItem room={room} />
       <PingMarkers room={room} />
       <Traps room={room} />
+      <Drops room={room} />
       <Pets room={room} />
       <Landmarks room={room} />
       <Tracks room={room} />
@@ -64,8 +66,8 @@ function Players() {
           connected={p.connected}
           sleeping={p.sleeping}
           downed={p.downed}
-          holding={weaponOf(p.inventory.at(p.selectedSlot)?.itemId ?? '')}
-          armored={armorOf(p.inventory) > 0}
+          holding={weaponOf(handItem(p, p.selectedSlot))}
+          wear={EQUIP_SLOTS.map((_, i) => p.equipment.at(i)?.itemId ?? '').join(',')}
           level={p.level}
         />
       ))}

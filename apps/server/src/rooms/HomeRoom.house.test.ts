@@ -102,12 +102,12 @@ describe('eating and cooking', () => {
 
     host.send(ClientMessage.Interact, { targetId: 'stove' });
     await sleep(150);
-    expect(host.state.stove.status).toBe(StoveStatus.Idle);
+    expect(host.state.pans.at(0)?.status).toBe(StoveStatus.Idle);
 
     await walk(host, [{ x: -3.5, z: 2.0 }, ...TO_STOVE.slice(1)]);
     host.send(ClientMessage.Interact, { targetId: 'stove' });
-    await waitFor(() => host.state.stove.status === StoveStatus.Cooking);
-    expect(host.state.stove.itemId).toBe('raw_meat');
+    await waitFor(() => host.state.pans.at(0)?.status === StoveStatus.Cooking);
+    expect(host.state.pans.at(0)?.itemId).toBe('raw_meat');
   });
 
   test('unknown furniture ids are ignored', async () => {

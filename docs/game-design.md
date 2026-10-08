@@ -63,10 +63,30 @@ for rendering, client collision, server validation and interaction reach.
   ahead, outside the yard only; [E] picks it back up. Traps are saved; up to 8 per home.
 - **Materials → gear:** hide (deer, rabbit, bear), antler (deer, sometimes), bear claw. Leather
   armor (3 hide, −25% damage), bear-hide coat (3 hide + claw, −45%), antler spear (30 damage).
-  Armor works while it's in your backpack; the partner sees a vest.
+  Since Phase 14 gear works only while worn (see _Backpack and gear_).
 - **Stove recipes ([R] at the stove):** hunter's stew (meat + 2 berries + mushroom: heal 6× faster
   for 2 min), mushroom skewer (2 mushrooms + wood: light-footed for 3 min). Mushrooms grow under the
   northern trees. One buff at a time, shown in the HUD.
+
+## Backpack and gear (Phase 14, ADR-027)
+
+- **Wearing:** five slots — head, body, feet, back, weapon — next to the backpack ([Tab]).
+  Double-click or drag gear onto its slot to wear it; drag it back (or _Take off_) to remove it.
+  Worn armor adds up (to −60%). The partner sees your cap, vest or coat, boots and bag.
+  - Leather cap (2 hide): −10% damage. Leather armor / bear-hide coat as before.
+  - Soft boots (2 hide): creatures notice you from 20% closer.
+  - Satchel (2 hide + wood): +5 backpack slots. Big backpack (5 hide + 2 wood): +10. A bag only
+    comes off once the slots it adds are empty.
+  - Weapon slot: with an empty hotbar slot selected you hold the worn weapon.
+- **Dropping:** drag a stack out of the backpack window (or _Drop_): it lands as a little sack a
+  step ahead. Anyone picks it up with [E]. Bags stay on the ground (saved), up to 40.
+- **Item details:** point at any item for its name, what it's for and its numbers.
+- **Key hints:** the keys you need most stay small in the bottom-right corner; [H] (or the pause
+  menu) hides them.
+- **Stove:** three pans. [E] puts one food on every free pan — raw meat, or the mushroom in your
+  hand (grilled mushroom, +12) — and takes everything that's done. New dishes at [R]: berry tart
+  (4 berries: stamina comes back 1.8× faster for 2.5 min) and hunter's feast (2 meat, 2 berries, 2
+  mushrooms: +80 hunger and heal 3× faster for 5 min).
 
 ## The story (Phase 13, ADR-026)
 
@@ -206,12 +226,13 @@ morning goals → chop / mine → workbench → hunt boar → butcher → home b
 ## Saving
 
 Homes save automatically (ADR-009). Closing the browser and coming back with **Continue home** (or
-the code) restores the chest, stove, day and each returning player's items, hunger, health, XP and
-position. Creatures are not saved: a re-opened home has a fresh herd. A player is recognised by an anonymous id stored in their browser (ADR-010).
+the code) restores the chest, stove, day, dropped bags and each returning player's items, gear, hunger,
+health, XP and position. Creatures are not saved: a re-opened home has a fresh herd. A player is recognised by an anonymous id stored in their browser (ADR-010).
 
 ## Controls
 
 WASD move · Mouse look · Shift sprint (uses stamina) · Space jump · Q dodge roll (stamina; strikes
 miss you for a moment) · F mark a spot for your partner · G wave · C sneak · R stove recipes · Enter chat · E interact (hold to keep harvesting / reviving) · Left click
 use the held item (food: eat; spear/bow/fists: attack; a creature in your face: punch) · 1–5 / wheel
-hotbar · Tab backpack (drag to rearrange) · M map · J journal · N mute · Esc pause (settings).
+hotbar · Tab backpack (drag to rearrange, wear or drop) · M map · J journal · H key hints · N mute ·
+Esc pause (settings).

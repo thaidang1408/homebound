@@ -114,8 +114,42 @@ interface Props {
   downed: boolean;
   level: number;
   holding: WeaponId;
-  /** Wearing leather or a bear coat: drawn as a vest. */
-  armored: boolean;
+  /** Worn item ids in EQUIP_SLOTS order, comma-joined (a string, so React compares it cheaply). */
+  wear: string;
+}
+
+/** Worn gear on the torso (Phase 14): a vest or coat, a bag on the back. Cap and boots ride the head and legs. */
+function Gear({
+  wear,
+  mats,
+}: {
+  wear: string;
+  mats: Record<'leather' | 'fur' | 'boot' | 'bag', MeshStandardMaterial>;
+}) {
+  const [, body, , back] = wear.split(',');
+  return (
+    <>
+      {body === 'leather_armor' && (
+        <mesh position-y={0.36} material={mats.leather}>
+          <boxGeometry args={[0.54, 0.5, 0.34]} />
+        </mesh>
+      )}
+      {body === 'bear_coat' && (
+        <mesh position-y={0.32} material={mats.fur}>
+          <boxGeometry args={[0.58, 0.64, 0.38]} />
+        </mesh>
+      )}
+      {back && (
+        <mesh
+          position={[0, 0.36, back === 'big_backpack' ? 0.3 : 0.22]}
+          material={mats.bag}
+          scale={back === 'big_backpack' ? 1.35 : 0.85}
+        >
+          <boxGeometry args={[0.36, 0.42, 0.18]} />
+        </mesh>
+      )}
+    </>
+  );
 }
 
 /**
@@ -133,7 +167,7 @@ export function RemotePlayer({
   downed,
   level,
   holding,
-  armored,
+  wear,
 }: Props) {
   const body = useRef<Group>(null);
   const pose = useRef<Group>(null);
@@ -158,7 +192,10 @@ export function RemotePlayer({
       cloth: new MeshStandardMaterial({ color, flatShading: true }),
       skin: new MeshStandardMaterial({ color: PALETTE.skin, flatShading: true }),
       pants: new MeshStandardMaterial({ color: PALETTE.pants, flatShading: true }),
-      vest: new MeshStandardMaterial({ color: PALETTE.deerDark, flatShading: true }),
+      leather: new MeshStandardMaterial({ color: PALETTE.deerDark, flatShading: true }),
+      fur: new MeshStandardMaterial({ color: PALETTE.bear, flatShading: true }),
+      boot: new MeshStandardMaterial({ color: PALETTE.woodDark, flatShading: true }),
+      bag: new MeshStandardMaterial({ color: PALETTE.cacheWood, flatShading: true }),
     }),
     [color],
   );
@@ -262,11 +299,7 @@ export function RemotePlayer({
           <mesh position-y={0.33} material={mats.cloth}>
             <boxGeometry args={[0.5, 0.66, 0.3]} />
           </mesh>
-          {armored && (
-            <mesh position-y={0.36} material={mats.vest}>
-              <boxGeometry args={[0.54, 0.5, 0.34]} />
-            </mesh>
-          )}
+          <Gear wear={wear} mats={mats} />
           {[-1, 1].map((side, i) => (
             <group
               key={`arm${side}`}
@@ -283,7 +316,9 @@ export function RemotePlayer({
                   <boxGeometry args={[0.11, 0.11, 0.11]} />
                 </mesh>
                 {/* What they hold, in the right hand */}
-                {side === 1 && holding === 'spear' && <SpearModel />}
+                {side === 1 && (holding === 'spear' || holding === 'antler_spear') && (
+                  <SpearModel />
+                )}
                 {side === 1 && holding === 'bow' && (
                   <group rotation-z={-0.3} scale={0.8}>
                     <BowModel />
@@ -303,6 +338,11 @@ export function RemotePlayer({
               <mesh position-y={-LEG / 2} material={mats.pants}>
                 <boxGeometry args={[0.18, LEG, 0.2]} />
               </mesh>
+              {wear.split(',')[2] === 'soft_boots' && (
+                <mesh position={[0, -LEG + 0.1, -0.02]} material={mats.boot}>
+                  <boxGeometry args={[0.22, 0.22, 0.26]} />
+                </mesh>
+              )}
             </group>
           ))}
           <group ref={head} position-y={0.7}>
@@ -313,6 +353,16 @@ export function RemotePlayer({
               <boxGeometry args={[0.3, 0.1, 0.02]} />
               <meshStandardMaterial color="#2a3430" />
             </mesh>
+            {wear.split(',')[0] === 'leather_cap' && (
+              <group position-y={0.23}>
+                <mesh material={mats.leather}>
+                  <boxGeometry args={[0.46, 0.12, 0.46]} />
+                </mesh>
+                <mesh position={[0, -0.05, -0.28]} material={mats.leather}>
+                  <boxGeometry args={[0.4, 0.03, 0.14]} />
+                </mesh>
+              </group>
+            )}
           </group>
         </group>
       </group>

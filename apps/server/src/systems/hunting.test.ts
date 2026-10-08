@@ -7,6 +7,7 @@ import {
   SIMULATION_TICK_MS,
   SPIKE_TRAP_DAMAGE,
   TrapState,
+  ARMOR_MAX,
   armorOf,
   createRandom,
   ZONES,
@@ -131,12 +132,14 @@ describe('traps', () => {
 });
 
 describe('gear and food', () => {
-  test('the best armor carried counts', () => {
-    const slots = createSlots(10);
-    expect(armorOf(slots)).toBe(0);
-    addItem(slots, 'leather_armor', 1);
-    addItem(slots, 'bear_coat', 1);
-    expect(armorOf(slots)).toBe(0.45);
+  test('worn armor pieces add up, to a cap', () => {
+    const worn = createSlots(5);
+    expect(armorOf(worn)).toBe(0);
+    addItem(worn, 'leather_cap', 1);
+    addItem(worn, 'bear_coat', 1);
+    expect(armorOf(worn)).toBeCloseTo(0.55);
+    addItem(worn, 'leather_armor', 1); // can't really wear two, but the cap holds
+    expect(armorOf(worn)).toBe(ARMOR_MAX);
   });
 
   test('stew gives a warm buff that speeds up healing, then wears off', () => {

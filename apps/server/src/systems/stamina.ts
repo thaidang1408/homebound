@@ -7,6 +7,8 @@ import {
   STAMINA_REGEN,
   STAMINA_REGEN_DELAY_MS,
   STAMINA_SPRINT_DRAIN,
+  BUFFS,
+  isBuffId,
   type PlayerAction,
   type PlayerState,
 } from '@homebound/shared';
@@ -38,7 +40,9 @@ export function tickStamina(player: PlayerState, dtMs: number, now: number): voi
   if (player.staminaExact >= STAMINA_MAX || now - player.staminaUsedAt < STAMINA_REGEN_DELAY_MS) {
     return;
   }
-  setStamina(player, player.staminaExact + (STAMINA_REGEN * dtMs) / 1000);
+  const buff = isBuffId(player.buff) ? BUFFS[player.buff] : undefined;
+  const rate = STAMINA_REGEN * (buff && 'stamina' in buff ? buff.stamina : 1);
+  setStamina(player, player.staminaExact + (rate * dtMs) / 1000);
 }
 
 /** A dodge roll if there's breath for it; strikes miss you for DODGE_IFRAMES_MS. */

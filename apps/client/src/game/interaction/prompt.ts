@@ -7,7 +7,7 @@ import {
   RESOURCE_KINDS,
   StoveStatus,
   canSleepAt,
-  cookResult,
+  stoveFood,
   findInteractable,
   getItem,
   isCreatureKind,
@@ -78,6 +78,13 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
       ? { text: `Butcher ${def.name.toLowerCase()}`, actionable: true }
       : { text: 'Backpack full', actionable: false };
   }
+  const drop = state.drops.get(focusId);
+  if (drop && me && isItemId(drop.itemId)) {
+    const name = `${getItem(drop.itemId).name}${drop.qty > 1 ? ` ×${drop.qty}` : ''}`;
+    return hasSpaceFor(me, drop.itemId)
+      ? { text: `Pick up ${name}`, actionable: true }
+      : { text: `${name} — backpack full`, actionable: false };
+  }
   const trap = state.traps.get(focusId);
   if (trap && me) {
     const name = TRAP_NAMES[trap.kind] ?? 'trap';
@@ -91,21 +98,32 @@ export function promptFor(focusId: string, state: HomeState, sessionId: string):
 
   switch (target.kind) {
     case 'stove': {
-      const stove = state.stove;
-      if (stove.status === StoveStatus.Done) {
+      const pans = [...state.pans];
+      const done = pans.filter((p) => p.status === StoveStatus.Done);
+      if (done.length > 0) {
+        const first = done[0]?.itemId ?? '';
+        const text = done.length > 1 ? `Take the food (${done.length})` : `Take ${itemName(first)}`;
+        return { text, actionable: true, secondary: STOVE_RECIPES };
+      }
+      const free = pans.filter((p) => p.status === StoveStatus.Idle).length;
+      if (free === 0) return { text: 'Cooking…', actionable: false, secondary: STOVE_RECIPES };
+      const food = stoveFood(me);
+      if (!food) {
         return {
-          text: `Take ${itemName(stove.itemId)}`,
-          actionable: true,
+          text: 'Bring raw meat (or hold a mushroom) to cook',
+          actionable: false,
           secondary: STOVE_RECIPES,
         };
       }
-      if (stove.status === StoveStatus.Cooking) {
-        return { text: 'Cooking…', actionable: false, secondary: STOVE_RECIPES };
-      }
-      const raw = [...me.inventory].find((s) => isItemId(s.itemId) && cookResult(s.itemId));
-      return raw
-        ? { text: `Cook ${itemName(raw.itemId)}`, actionable: true, secondary: STOVE_RECIPES }
-        : { text: 'Bring raw meat to cook', actionable: false, secondary: STOVE_RECIPES };
+      const have = [...me.inventory]
+        .filter((s) => s.itemId === food)
+        .reduce((n, s) => n + s.qty, 0);
+      const n = Math.min(free, have);
+      return {
+        text: `Cook ${itemName(food)}${n > 1 ? ` ×${n}` : ''}`,
+        actionable: true,
+        secondary: STOVE_RECIPES,
+      };
     }
     case 'chest':
       return { text: 'Open storage', actionable: true };

@@ -152,6 +152,12 @@ export const PLAYER_INVENTORY_SLOTS = 10;
 /** The first HOTBAR_SLOTS of the player inventory are the hotbar (keys 1–5). */
 export const HOTBAR_SLOTS = 5;
 export const CHEST_SLOTS = 16;
+/** Worn armor pieces add up to at most this (creature blows always hurt a little). */
+export const ARMOR_MAX = 0.6;
+/** Bags and items dropped on the ground at once (oldest are never removed: drops are refused). */
+export const MAX_DROPS = 40;
+/** A dropped bag lands this far ahead of you (within [E] reach). */
+export const DROP_DISTANCE = 0.9; // m
 /** What the shared chest holds on day 1: a first meal before the first hunt. */
 export const STARTER_CHEST: readonly { itemId: ItemId; qty: number }[] = [
   { itemId: 'raw_meat', qty: 6 },
@@ -167,6 +173,8 @@ export const HUNGER_DECAY_PER_SECOND = HUNGER_MAX / (20 * 60);
 // --- Cooking ---
 
 export const COOK_TIME_MS = 6000;
+/** Pans on the stove: this many things cook at once. */
+export const STOVE_PANS = 3;
 
 // --- Sleep ---
 

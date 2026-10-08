@@ -57,12 +57,13 @@ export default async function homeLoop(t) {
   await prompt(a, 'Cook raw meat').waitFor();
   await a.keyboard.press('KeyE');
   await b.waitForFunction(
-    () => window.__homebound.getSession().room.state.stove.status === 'cooking',
+    () => window.__homebound.getSession().room.state.pans.at(0).status === 'cooking',
   );
   t.check('partner sees the stove cooking', true);
   await a.waitForTimeout(2500);
   await t.shot(a, 'p2-cooking');
-  await prompt(a, 'Take cooked meat').waitFor({ timeout: 15000 });
+  // Six raw meat from the chest: three cook at once (one on each pan).
+  await prompt(a, 'Take the food (3)').waitFor({ timeout: 15000 });
   await a.getByText('The food is ready!').waitFor();
   await a.keyboard.press('KeyE');
   await a.waitForFunction(() => {
@@ -85,7 +86,10 @@ export default async function homeLoop(t) {
     after.hunger > before.hunger,
     `${before.hunger} → ${after.hunger}`,
   );
-  t.check('the meat was eaten', countItem(after.items, 'cooked_meat') === 0);
+  t.check(
+    'one piece was eaten',
+    countItem(after.items, 'cooked_meat') === countItem(before.items, 'cooked_meat') - 1,
+  );
 
   // Sleep together → new day (beds only work in the evening)
   await walk(a, STOVE_TO_BED, BED);

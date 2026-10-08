@@ -13,8 +13,18 @@ import { useSession } from '../../state/session';
 import { useUi } from '../../state/ui';
 import { PALETTE } from '../world/palette';
 
-/** Footprint of the focused thing: furniture/resource box, or a square around a carcass. */
-function focusBox(id: string, creature?: { kind: string; x: number; z: number }): Box | undefined {
+const GROUND_THING = 0.25; // m: half-size of the ring's square around a trap or a dropped bag
+
+/** Footprint of the focused thing: furniture/resource box, a square around a carcass or a bag. */
+function focusBox(
+  id: string,
+  creature?: { kind: string; x: number; z: number },
+  thing?: { x: number; z: number },
+): Box | undefined {
+  if (thing) {
+    const r = GROUND_THING;
+    return { minX: thing.x - r, maxX: thing.x + r, minZ: thing.z - r, maxZ: thing.z + r };
+  }
   if (creature && isCreatureKind(creature.kind)) {
     const r = CREATURES[creature.kind].radius;
     return {
@@ -32,7 +42,10 @@ export function FocusMarker() {
   const { focusId } = useUi();
   const ring = useRef<Mesh>(null);
   const { room } = useSession();
-  const box = focusId ? focusBox(focusId, room?.state.creatures.get(focusId)) : undefined;
+  const s = room?.state;
+  const box = focusId
+    ? focusBox(focusId, s?.creatures.get(focusId), s?.drops.get(focusId) ?? s?.traps.get(focusId))
+    : undefined;
 
   useFrame(({ clock }) => {
     if (ring.current) ring.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 4) * 0.06);

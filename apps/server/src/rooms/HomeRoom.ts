@@ -31,6 +31,7 @@ import {
   STARTER_CHEST,
   SUNRISE,
   getWeapon,
+  handItem,
   isRecipeId,
   weaponOf,
   SPAWN_POINTS,
@@ -80,14 +81,9 @@ import {
   type HitConfirmPayload,
   type TeleportPayload,
 } from '@homebound/shared';
-import {
-  addItem,
-  createSlots,
-  itemAt,
-  moveStack,
-  moveWithin,
-  removeItem,
-} from '../inventory/inventory.js';
+import { addItem, createSlots, moveStack, moveWithin, removeItem } from '../inventory/inventory.js';
+import { createEquipment, equip, unequip } from '../inventory/equipment.js';
+import { dropItem, pickUpDrop } from '../systems/drops.js';
 import { homeExists, loadHome, saveHome, type SavedPlayer } from '../persistence/homeSaves.js';
 import { applyHome, applyPlayer, buildSave, snapshotPlayer } from '../persistence/homeState.js';
 import { env } from '../config/env.js';
@@ -118,7 +114,7 @@ import {
 import { lightLantern, questEvent, talk, tickQuests, type QuestNews } from '../systems/quests.js';
 import { grantXp } from '../systems/progression.js';
 import { canToggleSleep, everyoneAsleep, startNewDay, toggleSleep } from '../systems/sleep.js';
-import { tickStove, useStove } from '../systems/stove.js';
+import { createPans, tickStove, useStove } from '../systems/stove.js';
 import { closeDay, goalSeed, progressGoal, setGoals } from '../systems/goals.js';
 import { claimCode, claimNewCode, releaseCode } from './roomCode.js';
 
@@ -170,6 +166,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
   /** Next free `pet-<n>` id (continues after saved pets). */
   private nextPetId = 0;
   private nextMarkerId = 0;
+  private nextDropId = 0;
   /** Creature spawns, wandering and loot rolls. */
   private readonly random = createRandom(Date.now());
   /** sessionId → stable playerId (what saves are keyed by). */
@@ -232,6 +229,24 @@ export class HomeRoom extends Room<{ state: HomeState }> {
       const player = this.activePlayer(client);
       if (payload && player && !player.sleeping && !player.downed) {
         if (eatFromSlot(player, payload.slot)) act(player, 'eat');
+      }
+    });
+    this.onMessage(ClientMessage.Equip, (client, message: unknown) => {
+      const payload = parseUseItemPayload(message);
+      const player = this.activePlayer(client);
+      if (payload && player && !player.sleeping && !player.downed) equip(player, payload.slot);
+    });
+    this.onMessage(ClientMessage.Unequip, (client, message: unknown) => {
+      const payload = parseUseItemPayload(message);
+      const player = this.activePlayer(client);
+      if (payload && player && !player.sleeping && !player.downed) unequip(player, payload.slot);
+    });
+    this.onMessage(ClientMessage.DropItem, (client, message: unknown) => {
+      const payload = parseUseItemPayload(message);
+      const player = this.activePlayer(client);
+      if (!payload || !player || player.sleeping || player.downed) return;
+      if (dropItem(this.state, player, payload.slot, `drop-${this.nextDropId}`) === 'dropped') {
+        this.nextDropId += 1;
       }
     });
     this.onMessage(ClientMessage.Dodge, (client) => {
@@ -378,6 +393,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.roomId = claimNewCode(homeExists);
     initResources(this.state);
     initCreatures(this.state, this.random);
+    createPans(this.state);
     this.state.chest = createSlots(CHEST_SLOTS);
     for (const { itemId, qty } of STARTER_CHEST) addItem(this.state.chest, itemId, qty);
     setGoals(this.state, goalSeed(this.roomId));
@@ -396,6 +412,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.roomId = code;
     initResources(this.state);
     initCreatures(this.state, this.random);
+    createPans(this.state);
     this.state.chest = createSlots(CHEST_SLOTS);
     applyHome(this.state, save);
     if (this.state.goals.length === 0) setGoals(this.state, goalSeed(code)); // pre-Phase 6 save
@@ -406,6 +423,9 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     }
     for (const id of this.state.pets.keys()) {
       this.nextPetId = Math.max(this.nextPetId, Number(id.slice('pet-'.length)) + 1);
+    }
+    for (const id of this.state.drops.keys()) {
+      this.nextDropId = Math.max(this.nextDropId, Number(id.slice('drop-'.length)) + 1);
     }
     this.nextMarkerId = this.state.markers.size;
     this.savedPlayers = save.players;
@@ -434,6 +454,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     const player = new PlayerState();
     player.slot = slot;
     player.inventory = createSlots(PLAYER_INVENTORY_SLOTS);
+    player.equipment = createEquipment();
     player.x = spawn.x;
     player.z = spawn.z;
     player.yaw = spawn.yaw;
@@ -580,8 +601,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     this.maybeBeginDay(); // stayed up all night: the day closes at sunrise
     for (const id of tickNeeds(this.state, dtMs / 1000)) this.fall(id);
     tickResources(this.state, dtMs);
-    const cook = tickStove(this.state, dtMs);
-    if (cook) {
+    for (const cook of tickStove(this.state, dtMs)) {
       this.rewardPlayer(cook, XP_REWARDS.cookMeal);
       this.state.today.meals += 1;
       this.advanceGoal('cook');
@@ -591,7 +611,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     for (const hit of tickCreatures(this.state, dtMs, this.random, now)) {
       const player = this.state.players.get(hit.sessionId);
       if (!player || isDodging(player, now)) continue; // rolled out of the way
-      const damage = hit.damage * (1 - armorOf(player.inventory)); // worn armor softens it
+      const damage = hit.damage * (1 - armorOf(player.equipment)); // worn armor softens it
       if (hurtPlayer(player, damage)) this.fall(hit.sessionId);
     }
     for (const event of tickTraps(this.state, (playerId) => this.sessionOf(playerId))) {
@@ -779,7 +799,7 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     const player = this.activePlayer(client);
     if (!payload || !player || player.sleeping || player.downed) return;
     const slot = payload.slot < HOTBAR_SLOTS ? payload.slot : -1;
-    const weapon = getWeapon(weaponOf(itemAt(player.inventory, slot) ?? ''));
+    const weapon = getWeapon(weaponOf(slot < 0 ? '' : handItem(player, slot)));
     const now = this.clock.currentTime;
     if (now - (this.lastAttackAt.get(client.sessionId) ?? -Infinity) < weapon.cooldownMs) return;
 
@@ -840,6 +860,15 @@ export class HomeRoom extends Room<{ state: HomeState }> {
     if (!payload || !player || player.downed) return;
     if (!player.sleeping && this.state.creatures.has(payload.targetId)) {
       this.handleCreature(client, player, payload.targetId);
+      return;
+    }
+    // [E] on a dropped bag: into the backpack (as much as fits).
+    const drop = this.state.drops.get(payload.targetId);
+    if (drop) {
+      const near = Math.hypot(drop.x - player.x, drop.z - player.z);
+      if (!player.sleeping && near <= INTERACT_RANGE + INTERACT_TOLERANCE) {
+        if (pickUpDrop(this.state, payload.targetId, player) > 0) act(player, 'pick');
+      }
       return;
     }
     // [E] on a trap: pick it back up (to reset it, or move it).

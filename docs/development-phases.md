@@ -24,7 +24,9 @@ day/night, both-players-sleep to advance the day. No accounts, DB, voice, paymen
 | 12  | Exploration + bigger world | The valley is ringed by a ridge with four passes; past it four biomes (Deep Forest, Rocky Hills, Misty Lake, Old Ruins) with five landmarks, loot caches, waystones and a shared map with fog of war. A new player finds three landmarks without being told; the frame budget holds |
 | 13  | Story + quests             | Đốm the talking lantern; five chapters, one great lantern each; shared quest steps (talk, bring, visit, hunt, craft, tame, light); quest tracker and compass marker; grandpa's journal. Chapter 1 plays start to finish and both players know what to do next                       |
 
-Phases 14–16 ( fantasy monsters, home + garden, seasons) are
+| 14 | Backpack, gear + kitchen | Drop items as bags anyone can pick up; head/body/feet/back/weapon slots (worn gear counts, the partner sees it); satchel and big backpack add slots; item descriptions; small on-screen key hints; three stove pans and new dishes |
+
+Phases 15–17 (fantasy monsters, home + garden, seasons) are
 proposed in `docs/roadmap.md` and are added here one at a time as the user approves them.
 
 Success milestone: two people on two computers share a room code, cook, fight, revive each other,

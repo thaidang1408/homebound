@@ -19,6 +19,7 @@ import { promptFor } from '../../game/interaction/prompt';
 import { heldWeaponId } from '../../game/player/held';
 import { leaveRoom } from '../../networking/connection';
 import { useSession } from '../../state/session';
+import { useSettings } from '../../state/settings';
 import { useUi } from '../../state/ui';
 import { Button } from '../components/Button';
 import { ItemSlot } from '../components/ItemSlot';
@@ -58,6 +59,23 @@ function usePointerLocked(): boolean {
   return locked;
 }
 
+/** Always on screen while playing (small, bottom right): the keys you need most. */
+const HINTS: readonly [string, string][] = [
+  ['WASD', 'Move'],
+  ['Shift', 'Sprint'],
+  ['Space', 'Jump'],
+  ['Q', 'Roll'],
+  ['C', 'Sneak'],
+  ['E', 'Use'],
+  ['Click', 'Attack / eat'],
+  ['1–5', 'Hotbar'],
+  ['Tab', 'Backpack'],
+  ['M', 'Map'],
+  ['J', 'Journal'],
+  ['Enter', 'Chat'],
+  ['H', 'Hide hints'],
+];
+
 const CONTROLS: readonly [string, string][] = [
   ['WASD', 'Move'],
   ['Mouse', 'Look'],
@@ -76,6 +94,7 @@ const CONTROLS: readonly [string, string][] = [
   ['M', 'Map (click it to mark a spot)'],
   ['J', 'Grandpa’s journal (the story)'],
   ['N', 'Mute'],
+  ['H', 'Show / hide the key hints'],
   ['Esc', 'Pause'],
 ];
 
@@ -94,6 +113,7 @@ export function GameHud() {
     crouching,
   } = useUi();
   const locked = usePointerLocked();
+  const { hints } = useSettings();
   useGameKeys();
   useAmbience(room);
   if (!room) return null;
@@ -110,7 +130,7 @@ export function GameHud() {
           ? `${partner.name} is in bed`
           : `${partner.name} is here`;
   const prompt = focusId && locked ? promptFor(focusId, room.state, room.sessionId) : null;
-  const armor = me ? armorOf(me.inventory) : 0;
+  const armor = me ? armorOf(me.equipment) : 0;
   const hunger = me?.hunger ?? HUNGER_MAX;
   const health = me?.health ?? HEALTH_MAX;
   const prey = preyId ? room.state.creatures.get(preyId) : undefined;
@@ -216,7 +236,7 @@ export function GameHud() {
       {showPrey && (
         <div className={styles.prompt} data-actionable>
           <kbd className={styles.key}>Click</kbd>
-          {heldWeaponId(room) === 'spear' ? 'Stab' : 'Punch'} {preyName.toLowerCase()}
+          {heldWeaponId(room) === 'fists' ? 'Punch' : 'Stab'} {preyName.toLowerCase()}
           <span className={styles.preyTrack} aria-label="Creature health">
             <span className={styles.preyFill} style={{ width: `${preyHealth * 100}%` }} />
           </span>
@@ -289,6 +309,16 @@ export function GameHud() {
       )}
 
       <ChatBox />
+
+      {hints && locked && openPanel === 'none' && (
+        <ul className={styles.hints} aria-label="Keys">
+          {HINTS.map(([key, action]) => (
+            <li key={key}>
+              <kbd className={styles.hintKey}>{key}</kbd> {action}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {openPanel === 'inventory' && <InventoryPanel />}
       {openPanel === 'storage' && <StoragePanel />}
